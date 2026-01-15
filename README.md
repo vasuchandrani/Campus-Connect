@@ -1,6 +1,7 @@
 # 🎓 CampusConnect
 
-**CampusConnect** is a unified platform designed for colleges to streamline communication, enhance student engagement, and expand academic opportunities. Along with managing clubs, announcements, and events, the platform introduces a **university-wide digital newspaper** and a **monthly research paper publishing system**. This creates an ecosystem where information, opportunities, and academic achievements are centralized and effortlessly accessible.
+CampusConnect is a unified campus collaboration and academic platform designed to centralize communication, events, publications, and club activities within a verified college ecosystem.  
+It eliminates dependency on external tools like WhatsApp and Google Meet by providing **in-platform communication, video meetings, and academic publishing**.
 
 ---
 
@@ -10,62 +11,68 @@ Most colleges rely on scattered emails, outdated notice boards, and unorganized 
 
 ---
 
-## ✅ Solution
+## 💡 Solution
 
-CampusConnect consolidates academic, cultural, and campus-wide communication by enabling:
+CampusConnect consolidates academic, cultural, and collaborative activities into a **single verified platform** that enables:
 
-- 📰 A university digital newspaper, managed by approved student journalists, delivering daily campus updates.
-- 📚 A research paper publishing system, where students submit monthly research work for review and publication.
-- 📬 Clubs to publish targeted announcements.
-- 📝 Easy event registrations with pre-filled details.
-- 👩‍🎓 Students to follow only the clubs and sections relevant to them.
-- 🔐 Verified institution-based access for colleges, clubs, journalists, researchers, and students.
+- University-wide digital newspaper managed by approved student journalists, delivering daily campus updates.
+- A research paper publishing system, where students submit research work for review and publication.  
+- In-app video meetings for clubs  
+- Club-only broadcast messaging  
+- Event announcements and notifications  
+- One-click event registration  
+- Role-based access with institutional verification  
 
 ---
 
-## 👥 User Roles & Responsibilities
+## 👥 User Roles
 
-### 🏫 **College**
-- Registers the institution on the platform  
-- Verifies clubs and student journalists  
-- Oversees the research paper selection and publishing cycle  
-- Ensures authenticity and smooth operation across the ecosystem  
+### College
+- Registers and manages the institution
+- Verifies clubs, journalists, and research submissions
+- Oversees newspaper content and research publication cycles
+- Ensures platform authenticity and compliance
 
-### 🧑‍💼 **Club Admin**
-- Registers the club under their verified college  
-- Manages club profile and team members  
-- Publishes announcements, events, and updates  
-- Engages with subscribed students  
+### Club Admin
+- Registers and manages clubs under a verified college
+- Manages club members and permissions
+- Publishes announcements and events
+- Schedules and hosts in-platform video meetings
+- Sends broadcast messages to all club members
 
-### 🧑‍🤝‍🧑 **Club Members**
+### Club Members
 - Access club features based on assigned permissions  
-- Support content posting, event management, or profile updates  
+- Support content posting, event management, or profile updates
+- Join club video meetings
+- Sends broadcast messages to all club members
 
-### 👩‍🎓 **Students**
-- Join using verified institutional credentials  
-- Subscribe to clubs of interest  
+### Students
+- Register using verified institutional credentials
+- Subscribe to clubs of interest
 - Receive instant updates and notifications  
 - Register for events with one click  
-- Submit monthly research papers for evaluation and publication  
-- Read the university digital newspaper  
+- Submit research papers for evaluation and publication  
+- Read the university digital newspaper
 
-### 📰 **Journalists (Student Role)**
+### Journalists (Student Role)
 - Approved by the college  
 - Collect and publish campus news, academic updates, and event highlights  
 - Maintain the quality and accuracy of the university newspaper  
 
 ---
 
-## 📲 Key Features
+## ✨ Key Features
 
-- 📰 University Digital Newspaper  
-- 📚 Monthly Research Paper Submission & Publication  
-- 🎯 Interest-Based Club Updates  
-- 🔔 Real-Time Notifications  
-- 📝 Dynamic Event Registration  
-- 🔐 Role-Based Access for All User Types  
-- 🏛️ Verified Multi-College Support  
-- 📦 Optimized Announcement & Event Management  
+- University Digital Newspaper  
+- Research Paper Submission & Publication  
+- In-App Video Calling for Clubs  
+- Club-Only Broadcast Messaging System  
+- Interest-Based Club Subscriptions  
+- Real-Time Notifications  
+- Dynamic Event Registration  
+- Role-Based Access Control  
+- Verified Multi-College Support  
+- Centralized Campus Communication  
 
 ---
 
