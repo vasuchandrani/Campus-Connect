@@ -4,6 +4,7 @@ import com.campusconnect.campusconnectbackend.college.College;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -36,10 +37,14 @@ public class Student {
     @Column(nullable = false)
     private int year;
 
+    @CreationTimestamp
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @Column(name = "is_verified", nullable = false)
+    private boolean isVerified = false;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "college_id")
     private College college;
-
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
 }

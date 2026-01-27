@@ -3,6 +3,7 @@ package com.campusconnect.campusconnectbackend.college;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -28,6 +29,7 @@ public class College {
     @Column(name = "is_active")
     private Boolean isActive = false;
 
+    @CreationTimestamp
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -36,4 +38,7 @@ public class College {
 
     @Column(name = "logo")
     private String logo;
+
+    @Column(name = "is_verified",  nullable = false)
+    private boolean isVerified = false;
 }

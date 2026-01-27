@@ -4,6 +4,7 @@ import com.campusconnect.campusconnectbackend.college.College;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -29,11 +30,12 @@ public class CollegeAdmin {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
+    @CreationTimestamp
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "college_id", nullable = false)
     private College College;
-
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
 }
 

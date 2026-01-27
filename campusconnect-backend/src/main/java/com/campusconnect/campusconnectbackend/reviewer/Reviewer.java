@@ -4,6 +4,7 @@ import com.campusconnect.campusconnectbackend.college.College;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -26,11 +27,12 @@ public class Reviewer {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
+    @CreationTimestamp
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "college_id")
     private College college;
-
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
 }
 

@@ -5,6 +5,7 @@ import com.campusconnect.campusconnectbackend.student.Student;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -24,6 +25,13 @@ public class Journalist {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
+    @CreationTimestamp
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @Column(name = "is_active")
+    private boolean isActive = true;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "email",                  // journalist.email
@@ -36,11 +44,5 @@ public class Journalist {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "college_id")
     private College  college;
-
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-
-    @Column(name = "is_active")
-    private boolean isActive = true;
 }
 

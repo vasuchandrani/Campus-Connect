@@ -9,28 +9,20 @@ import com.campusconnect.campusconnectbackend.journalist.service.JournalistAuth;
 import com.campusconnect.campusconnectbackend.reviewer.service.ReviewerAuth;
 import com.campusconnect.campusconnectbackend.student.Student;
 import com.campusconnect.campusconnectbackend.student.service.StudentService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class JournalistReviewerService {
 
     private final CollegeAdminRepository collegeAdminRepository;
     private final StudentService studentService;
     private final JournalistAuth journalistAuth;
     private final ReviewerAuth reviewerAuth;
-
-    public JournalistReviewerService(
-            CollegeAdminRepository collegeAdminRepository,
-            StudentService studentService,
-            JournalistAuth journalistAuth, ReviewerAuth reviewerAuth) {
-        this.collegeAdminRepository = collegeAdminRepository;
-        this.studentService = studentService;
-        this.journalistAuth = journalistAuth;
-        this.reviewerAuth = reviewerAuth;
-    }
 
     public College getCollege () {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

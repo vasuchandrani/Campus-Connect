@@ -1,7 +1,7 @@
 package com.campusconnect.campusconnectbackend.security.auth;
 
 import com.campusconnect.campusconnectbackend.college_admin.service.CollegeAdminAuth;
-import com.campusconnect.campusconnectbackend.dto.request.SigninRequestDto;
+import com.campusconnect.campusconnectbackend.dto.request.LoginRequestDto;
 import com.campusconnect.campusconnectbackend.dto.request.SignupRequestDto;
 import com.campusconnect.campusconnectbackend.dto.request.collegeadmin.CollegeAdminSignupRequestDto;
 import com.campusconnect.campusconnectbackend.dto.request.student.StudentSignupRequestDto;
@@ -48,7 +48,7 @@ public class AuthService {
     }
 
 
-    public AuthResponseDto signin(SigninRequestDto request) {
+    public AuthResponseDto login(LoginRequestDto request) {
 
         // extract role from request obj
         String role = request.getRole();

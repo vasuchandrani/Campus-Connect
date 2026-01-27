@@ -1,7 +1,7 @@
 package com.campusconnect.campusconnectbackend.student.service;
 
 import com.campusconnect.campusconnectbackend.college.service.CollegeService;
-import com.campusconnect.campusconnectbackend.dto.request.SigninRequestDto;
+import com.campusconnect.campusconnectbackend.dto.request.LoginRequestDto;
 import com.campusconnect.campusconnectbackend.dto.request.student.StudentSignupRequestDto;
 import com.campusconnect.campusconnectbackend.dto.response.AuthResponseDto;
 import com.campusconnect.campusconnectbackend.student.StudentRepository;
@@ -66,7 +66,7 @@ public class StudentAuth {
         );
     }
 
-    public AuthResponseDto authenticate(SigninRequestDto request) {
+    public AuthResponseDto authenticate(LoginRequestDto request) {
 
         String compositeUsername = "STUDENT:" + request.getEmail();
 
