@@ -1,6 +1,6 @@
 package com.campusconnect.campusconnectbackend.security.auth;
 
-import com.campusconnect.campusconnectbackend.dto.request.SigninRequestDto;
+import com.campusconnect.campusconnectbackend.dto.request.LoginRequestDto;
 import com.campusconnect.campusconnectbackend.dto.request.SignupRequestDto;
 import com.campusconnect.campusconnectbackend.dto.request.collegeadmin.CollegeAdminSignupRequestDto;
 import com.campusconnect.campusconnectbackend.dto.request.student.StudentSignupRequestDto;
@@ -22,10 +22,10 @@ public class AuthController {
             @RequestBody StudentSignupRequestDto request) {
         return authService.signup((SignupRequestDto) request);
     }
-    @PostMapping("/student/signin")
-    public AuthResponseDto studentSignin(
-            @RequestBody SigninRequestDto request) {
-        return authService.signin(request);
+    @PostMapping("/student/login")
+    public AuthResponseDto studentLogin(
+            @RequestBody LoginRequestDto request) {
+        return authService.login(request);
     }
 
 
@@ -36,29 +36,28 @@ public class AuthController {
     ) {
         return authService.signup(request);
     }
-
-    @PostMapping("/college-admin/signin")
-    public AuthResponseDto collegeAdminSignin(
-            @RequestBody SigninRequestDto request
+    @PostMapping("/college-admin/login")
+    public AuthResponseDto collegeAdminLogin(
+            @RequestBody LoginRequestDto request
     ) {
-        return authService.signin(request);
+        return authService.login(request);
     }
 
 
     // journalist
-    @PostMapping("/journalist/signin")
-    public AuthResponseDto journalistSignin(
-            @RequestBody SigninRequestDto request
+    @PostMapping("/journalist/login")
+    public AuthResponseDto journalistLogin(
+            @RequestBody LoginRequestDto request
     ) {
-        return authService.signin(request);
+        return authService.login(request);
     }
 
     // reviewer
-    @PostMapping("/reviewer/signin")
-    public AuthResponseDto reviewerSignin(
-            @RequestBody SigninRequestDto request
+    @PostMapping("/reviewer/login")
+    public AuthResponseDto reviewerLogin(
+            @RequestBody LoginRequestDto request
     ) {
-        return authService.signin(request);
+        return authService.login(request);
     }
 
     // testing

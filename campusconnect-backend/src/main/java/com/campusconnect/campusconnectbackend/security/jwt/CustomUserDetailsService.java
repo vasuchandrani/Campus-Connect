@@ -1,4 +1,4 @@
-package com.campusconnect.campusconnectbackend.security.auth;
+package com.campusconnect.campusconnectbackend.security.jwt;
 
 import com.campusconnect.campusconnectbackend.college_admin.CollegeAdminRepository;
 import com.campusconnect.campusconnectbackend.journalist.JournalistRepository;

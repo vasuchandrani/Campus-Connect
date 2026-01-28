@@ -1,12 +1,13 @@
 package com.campusconnect.campusconnectbackend.reviewer.service;
 
 import com.campusconnect.campusconnectbackend.college.College;
-import com.campusconnect.campusconnectbackend.dto.request.SigninRequestDto;
+import com.campusconnect.campusconnectbackend.dto.request.LoginRequestDto;
 import com.campusconnect.campusconnectbackend.dto.request.reviewer.ReviewerSignupRequestDto;
 import com.campusconnect.campusconnectbackend.dto.response.AuthResponseDto;
 import com.campusconnect.campusconnectbackend.reviewer.ReviewerRepository;
 import com.campusconnect.campusconnectbackend.reviewer.Reviewer;
 import com.campusconnect.campusconnectbackend.security.jwt.JwtTokenProvider;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -15,19 +16,13 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 
 @Service
+@RequiredArgsConstructor
 public class ReviewerAuth {
 
     private final ReviewerRepository reviewerRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthenticationManager authenticationManager;
     private final PasswordEncoder passwordEncoder;
-
-    public ReviewerAuth(ReviewerRepository reviewerRepository, JwtTokenProvider jwtTokenProvider, AuthenticationManager authenticationManager, PasswordEncoder passwordEncoder) {
-        this.reviewerRepository = reviewerRepository;
-        this.jwtTokenProvider = jwtTokenProvider;
-        this.authenticationManager = authenticationManager;
-        this.passwordEncoder = passwordEncoder;
-    }
 
     public Boolean store(ReviewerSignupRequestDto request, College college) {
         try {
@@ -49,7 +44,7 @@ public class ReviewerAuth {
         }
     }
 
-    public AuthResponseDto authenticate(SigninRequestDto request) {
+    public AuthResponseDto authenticate(LoginRequestDto request) {
 
         String compositeUsername = "REVIEWER:" + request.getEmail();
 

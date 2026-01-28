@@ -10,8 +10,6 @@ import lombok.Setter;
 @Setter
 public class JournalistSignupRequestDto implements SignupRequestDto {
 
-    public JournalistSignupRequestDto() {}
-
     @Override
     public String getRole() {
         return "JOURNALIST";

@@ -1,4 +1,4 @@
-package com.campusconnect.campusconnectbackend.security.auth;
+package com.campusconnect.campusconnectbackend.security.jwt;
 
 import org.jspecify.annotations.NullMarked;
 import org.springframework.security.core.GrantedAuthority;
