@@ -7,6 +7,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,7 +27,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-                .csrf(csrf -> csrf.disable())
+                .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
@@ -35,13 +36,17 @@ public class SecurityConfig {
                         // public routes
                         .requestMatchers(
                                 "/campus-connect/college-admin/signup",
-                                "/campus-connect/college-admin/signin",
+                                "/campus-connect/college-admin/login",
 
                                 "/campus-connect/student/signup",
-                                "/campus-connect/student/signin",
+                                "/campus-connect/student/login",
 
-                                "/campus-connect/journalist/signin",
-                                "/campus-connect/reviewer/signin"
+                                "/campus-connect/journalist/login",
+                                "/campus-connect/reviewer/login",
+
+                                "/campus-connect/colleges",
+
+                                "/campus-connect/email/**"
                         ).permitAll()
 
                         // Role-based routes
