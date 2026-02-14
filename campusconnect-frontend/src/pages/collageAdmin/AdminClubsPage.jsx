@@ -1,0 +1,657 @@
+import { useEffect, useState } from "react";
+import DashboardLayout from "../../components/dashboard/DashboardLayout";
+import { Card, CardContent } from "../../components/ui/Card";
+import { Button } from "../../components/ui/Button";
+import { Badge } from "../../components/ui/Badge";
+import { Input } from "../../components/ui/Input";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "../../components/ui/Tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "../../components/ui/Dialog";
+import {
+  Users,
+  Search,
+  CheckCircle,
+  XCircle,
+  Eye,
+  MoreVertical,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../../components/ui/DropdownMenu";
+import { useNavigate } from "react-router-dom";
+import { collegeAdminNavItems } from "../../config/Navigation";
+import { toast } from "../../hooks/use-toast";
+
+const navItems = collegeAdminNavItems;
+
+const AdminClubsPage = () => {
+
+  const navigate = useNavigate();
+
+
+  // Base URL for all API calls in this page
+  const baseUrl ="http://localhost:8080/campus-connect/college-admin";
+
+
+  // State variables
+  const [searchQuery, setSearchQuery] = useState("");
+  const [reviewClub, setReviewClub] = useState(null);
+  const [clubs, setClubs] = useState([]);
+  const [pendingClubs, setPendingClubs] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [viewAnnouncement, setViewAnnouncement] = useState(null);
+  const [viewEvent, setViewEvent] = useState(null);
+
+
+  //Approve club request
+  const approveClub = (clubId) => {
+    fetch(`${baseUrl}/club-request/${clubId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    })
+      .then(async (res) => {
+        const ok = await res.text();
+        if (ok) {
+          toast({
+            title: "Club approved",
+            description: "The club request has been approved successfully.",
+            status: "success",
+          });
+          fetchClubRequest(); // Refresh pending clubs list
+          fetchClubs(); // Refresh active clubs list
+        }      
+      })
+      .catch((err) => toast({
+        title: "Error",
+        description: "Failed to approve club request",
+        status: "error",
+      }));
+  };
+
+  //fetch Announcements
+  const fetchAnnouncements = () => {
+    fetch(`${baseUrl}/announcements`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setAnnouncements(data);
+      })
+      .catch((err) => toast({
+        title: "Error",
+        description: "Failed to fetch announcements",
+        status: "error",
+      }));
+  };
+
+  //Delete club request
+  const deleteClubRequest=(clubId) => {
+    fetch(`${baseUrl}/club-request/${clubId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    })
+      .then((res) => {
+        if (res.ok) {
+          fetchClubRequest(); 
+          toast({
+            title: "Club request rejected",
+            description: "The club request has been rejected successfully.",
+            status: "success",
+          });
+        }
+      })
+      .catch((err) => toast({
+        title: "Error",
+        description: "Failed to reject club request",
+        status: "error",
+      }));
+  };
+
+  //fetch pending club requests
+  const fetchClubRequest = () => {
+    fetch(`${baseUrl}/club-request`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setPendingClubs(data);
+      })
+      .catch((err) => toast({
+        title: "Error",
+        description: "Failed to fetch club requests",
+        status: "error",
+      }));
+  };
+
+  //fetch events
+  const fetchEvents = () => {
+    fetch(`${baseUrl}/events`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setEvents(data);
+      })
+      .catch((err) => toast({
+        title: "Error",
+        description: "Failed to fetch events",
+        status: "error",
+      }));
+  };
+
+  //fetch clubs
+  const fetchClubs = () => {
+    fetch(`${baseUrl}/clubs`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setClubs(data);
+      })
+      .catch((err) => toast({
+        title: "Error",
+        description: "Failed to fetch clubs",
+        status: "error",
+      }));
+  };
+
+
+  //load data on component mount
+  useEffect(() => {
+    fetchClubs();
+    fetchClubRequest();
+    fetchAnnouncements();
+    fetchEvents();
+  }, []);
+
+  //for searching
+  const filteredClubs = clubs.filter((club) =>
+    club.name.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+
+  const filteredPendingClubs = pendingClubs.filter((club) =>
+    club.clubName.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+  const filteredAnnouncements = announcements.filter((a) =>
+    a.title.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+  const filteredEvents = events.filter((e) =>
+    e.title.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+
+  //-----------------------------UI----------------------------//
+  return (
+    <DashboardLayout navItems={navItems} title="Manage Clubs">
+      
+      <div className="space-y-6">
+        {/* Page Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">Clubs Management</h1>
+            <p className="text-muted-foreground">Manage all registered clubs</p>
+          </div>
+
+          <div className="relative w-full md:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search ..."
+              className="pl-10"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Tabs for Active Clubs, Pending Requests, Announcements, Events */}
+        <Tabs defaultValue="active">
+          <TabsList>
+            <TabsTrigger value="active">
+              Active Clubs ({clubs.length})
+            </TabsTrigger>
+            <TabsTrigger value="pending">
+              Pending Approval ({pendingClubs.length})
+            </TabsTrigger>
+            <TabsTrigger value="announcements">
+              Announcements ({announcements.length})
+            </TabsTrigger>
+
+            <TabsTrigger value="events">Events ({events.length})</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="active" className="mt-6">
+            {/* Clubs Grid */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredClubs.map((club) => (
+                <Card
+                  key={club.id}
+                  className="cursor-pointer hover:shadow-lg transition"
+                  onClick={() =>
+                    navigate(`/campus-connect/college-admin/clubs/${club.id}`)
+                  }
+                >
+                  {/* Image + 3-dot menu */}
+                  <div className="relative">
+                    <img
+                      src={club.logoUrl}
+                      alt={club.name}
+                      className="w-full h-40 object-cover rounded-t-lg"
+                    />
+
+                    {/* 3-dot dropdown */}
+                    <div className="absolute top-2 right-2 z-20">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="bg-white/80 hover:bg-white"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(
+                                `/campus-connect/college-admin/clubs/${club.id}`,
+                              );
+                            }}
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Details
+                          </DropdownMenuItem>
+
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Suspend Club
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+
+                  {/* Card Content */}
+                  <CardContent className="p-5 pt-4">
+                    <div className="flex justify-between mb-3">
+                      <div>
+                        <h3 className="text-lg font-semibold">{club.name}</h3>
+                      </div>
+
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Users className="w-4 h-4" />
+                        {club.members}
+                      </div>
+                    </div>
+
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {club.description.substring(0, 40) +
+                        (club.description.length > 40 ? "..." : "")}
+                    </p>
+
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(
+                          `/campus-connect/college-admin/clubs/${club.id}`,
+                        );
+                      }}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      View Details
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="pending" className="mt-6">
+            {/* Dialog for pending club requests */}
+            <Dialog
+              open={!!reviewClub}
+              onOpenChange={(open) => !open && setReviewClub(null)}
+            >
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Review Club Request</DialogTitle>
+                  <DialogDescription>
+                    Review the details of this club registration request
+                  </DialogDescription>
+                </DialogHeader>
+
+                {reviewClub && (
+                  <div className="space-y-4 pt-4">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Club Name
+                      </p>
+                      <p className="font-semibold text-lg">
+                        {reviewClub.clubName}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Description
+                      </p>
+                      <p>{reviewClub.clubDescription}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Submitted By
+                      </p>
+                      <p>
+                        {reviewClub.studentName} on{" "}
+                        {reviewClub.createdAt.split("T")[0]}
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        variant="outline"
+                        className="flex-1 text-destructive"
+                        onClick={() => {
+                          deleteClubRequest(reviewClub.id);
+                          setReviewClub(null);
+                        }}
+                      >
+                        <XCircle className="w-4 h-4 mr-2" />
+                        Reject
+                      </Button>
+
+                      <Button
+                        className="flex-1"
+                        onClick={() => {
+                          approveClub(reviewClub.id);
+                          setReviewClub(null);
+                        }}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Approve
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+
+            {/* Pending Clubs List */}
+            <div className="space-y-4">
+              {filteredPendingClubs.map((club) => (
+                <Card key={club.id} className="border-border/50">
+                  <CardContent className="p-6 pt-4">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div>
+                        <h3 className="text-xl font-semibold">
+                          {club.clubName}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          Submitted by {club.studentName} on{" "}
+                          {club.createdAt.split("T")[0]}
+                        </p>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setReviewClub(club);
+                          }}
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          Review
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="text-destructive"
+                          onClick={() => {
+                            deleteClubRequest(club.id);
+                          }}
+                        >
+                          <XCircle className="w-4 h-4 mr-2" />
+                          Reject
+                        </Button>
+                        <Button onClick={() => approveClub(club.id)}>
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Approve
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="announcements" className="mt-6">
+            {/* Dialog for viewing announcement details */}
+            <Dialog
+              open={!!viewAnnouncement}
+              onOpenChange={(open) => !open && setViewAnnouncement(null)}
+            >
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Announcement Details</DialogTitle>
+                </DialogHeader>
+
+                {viewAnnouncement && (
+                  <div className="space-y-4 pt-4">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Title
+                      </p>
+                      <p className="font-semibold text-lg">
+                        {viewAnnouncement.title}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Date
+                      </p>
+                      <p>{viewAnnouncement.createdAt.split("T")[0]} at {viewAnnouncement.createdAt.split("T")[1].split(".")[0]}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Description
+                      </p>
+                      <p>{viewAnnouncement.content}</p>
+                    </div>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+
+              {/* Announcements List */}
+            <div className="space-y-4">
+              {filteredAnnouncements.map((announcement) => (
+                <Card key={announcement.id} className="relative pt-4">
+                  <CardContent className="p-6">
+                    {/* 🔹 Top Row: Title + Eye Button */}
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <div className="flex gap-2 mb-1">
+                          <Badge variant="outline">
+                            {announcement.clubName}
+                          </Badge>
+                        </div>
+                        <h3 className="text-lg font-semibold">
+                          {announcement.title}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {announcement.createdAt.split("T")[0]} at {announcement.createdAt.split("T")[1].split(".")[0]}
+                        </p>
+                      </div>
+
+                      {/* 👁 Eye Button */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setViewAnnouncement(announcement)}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    </div>
+
+                    {/* 🔹 Description */}
+                    <p className="text-sm text-muted-foreground">
+                      {announcement.content.substring(0, 35) +
+                        (announcement.content.length > 35 ? "..." : "")}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="events" className="mt-6">
+            {/* Event Details Dialog */}
+            <Dialog
+              open={!!viewEvent}
+              onOpenChange={(open) => !open && setViewEvent(null)}
+            >
+              <DialogContent className="max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Event Details</DialogTitle>
+                  <DialogDescription>
+                    Review the details of this event
+                  </DialogDescription>
+                </DialogHeader>
+
+                {viewEvent && (
+                  <div className="space-y-4 pt-4">
+                    <p>
+                      <strong>Title:</strong> {viewEvent.title}
+                    </p>
+
+                    {viewEvent.description && (
+                      <p>
+                        <strong>Description:</strong> {viewEvent.description}
+                      </p>
+                    )}
+
+                    {viewEvent.eventDate && (
+                      <p>
+                        <strong>Date & Time:</strong>{" "}
+                        {viewEvent.eventDate.split("T")[0]} •{" "}
+                        {viewEvent.eventDate.split("T")[1]}
+                      </p>
+                    )}
+
+                    <p>
+                      <strong>Location:</strong> {viewEvent.location}
+                    </p>
+
+                    {viewEvent.clubName && (
+                      <p>
+                        <strong>Club:</strong> {viewEvent.clubName}
+                      </p>
+                    )}
+
+                    {viewEvent.registrationEnd && (
+                      <p>
+                        <strong>Registration End:</strong>{" "}
+                        {viewEvent.registrationEnd.split("T")[0]} •{" "}
+                        {viewEvent.registrationEnd.split("T")[1]}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+
+            {/* Events Grid */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredEvents.map((event) => (
+                <Card
+                  key={event.id}
+                  className="border-border/50 overflow-hidden"
+                >
+                  <img
+                    src={event.image}
+                    alt={event.title}
+                    className="w-full h-40 object-cover"
+                  />
+
+                  <CardContent className="p-5 pt-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      {event.clubName && (
+                        <Badge variant="outline">{event.clubName}</Badge>
+                      )}
+                    </div>
+
+                    <h4 className="font-semibold mb-2">{event.title}</h4>
+
+                    {event.description && (
+                      <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                        {event.description.substring(0, 40) +
+                          (event.description.length > 40 ? "..." : "")}
+                      </p>
+                    )}
+
+                    {/* ONLY DETAILS BUTTON */}
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => setViewEvent(event)}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      Details
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </DashboardLayout>
+  );
+};
+
+export default AdminClubsPage;
