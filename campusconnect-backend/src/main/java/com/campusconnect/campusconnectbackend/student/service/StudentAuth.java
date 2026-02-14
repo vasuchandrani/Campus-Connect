@@ -7,6 +7,7 @@ import com.campusconnect.campusconnectbackend.dto.response.AuthResponseDto;
 import com.campusconnect.campusconnectbackend.student.StudentRepository;
 import com.campusconnect.campusconnectbackend.security.jwt.JwtTokenProvider;
 import com.campusconnect.campusconnectbackend.student.Student;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -15,26 +16,13 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 
 @Service
+@RequiredArgsConstructor
 public class StudentAuth {
     private final StudentRepository studentRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthenticationManager authenticationManager;
     private final CollegeService collegeService;
-
-    public StudentAuth(
-            StudentRepository studentRepository,
-            PasswordEncoder passwordEncoder,
-            JwtTokenProvider jwtTokenProvider,
-            AuthenticationManager authenticationManager,
-            CollegeService collegeService
-    ) {
-        this.studentRepository = studentRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtTokenProvider = jwtTokenProvider;
-        this.authenticationManager = authenticationManager;
-        this.collegeService = collegeService;
-    }
 
     public AuthResponseDto store(StudentSignupRequestDto request) {
 
@@ -79,7 +67,7 @@ public class StudentAuth {
 
         Student student = studentRepository
                 .findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found after successful authentication"));
+                .orElseThrow(() -> new RuntimeException("User not found, Try again!"));
 
         // generate jwt-token
         String token = jwtTokenProvider.generateToken(

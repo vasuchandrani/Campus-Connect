@@ -36,6 +36,6 @@ public class CollegeAdmin {
 
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "college_id", nullable = false)
-    private College College;
+    private College college;
 }
 

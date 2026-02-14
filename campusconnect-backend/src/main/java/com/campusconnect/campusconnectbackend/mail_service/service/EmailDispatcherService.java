@@ -3,7 +3,8 @@ package com.campusconnect.campusconnectbackend.mail_service.service;
 import com.campusconnect.campusconnectbackend.mail_service.dto.club_verification.ClubVerificationDto;
 import com.campusconnect.campusconnectbackend.mail_service.dto.club_verification.ClubVerifiedDto;
 import com.campusconnect.campusconnectbackend.mail_service.dto.college_verification.CollegeVerificationDto;
-import com.campusconnect.campusconnectbackend.mail_service.dto.jounalist_reviewer.AssignmentDto;
+import com.campusconnect.campusconnectbackend.mail_service.dto.journalist.JournalistAssignmentDto;
+import com.campusconnect.campusconnectbackend.mail_service.dto.reviewer.ReviewerAssignmentDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -66,8 +67,8 @@ public class EmailDispatcherService {
         );
     }
 
-    // send jounalist-request-approval mail to student
-    public boolean sendJournalistRequestAccepted(AssignmentDto request) {
+    // send journalist-request-approval mail to student
+    public boolean sendJournalistRequestAccepted(JournalistAssignmentDto request) {
         String html = emailSenderService
                 .loadEmailTemplate("journalist_assigned.html")
                 .replace("{{PASSWORD}}", request.getPassword())
@@ -81,7 +82,7 @@ public class EmailDispatcherService {
     }
 
     // send assigned as reviewer mail to prof
-    public boolean sendReviewerAssigned(AssignmentDto request) {
+    public boolean sendReviewerAssigned(ReviewerAssignmentDto request) {
         String html = emailSenderService
                 .loadEmailTemplate("reviewer_assigned.html")
                 .replace("{{PASSWORD}}", request.getPassword())

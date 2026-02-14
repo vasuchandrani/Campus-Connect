@@ -8,7 +8,6 @@ import org.jspecify.annotations.NullMarked;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -32,37 +31,43 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        // extract token from req-header
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
+
             String token = authHeader.substring(7);
 
-            // validate
             if (jwtTokenProvider.validateToken(token)) {
 
-                // extract details from token
                 Long userId = jwtTokenProvider.getUserId(token);
+                Long collegeId = jwtTokenProvider.getCollegeId(token);
                 String role = jwtTokenProvider.getRole(token);
 
-                SimpleGrantedAuthority authority =
-                        new SimpleGrantedAuthority("ROLE_" + role);
+                UsernamePasswordAuthenticationToken authentication = getSecurityContextToken(userId, collegeId, role);
 
-                // set authenticate obj
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                userId,
-                                null,
-                                List.of(authority)
-                        );
-                authentication.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request)
-                );
-
+                // store token in security context
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    // build token for send to security context
+    private static UsernamePasswordAuthenticationToken getSecurityContextToken(Long userId, Long collegeId, String role) {
+        CustomUserDetails principal =
+                new CustomUserDetails(
+                        userId,
+                        collegeId,
+                        null,
+                        null,
+                        role
+                );
+
+        return new UsernamePasswordAuthenticationToken(
+                principal,
+                null,
+                List.of(new SimpleGrantedAuthority("ROLE_" + role))
+        );
     }
 }

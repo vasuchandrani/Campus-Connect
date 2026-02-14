@@ -1,17 +1,13 @@
 package com.campusconnect.campusconnectbackend.journalist.service;
 
-import com.campusconnect.campusconnectbackend.college.College;
 import com.campusconnect.campusconnectbackend.dto.request.LoginRequestDto;
-import com.campusconnect.campusconnectbackend.dto.request.journalist.JournalistSignupRequestDto;
 import com.campusconnect.campusconnectbackend.dto.response.AuthResponseDto;
-import com.campusconnect.campusconnectbackend.journalist.Journalist;
-import com.campusconnect.campusconnectbackend.journalist.JournalistRepository;
+import com.campusconnect.campusconnectbackend.journalist.entity.Journalist;
+import com.campusconnect.campusconnectbackend.journalist.repository.JournalistRepository;
 import com.campusconnect.campusconnectbackend.security.jwt.JwtTokenProvider;
-import com.campusconnect.campusconnectbackend.student.Student;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -20,26 +16,6 @@ public class JournalistAuth {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
     private final JournalistRepository journalistRepository;
-    private final PasswordEncoder passwordEncoder;
-
-    public Boolean store(JournalistSignupRequestDto request, College college, Student student) {
-        try {
-            // create journalist
-            Journalist journalist = new Journalist();
-            journalist.setFullName(request.getFullName().trim());
-            journalist.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-            journalist.setStudent(student);
-            journalist.setCollege(college);
-
-            // save in db
-            journalistRepository.save(journalist);
-            return true;
-        }
-        catch (Exception ex) {
-            System.out.println("Something went wrong "+ ex.getMessage());
-            return false;
-        }
-    }
 
     public AuthResponseDto authenticate(LoginRequestDto request) {
         String compositeUsername = "JOURNALIST:" + request.getEmail();
