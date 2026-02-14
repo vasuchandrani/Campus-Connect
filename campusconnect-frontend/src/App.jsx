@@ -2,12 +2,63 @@ import { Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import './App.css'
+import StudentDashboard from "./pages/student/StudentDashboard";
+import ClubDetailPage from "./pages/student/ClubDetailPage";
+import ClubsPage from "./pages/student/ClubsPage";
+import AnnouncementsPage from "./pages/student/AnnouncementsPage";
+import EventsPage from "./pages/student/EventsPage";
+import CollegeAdminDashboard from "./pages/collageAdmin/CollegeAdminDashboard";
+import AdminClubsPage from "./pages/collageAdmin/AdminClubsPage";
+import AdminUsersPage from "./pages/collageAdmin/AdminUsersPage";
+import NotFound from "./pages/NotFound";
+import ClubDetailAdminPage from "./pages/collageAdmin/ClubDetailAdminPage";
+import ClubAdminDashboard from "./pages/club-admin/ClubAdminDashboard";
+import ClubAdminAnnouncementsPage from "./pages/club-admin/ClubAdminAnnouncementsPage";
+import ClubAdminTeamsPage from "./pages/club-admin/ClubAdminTeamsPage";
+import ClubAdminEventsPage from "./pages/club-admin/ClubAdminEventsPage";
+import ClubAdminMembersPage from "./pages/club-admin/ClubAdminMembersPage";
+import ClubMemberDashboard from "./pages/club-member/ClubMemberDashboard";
+import ClubMemberAnnouncementsPage from "./pages/club-member/ClubMemberAnnouncementsPage";
+import ClubMemberEventsPage from "./pages/club-member/ClubMemberEventsPage";
+import ClubMembersPage from "./pages/club-member/ClubMembersPage";
+import ClubMemberTeamsPage from "./pages/club-member/ClubMemberTeamsPage";
 
 function App() {
   return (
     <Routes>
       <Route path="/auth" element={<Auth />} />
       <Route path="/" element={<Index />} />
+
+      <Route path="/campus-connect/journalist-dashboard" element={<div>Journalist Dashboard</div>} />
+      <Route path="/campus-connect/admin-dashboard" element={<div>Admin Dashboard</div>} />
+      <Route path="/campus-connect/reviewer-dashboard" element={<div>Reviewer Dashboard</div>} />
+
+      <Route path="/campus-connect/student/dashboard" element={<StudentDashboard />} />
+      <Route path="/campus-connect/student/clubs/:clubId" element={<ClubDetailPage />} />
+      <Route path="/campus-connect/student/clubs" element={<ClubsPage />} />
+      <Route path="/campus-connect/student/announcements" element={<AnnouncementsPage />} />
+      <Route path="/campus-connect/student/newspaper" element={<div>Newspaper Page</div>} />
+      <Route path="/campus-connect/student/research" element={<div>Research Page</div>} />
+      <Route path="/campus-connect/student/events" element={<EventsPage />} />
+
+      <Route path="/campus-connect/college-admin/dashboard" element={<CollegeAdminDashboard />} />
+      <Route path="/campus-connect/college-admin/clubs" element={<AdminClubsPage />} />
+      <Route path="/campus-connect/college-admin/users" element={<AdminUsersPage />} />
+      <Route path="/campus-connect/college-admin/clubs/:clubId" element={<ClubDetailAdminPage />} />
+
+      <Route path="/campus-connect/club-admin/:clubId/dashboard" element={<ClubAdminDashboard />} />
+      <Route path="/campus-connect/club-admin/:clubId/announcements" element={<ClubAdminAnnouncementsPage />} />
+      <Route path="/campus-connect/club-admin/:clubId/teams" element={<ClubAdminTeamsPage />} />
+      <Route path="/campus-connect/club-admin/:clubId/events" element={<ClubAdminEventsPage />} />
+      <Route path="/campus-connect/club-admin/:clubId/members" element={<ClubAdminMembersPage />} />
+
+      <Route path="/campus-connect/club-member/:clubId/dashboard" element={<ClubMemberDashboard />} />
+      <Route path="/campus-connect/club-member/:clubId/announcements" element={<ClubMemberAnnouncementsPage />} />
+      <Route path="/campus-connect/club-member/:clubId/events" element={<ClubMemberEventsPage />} />
+      <Route path="/campus-connect/club-member/:clubId/members" element={<ClubMembersPage/>} />
+      <Route path="/campus-connect/club-member/:clubId/teams" element={<ClubMemberTeamsPage />} />
+          
+      <Route path="*" element={<NotFound />} /> 
     </Routes>
   );
 }

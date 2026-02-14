@@ -4,19 +4,11 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [journalists, setJournalists] = useState([]);
-  const [reviewers, setReviewers] = useState([]);
-  const [students, setStudents] = useState([]);
-
   // set auth token in local storage
   const setToken = (token) => {
     localStorage.setItem("authToken", token);
   };
 
-  // get auth token from local storage
-  const getToken = () => {
-    return localStorage.getItem("authToken");
-  };
 
   // handle login for different roles
   const login = async (email, password, role) => {
@@ -55,7 +47,7 @@ export const AuthProvider = ({ children }) => {
 
     if (data && data.token) {
       setToken(data.token);
-      setUser({"email":email,"role":role});
+      setUser({ email, role });
       return data.redirectUrl; 
     }
     
@@ -85,7 +77,7 @@ export const AuthProvider = ({ children }) => {
 
       const data = await res.json();
       setToken(data.token);
-      setUser({"email":payload.email,"role":"COLLEGE_ADMIN"});
+      setUser({ email: payload.email, role: "COLLEGE_ADMIN" });
       return data.redirectUrl; 
     }
     catch(error) {
@@ -113,15 +105,12 @@ const studentSignup = async (formData) => {
     const data = await response.json();
 
     setUser({
-      id: formData.id,
-      name: formData.fullName,
       email: formData.email,
       role: "STUDENT",
       college: formData.collegeName,
     });
 
     setToken(data.token);
-    setStudents([...students, formData]);
     return data.redirectUrl;
   } catch (error) {
     console.error("Register student error:", error);
@@ -131,19 +120,16 @@ const studentSignup = async (formData) => {
 
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        login,
-        logout,
-        isAuthenticated: !!user,
-        collegeSignup,
-        studentSignup,
-        journalists,
-        reviewers,
-        students,
-      }}
-    >
+<AuthContext.Provider
+  value={{
+    login,
+    logout,
+    collegeSignup,
+    studentSignup,
+    user,
+  }}
+>
+
       {children}
     </AuthContext.Provider>
   );
