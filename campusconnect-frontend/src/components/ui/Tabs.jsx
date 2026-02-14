@@ -23,7 +23,13 @@ function TabsTrigger({ className, ...props }) {
   return (
     <TabsPrimitive.Trigger
       className={cn(
-        "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-all " +
+          "text-muted-foreground hover:text-foreground " +
+          "data-[state=active]:bg-white data-[state=active]:text-black " +
+          "data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-black/5 " +
+          "data-[state=active]:-translate-y-[1px] " +
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 " +
+          "disabled:pointer-events-none disabled:opacity-50",
         className
       )}
       {...props}
