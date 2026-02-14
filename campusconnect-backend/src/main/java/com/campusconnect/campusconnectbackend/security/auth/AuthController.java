@@ -1,7 +1,6 @@
 package com.campusconnect.campusconnectbackend.security.auth;
 
 import com.campusconnect.campusconnectbackend.dto.request.LoginRequestDto;
-import com.campusconnect.campusconnectbackend.dto.request.SignupRequestDto;
 import com.campusconnect.campusconnectbackend.dto.request.collegeadmin.CollegeAdminSignupRequestDto;
 import com.campusconnect.campusconnectbackend.dto.request.student.StudentSignupRequestDto;
 import com.campusconnect.campusconnectbackend.dto.response.AuthResponseDto;
@@ -20,14 +19,13 @@ public class AuthController {
     @PostMapping("/student/signup")
     public AuthResponseDto studentSignup(
             @RequestBody StudentSignupRequestDto request) {
-        return authService.signup((SignupRequestDto) request);
+        return authService.signup(request);
     }
     @PostMapping("/student/login")
     public AuthResponseDto studentLogin(
             @RequestBody LoginRequestDto request) {
         return authService.login(request);
     }
-
 
     // college-admin
     @PostMapping("/college-admin/signup")
@@ -43,7 +41,6 @@ public class AuthController {
         return authService.login(request);
     }
 
-
     // journalist
     @PostMapping("/journalist/login")
     public AuthResponseDto journalistLogin(
@@ -58,6 +55,23 @@ public class AuthController {
             @RequestBody LoginRequestDto request
     ) {
         return authService.login(request);
+    }
+
+    // get current auth
+    // get current user
+    @GetMapping("/curr-user")
+    public Long getCurrentUserId() {
+        return authService.getCurrentUserId();
+    }
+    // get current college
+    @GetMapping("/curr-college")
+    public Long getCurrentCollegeId() {
+        return authService.getCurrentCollegeId();
+    }
+    // get current role
+    @GetMapping("/curr-role")
+    public  String getCurrentRole() {
+        return authService.getCurrentRole();
     }
 
     // testing

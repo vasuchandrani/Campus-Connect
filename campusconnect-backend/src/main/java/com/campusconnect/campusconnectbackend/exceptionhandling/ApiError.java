@@ -1,4 +1,4 @@
-package com.campusconnect.campusconnectbackend.exceptionhandling;
+package com.campusconnect.campusconnectbackend.exception_handling;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
