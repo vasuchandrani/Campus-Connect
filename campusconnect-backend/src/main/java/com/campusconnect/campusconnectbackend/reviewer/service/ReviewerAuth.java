@@ -1,8 +1,6 @@
 package com.campusconnect.campusconnectbackend.reviewer.service;
 
-import com.campusconnect.campusconnectbackend.college.College;
 import com.campusconnect.campusconnectbackend.dto.request.LoginRequestDto;
-import com.campusconnect.campusconnectbackend.dto.request.reviewer.ReviewerSignupRequestDto;
 import com.campusconnect.campusconnectbackend.dto.response.AuthResponseDto;
 import com.campusconnect.campusconnectbackend.reviewer.ReviewerRepository;
 import com.campusconnect.campusconnectbackend.reviewer.Reviewer;
@@ -10,10 +8,7 @@ import com.campusconnect.campusconnectbackend.security.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -22,27 +17,6 @@ public class ReviewerAuth {
     private final ReviewerRepository reviewerRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthenticationManager authenticationManager;
-    private final PasswordEncoder passwordEncoder;
-
-    public Boolean store(ReviewerSignupRequestDto request, College college) {
-        try {
-            // create reviewer
-            Reviewer reviewer = new Reviewer();
-            reviewer.setFullName(request.getFullName());
-            reviewer.setEmail(request.getEmail());
-            reviewer.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-            reviewer.setCollege(college);
-            reviewer.setCreatedAt(LocalDateTime.now());
-
-            // save in db
-            reviewerRepository.save(reviewer);
-            return true;
-        }
-        catch (Exception ex) {
-            System.out.println("Something went wrong "+ ex.getMessage());
-            return false;
-        }
-    }
 
     public AuthResponseDto authenticate(LoginRequestDto request) {
 

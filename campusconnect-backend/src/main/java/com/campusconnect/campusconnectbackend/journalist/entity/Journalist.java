@@ -1,4 +1,4 @@
-package com.campusconnect.campusconnectbackend.journalist;
+package com.campusconnect.campusconnectbackend.journalist.entity;
 
 import com.campusconnect.campusconnectbackend.college.College;
 import com.campusconnect.campusconnectbackend.student.Student;

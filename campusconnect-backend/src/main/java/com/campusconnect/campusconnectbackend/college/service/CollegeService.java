@@ -21,4 +21,9 @@ public class CollegeService {
     public College getCollegeByName (String collegeName) {
         return collegeRepository.findByName(collegeName).orElse(null);
     }
+
+    public College getCollegeById(Long collegeId) {
+        return collegeRepository.findById(collegeId).orElse(null);
+    }
+
 }
