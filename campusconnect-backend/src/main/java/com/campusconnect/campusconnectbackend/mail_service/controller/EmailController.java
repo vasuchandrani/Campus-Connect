@@ -5,7 +5,8 @@ import com.campusconnect.campusconnectbackend.mail_service.dto.club_verification
 import com.campusconnect.campusconnectbackend.mail_service.dto.college_verification.CollegeVerificationDto;
 import com.campusconnect.campusconnectbackend.mail_service.dto.email_verification.CodeRequestDto;
 import com.campusconnect.campusconnectbackend.mail_service.dto.email_verification.VerifyRequestDto;
-import com.campusconnect.campusconnectbackend.mail_service.dto.jounalist_reviewer.AssignmentDto;
+import com.campusconnect.campusconnectbackend.mail_service.dto.journalist.JournalistAssignmentDto;
+import com.campusconnect.campusconnectbackend.mail_service.dto.reviewer.ReviewerAssignmentDto;
 import com.campusconnect.campusconnectbackend.mail_service.service.EmailDispatcherService;
 import com.campusconnect.campusconnectbackend.mail_service.verification_code.VerificationCodeService;
 import lombok.RequiredArgsConstructor;
@@ -46,26 +47,26 @@ public class EmailController {
         }
     }
 
-    // send a club-request mail to college-admin
+    // send a club-request mail to college-admin -for testing
     @PostMapping("/club-request-mail")
     public boolean sendEmail(@RequestBody ClubVerificationDto request) {
         return emailDispatcherService.sendClubRequestToAdmin(request);
     }
-    // send a club-approval mail to student
+    // send a club-approval mail to student -for testing
     @PostMapping("/club-approved-mail")
     public boolean sendMail(@RequestBody ClubVerifiedDto request) {
         return emailDispatcherService.sendClubApprovedToStudent(request);
     }
 
-    // send jounalist-request-approval mail to student
+    // send journalist-request-approval mail to student -for testing
     @PostMapping("/journalist-mail")
-    public boolean sendMailToJournalist(@RequestBody AssignmentDto request) {
+    public boolean sendMailToJournalist(@RequestBody JournalistAssignmentDto request) {
         return emailDispatcherService.sendJournalistRequestAccepted(request);
     }
 
-    // send assigned as reviewer mail to prof
+    // send assigned as reviewer mail to prof -for testing
     @PostMapping("/reviewer-mail")
-    public boolean sendMailToReviewer(@RequestBody AssignmentDto request) {
+    public boolean sendMailToReviewer(@RequestBody ReviewerAssignmentDto request) {
         return emailDispatcherService.sendReviewerAssigned(request);
     }
 }

@@ -1,4 +1,4 @@
-package com.campusconnect.campusconnectbackend.mail_service.dto.journalist;
+package com.campusconnect.campusconnectbackend.mail_service.dto.reviewer;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -7,7 +7,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class JournalistAssignmentDto {
+public class ReviewerAssignmentDto {
 
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")
