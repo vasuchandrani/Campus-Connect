@@ -2,7 +2,8 @@ package com.campusconnect.campusconnectbackend.reviewer.service;
 
 import com.campusconnect.campusconnectbackend.college.College;
 import com.campusconnect.campusconnectbackend.college.service.CollegeService;
-import com.campusconnect.campusconnectbackend.dto.request.reviewer.AddReviewerRequestDto;
+import com.campusconnect.campusconnectbackend.reviewer.dto.req.AddReviewerRequestDto;
+import com.campusconnect.campusconnectbackend.reviewer.dto.res.ReviewerResponseDto;
 import com.campusconnect.campusconnectbackend.mail_service.dto.reviewer.ReviewerAssignmentDto;
 import com.campusconnect.campusconnectbackend.mail_service.service.EmailDispatcherService;
 import com.campusconnect.campusconnectbackend.reviewer.Reviewer;
@@ -13,7 +14,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -24,10 +27,43 @@ public class ReviewerService {
     private final CollegeService collegeService;
     private final EmailDispatcherService emailDispatcherService;
 
+    // get DTO
+    public ReviewerResponseDto getDto(Reviewer reviewer) {
+        // create dto
+        ReviewerResponseDto dto = new ReviewerResponseDto();
+        // map the data
+        dto.setId(reviewer.getId());
+        dto.setFullName(reviewer.getFullName());
+        dto.setEmail(reviewer.getEmail());
+        dto.setCreatedAt(reviewer.getCreatedAt());
+        dto.setCollegeId(reviewer.getCollege().getId());
+
+        return dto;
+    }
+
+    // get DTO -list
+    public List<ReviewerResponseDto> getDtoList(List<Reviewer> reviewers) {
+        // create response
+        List<ReviewerResponseDto> response = new ArrayList<>();
+
+        for (Reviewer reviewer : reviewers) {
+            response.add(getDto(reviewer));
+        }
+        return response;
+    }
+
+    // generate password
+    private String generatePassword() {
+        return UUID.randomUUID().toString().substring(0, 8);
+    }
+
     // create reviewer
     @Transactional
     public boolean store(AddReviewerRequestDto request) {
         try {
+            // generate password
+            String password = generatePassword();
+
             // find college
             Long collegeId = authService.getCurrentCollegeId();
             College college = collegeService.getCollegeById(collegeId);
@@ -36,7 +72,7 @@ public class ReviewerService {
             Reviewer reviewer = new Reviewer();
             reviewer.setFullName(request.getFullName());
             reviewer.setEmail(request.getEmail());
-            reviewer.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+            reviewer.setPasswordHash(passwordEncoder.encode(password));
             reviewer.setCollege(college);
 
             // save in db
@@ -45,7 +81,7 @@ public class ReviewerService {
             // send mail
             ReviewerAssignmentDto dto = new ReviewerAssignmentDto();
             dto.setEmail(request.getEmail());
-            dto.setPassword(request.getPassword());
+            dto.setPassword(password);
             dto.setDashboardLink("/campusconnect/reviewer/dashboard");
             emailDispatcherService.sendReviewerAssigned(dto);
             return true;
@@ -64,10 +100,25 @@ public class ReviewerService {
     }
 
     // get all reviewers of college
-    public List<Reviewer> getReviewers() {
+    public List<ReviewerResponseDto> getReviewers() {
         // find college-id
         Long collegeId = authService.getCurrentCollegeId();
+        // find reviewers
+        List<Reviewer> reviewer = reviewerRepository.findAllByCollege_Id(collegeId);
 
-        return reviewerRepository.findAllByCollege_Id(collegeId);
+        return getDtoList(reviewer);
+    }
+
+    // remove reviewer
+    @Transactional
+    public boolean removeReviewer(Long reviewerId) {
+        try {
+            // delete
+            reviewerRepository.deleteById(reviewerId);
+            return true;
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
+        }
     }
 }

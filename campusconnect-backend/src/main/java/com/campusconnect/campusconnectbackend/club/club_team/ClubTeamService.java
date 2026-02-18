@@ -8,10 +8,10 @@ import com.campusconnect.campusconnectbackend.club.club_team.entity.id.ClubTeamM
 import com.campusconnect.campusconnectbackend.club.ClubRepository;
 import com.campusconnect.campusconnectbackend.club.club_team.repository.ClubTeamMemberRepository;
 import com.campusconnect.campusconnectbackend.club.club_team.repository.ClubTeamRepository;
-import com.campusconnect.campusconnectbackend.dto.response.club.ClubTeamDto;
-import com.campusconnect.campusconnectbackend.dto.response.club.ClubTeamMemberDto;
-import com.campusconnect.campusconnectbackend.dto.response.club.club_card.ClubMemberDto;
-import com.campusconnect.campusconnectbackend.dto.response.club_member.TeamNameDto;
+import com.campusconnect.campusconnectbackend.club.dto.res.club_admin_member.ClubTeamDto;
+import com.campusconnect.campusconnectbackend.club.dto.res.club_admin_member.ClubTeamMemberDto;
+import com.campusconnect.campusconnectbackend.club.dto.res.club_card.ClubMemberDto;
+import com.campusconnect.campusconnectbackend.club.dto.res.club_admin_member.TeamNameDto;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

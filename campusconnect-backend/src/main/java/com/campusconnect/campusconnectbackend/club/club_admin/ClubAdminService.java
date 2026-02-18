@@ -8,11 +8,11 @@ import com.campusconnect.campusconnectbackend.club.Club;
 import com.campusconnect.campusconnectbackend.club.club_follower.ClubFollowerService;
 import com.campusconnect.campusconnectbackend.club.ClubService;
 import com.campusconnect.campusconnectbackend.club.club_team.ClubTeamService;
-import com.campusconnect.campusconnectbackend.dto.request.club.AddMemberRequestDto;
-import com.campusconnect.campusconnectbackend.dto.response.club.ClubDashboardStatsDto;
+import com.campusconnect.campusconnectbackend.club.dto.req.AddMemberRequestDto;
+import com.campusconnect.campusconnectbackend.club.dto.res.club_admin_member.ClubDashboardStatsDto;
 import com.campusconnect.campusconnectbackend.club.event.service.EventService;
 import com.campusconnect.campusconnectbackend.student.Student;
-import com.campusconnect.campusconnectbackend.student.service.StudentService;
+import com.campusconnect.campusconnectbackend.student.service.StudentRepoService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -25,9 +25,9 @@ public class ClubAdminService {
     private final ClubMemberService clubMemberService;
     private final ClubTeamService clubTeamService;
     private final ClubFollowerService clubFollowerService;
-    private final StudentService studentService;
     private final ClubService clubService;
     private final ClubMemberRepository clubMemberRepository;
+    private final StudentRepoService studentRepoService;
 
     // get stats
     public ClubDashboardStatsDto getStats(Long clubId) {
@@ -44,7 +44,7 @@ public class ClubAdminService {
     public boolean addMember(Long clubId, AddMemberRequestDto request) {
         try {
             // get the student
-            Student student = studentService.getStudentByEmail(request.getEmail());
+            Student student = studentRepoService.getStudentByEmail(request.getEmail());
             Club club = clubService.getClubById(clubId);
 
             // create embedded id

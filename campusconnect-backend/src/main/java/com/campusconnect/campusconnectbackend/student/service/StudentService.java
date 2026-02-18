@@ -3,14 +3,13 @@ package com.campusconnect.campusconnectbackend.student.service;
 import com.campusconnect.campusconnectbackend.club.club_member.ClubMemberService;
 import com.campusconnect.campusconnectbackend.club.club_request.ClubRequestService;
 import com.campusconnect.campusconnectbackend.college_admin.service.CollegeAdminService;
-import com.campusconnect.campusconnectbackend.dto.request.student.ClubRequestDto;
-import com.campusconnect.campusconnectbackend.dto.response.student.StudentDashboardStatsDto;
+import com.campusconnect.campusconnectbackend.student.dto.req.ClubRequestDto;
+import com.campusconnect.campusconnectbackend.student.dto.res.StudentDashboardStatsDto;
 import com.campusconnect.campusconnectbackend.club.event.service.EventService;
 import com.campusconnect.campusconnectbackend.mail_service.dto.club_verification.ClubVerificationDto;
 import com.campusconnect.campusconnectbackend.mail_service.service.EmailDispatcherService;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import com.campusconnect.campusconnectbackend.student.Student;
-import com.campusconnect.campusconnectbackend.student.StudentRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,30 +18,17 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class StudentService {
 
-    private final StudentRepository studentRepository;
     private final ClubMemberService clubMemberService;
     private final EventService eventService;
     private final ClubRequestService clubRequestService;
     private final EmailDispatcherService emailDispatcherService;
     private final CollegeAdminService collegeAdminService;
     private final AuthService authService;
-
-    // get student by id
-    public Student getStudent(Long studentId) {
-        return studentRepository.findStudentById(studentId);
-    }
-
-    // get student by email
-    public Student getStudentByEmail (String email) {
-        return studentRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found!"));
-    }
+    private final StudentRepoService studentRepoService;
 
     // get student-name
     public String getName(Long userId) {
-        Student student = studentRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found!"));
-
+        Student student = studentRepoService.getStudent(userId);
         return student.getFullName();
     }
 
@@ -63,9 +49,7 @@ public class StudentService {
     @Transactional
     public boolean requestForClub(ClubRequestDto request) {
         try {
-            Student student = studentRepository.findById(authService.getCurrentUserId()).orElseThrow(
-                    () -> new RuntimeException("User not found!")
-            );
+            Student student = studentRepoService.getStudent(authService.getCurrentUserId());
             // store club-request
             clubRequestService.store(request, student, student.getCollege());
 

@@ -2,9 +2,9 @@ package com.campusconnect.campusconnectbackend.club.event.service;
 
 import com.campusconnect.campusconnectbackend.club.Club;
 import com.campusconnect.campusconnectbackend.club.ClubService;
-import com.campusconnect.campusconnectbackend.dto.request.event.EventPatchRequestDto;
-import com.campusconnect.campusconnectbackend.dto.request.event.EventRequestDto;
-import com.campusconnect.campusconnectbackend.dto.response.event.EventResponseDto;
+import com.campusconnect.campusconnectbackend.club.event.dto.req.EventPatchRequestDto;
+import com.campusconnect.campusconnectbackend.club.event.dto.req.EventRequestDto;
+import com.campusconnect.campusconnectbackend.club.event.dto.res.EventResponseDto;
 import com.campusconnect.campusconnectbackend.club.event.entity.Event;
 import com.campusconnect.campusconnectbackend.club.event.repository.EventRegistrationRepository;
 import com.campusconnect.campusconnectbackend.club.event.repository.EventRepository;

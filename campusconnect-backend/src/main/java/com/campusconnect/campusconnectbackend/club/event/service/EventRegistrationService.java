@@ -6,7 +6,7 @@ import com.campusconnect.campusconnectbackend.club.event.entity.id.EventRegistra
 import com.campusconnect.campusconnectbackend.club.event.repository.EventRegistrationRepository;
 import com.campusconnect.campusconnectbackend.club.event.repository.EventRepository;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
-import com.campusconnect.campusconnectbackend.student.service.StudentService;
+import com.campusconnect.campusconnectbackend.student.service.StudentRepoService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,9 +18,9 @@ import java.time.LocalDateTime;
 public class EventRegistrationService {
 
     private final AuthService authService;
-    private final StudentService studentService;
     private final EventRegistrationRepository eventRegistrationRepository;
     private final EventRepository eventRepository;
+    private final StudentRepoService studentRepoService;
 
     // register student in event
     @Transactional
@@ -50,7 +50,7 @@ public class EventRegistrationService {
         EventRegistration registration = new EventRegistration();
         registration.setEventRegistrationId(id);
         registration.setEvent(eventRepository.findEventById(eventId));
-        registration.setStudent(studentService.getStudent(studentId));
+        registration.setStudent(studentRepoService.getStudent(studentId));
 
         eventRegistrationRepository.save(registration);
         return true;

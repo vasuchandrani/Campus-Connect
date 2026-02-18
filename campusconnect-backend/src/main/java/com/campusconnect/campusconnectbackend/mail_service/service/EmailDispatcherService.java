@@ -81,6 +81,23 @@ public class EmailDispatcherService {
         );
     }
 
+    // send mail to student of registration
+    public boolean sendStudentRegistrationMail(String studentEmail, String tempPassword) {
+
+        String html = emailSenderService
+                .loadEmailTemplate("student_registered.html")
+                .replace("{{EMAIL}}", studentEmail)
+                .replace("{{PASSWORD}}", tempPassword)
+                .replace("{{LOGIN_URL}}", "https://campus-connect.in/login");
+
+        return emailSenderService.sendHtmlEmail(
+                studentEmail,
+                "Your Campus-Connect Student Account Is Ready",
+                html
+        );
+    }
+
+
     // send assigned as reviewer mail to prof
     public boolean sendReviewerAssigned(ReviewerAssignmentDto request) {
         String html = emailSenderService

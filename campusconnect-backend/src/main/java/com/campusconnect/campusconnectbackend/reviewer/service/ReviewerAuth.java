@@ -18,6 +18,7 @@ public class ReviewerAuth {
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthenticationManager authenticationManager;
 
+    // reviewer login
     public AuthResponseDto authenticate(LoginRequestDto request) {
 
         String compositeUsername = "REVIEWER:" + request.getEmail();

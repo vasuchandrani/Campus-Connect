@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.util.*;
 import java.time.LocalDateTime;
 
 @Entity
@@ -38,6 +39,31 @@ public class Event {
 
     @Column(name = "status", nullable = false)
     private String status = "UPCOMING";
+
+    @Column(columnDefinition = "TEXT")
+    private String overview;
+
+    @ElementCollection
+    @CollectionTable(
+            name = "event_speakers",
+            joinColumns = @JoinColumn(name = "event_id")
+    )
+    @Column(name = "speaker_name")
+    private List<String> speakers;
+
+    @ElementCollection
+    @CollectionTable(
+            name = "event_sponsors",
+            joinColumns = @JoinColumn(name = "event_id")
+    )
+    @Column(name = "sponsor_name")
+    private List<String> sponsors;
+
+    @Column(name = "prize_money")
+    private Integer prizeMoney;
+
+    @Column(name = "participation")
+    private int participation;
 
     @CreationTimestamp
     @Column(name = "created_at")
