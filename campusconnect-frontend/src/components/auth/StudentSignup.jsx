@@ -4,9 +4,27 @@ import { useAuth } from "../../contexts/AuthContext";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Label } from "../ui/Label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/Card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/Select";
-import { ArrowLeft, GraduationCap, CheckCircle, XCircle, Mail } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../ui/Card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/Select";
+import {
+  ArrowLeft,
+  GraduationCap,
+  CheckCircle,
+  XCircle,
+  Mail,
+} from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "../ui/InputOtp";
 
 const StudentSignup = ({ onBack }) => {
@@ -15,28 +33,31 @@ const StudentSignup = ({ onBack }) => {
   const [collegeEmail, setCollegeEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [isVerified, setIsVerified] = useState(false);
-  
+
   //Data for final registration form
   const [formData, setFormData] = useState({
-    fullName:"",
-    email:"",
-    password:"",
-    collegeName:"",
-    id:"",
-    department:"",
-    year:"",
+    fullName: "",
+    email: "",
+    password: "",
+    collegeId: "",
+    id: "",
+    department: "",
+    year: "",
+    gender:"",
   });
 
   const navigate = useNavigate();
-  const {studentSignup } = useAuth();
+  const { studentSignup } = useAuth();
 
-  const[colleges,setColleges]=useState([]);
+  const [colleges, setColleges] = useState([]);
 
   // fetch registered colleges from database
   useEffect(() => {
     const fetchColleges = async () => {
       try {
-        const response = await fetch("http://localhost:8080/campus-connect/colleges");
+        const response = await fetch(
+          "http://localhost:8080/campus-connect/colleges",
+        );
         const data = await response.json();
         setColleges(data);
       } catch (error) {
@@ -47,62 +68,57 @@ const StudentSignup = ({ onBack }) => {
     fetchColleges();
   }, []);
 
-
   const selectedCollege = colleges.find((c) => c.id === selectedCollegeId);
 
   // on college select
   const handleCollegeSelect = (collegeId) => {
     setSelectedCollegeId(collegeId);
 
-    const college = colleges.find((c) => c.id === collegeId);
-
-    if (college) {
       setFormData((prev) => ({
         ...prev,
-        collegeName: college.name,
+        collegeId: college.id,
       }));
-    }
-
-  }
+  };
 
   const handleCheckCollege = () => {
     if (selectedCollegeId) setStep(2);
   };
 
-  const handleSendOTP =async (e) => {
+  const handleSendOTP = async (e) => {
     e.preventDefault();
     // veryfy domain
-    let domain=""
-    colleges.forEach(element => {
-      if(formData.collegeName===element.name){
-        domain=element.domain;
+    let domain = "";
+    colleges.forEach((element) => {
+      if (formData.collegeName === element.name) {
+        domain = element.domain;
       }
     });
-    let currnetdomain=collegeEmail.split('@')[1];
+    let currnetdomain = collegeEmail.split("@")[1];
 
-    if(currnetdomain!==domain){
+    if (currnetdomain !== domain) {
       alert("invalid email");
       return;
     }
 
     // send otp
-    const response = await fetch("http://localhost:8080/campus-connect/email/send-code", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const response = await fetch(
+      "http://localhost:8080/campus-connect/email/send-code",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          role: "STUDENT",
+        }),
       },
-      body: JSON.stringify({
-        email:formData.email,
-        role:"STUDENT"
-      }),
-    }).then(res=>res.json());
+    ).then((res) => res.json());
 
-
-    if(response){
+    if (response) {
       alert("OTP sent successfully");
       setStep(3);
-    }
-    else{
+    } else {
       alert("please try again");
     }
   };
@@ -110,28 +126,27 @@ const StudentSignup = ({ onBack }) => {
   //verify otp
   const handleVerifyOTP = async () => {
     if (otp.length === 6) {
-       const response = await fetch("http://localhost:8080/campus-connect/email/verify-code", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email:formData.email,
-        code:otp,
-      }),
-      
-    }).then(res=>res.json());
+      const response = await fetch(
+        "http://localhost:8080/campus-connect/email/verify-code",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: formData.email,
+            code: otp,
+          }),
+        },
+      ).then((res) => res.json());
 
-    if(response){
-      setStep(4);
-    }
-    else{
-      alert("Invalid code");
-    }
-    
+      if (response) {
+        setStep(4);
+      } else {
+        alert("Invalid code");
+      }
     }
   };
-
 
   // final submission
   const handleFinalSubmit = async (e) => {
@@ -149,23 +164,24 @@ const StudentSignup = ({ onBack }) => {
     }
   };
 
-
   //resend otp
   const resendOtp = async () => {
-    const response = await fetch("http://localhost:8080/campus-connect/email/send-code", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const response = await fetch(
+      "http://localhost:8080/campus-connect/email/send-code",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          role: "STUDENT",
+        }),
       },
-      body: JSON.stringify({
-        email:formData.email,
-        role:"STUDENT"
-      }),
-    }).then(res=>res.json());
-    if(response){
+    ).then((res) => res.json());
+    if (response) {
       alert("OTP resent successfully");
-    }
-    else{
+    } else {
       alert("please try again");
     }
   };
@@ -176,8 +192,12 @@ const StudentSignup = ({ onBack }) => {
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center relative">
-
-            <Button variant="ghost" size="sm" className="absolute left-4 top-4" onClick={handleBack}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute left-4 top-4"
+              onClick={handleBack}
+            >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
@@ -190,14 +210,14 @@ const StudentSignup = ({ onBack }) => {
             <CardDescription>Step 1: Select your college</CardDescription>
           </CardHeader>
 
-
           <CardContent className="space-y-4">
-
             <div className="space-y-2">
-
               <Label>Select Your College</Label>
 
-              <Select value={selectedCollegeId} onValueChange={handleCollegeSelect}>
+              <Select
+                value={selectedCollegeId}
+                onValueChange={(value) => handleCollegeSelect(value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Choose your college" />
                 </SelectTrigger>
@@ -209,10 +229,8 @@ const StudentSignup = ({ onBack }) => {
                     </SelectItem>
                   ))}
                 </SelectContent>
-
               </Select>
             </div>
-
 
             {selectedCollegeId && (
               <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
@@ -233,12 +251,17 @@ const StudentSignup = ({ onBack }) => {
                   <span className="font-semibold">College Not Found</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Your college is not yet registered on CampusConnect. Please contact your administration.
+                  Your college is not yet registered on CampusConnect. Please
+                  contact your administration.
                 </p>
               </div>
             )}
 
-            <Button onClick={handleCheckCollege} className="w-full" disabled={!selectedCollegeId}>
+            <Button
+              onClick={handleCheckCollege}
+              className="w-full"
+              disabled={!selectedCollegeId}
+            >
               Continue
             </Button>
           </CardContent>
@@ -253,28 +276,33 @@ const StudentSignup = ({ onBack }) => {
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center relative">
-
-            <Button variant="ghost" size="sm" className="absolute left-4 top-4" onClick={() => setStep(1)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute left-4 top-4"
+              onClick={() => setStep(1)}
+            >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
 
             <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
               <Mail className="w-8 h-8 text-primary" />
-
             </div>
             <CardTitle>Verify Your Email</CardTitle>
 
-            <CardDescription>Step 2: Enter your college email address</CardDescription>
+            <CardDescription>
+              Step 2: Enter your college email address
+            </CardDescription>
           </CardHeader>
-
 
           <CardContent>
             <form onSubmit={handleSendOTP} className="space-y-4">
-
               <div className="p-3 rounded-lg bg-muted text-sm">
                 <p className="font-medium">{selectedCollege?.name}</p>
-                <p className="text-muted-foreground">{selectedCollege?.address}</p>
+                <p className="text-muted-foreground">
+                  {selectedCollege?.address}
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -294,13 +322,11 @@ const StudentSignup = ({ onBack }) => {
                 <p className="text-xs text-muted-foreground">
                   Use your official college email to verify your enrollment
                 </p>
-
               </div>
 
               <Button type="submit" className="w-full">
                 Send Verification Code
               </Button>
-
             </form>
           </CardContent>
         </Card>
@@ -313,10 +339,13 @@ const StudentSignup = ({ onBack }) => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
-
           <CardHeader className="text-center relative">
-
-            <Button variant="ghost" size="sm" className="absolute left-4 top-4" onClick={() => setStep(2)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute left-4 top-4"
+              onClick={() => setStep(2)}
+            >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
@@ -330,14 +359,10 @@ const StudentSignup = ({ onBack }) => {
             <CardDescription>
               We've sent a 6-digit code to {collegeEmail}
             </CardDescription>
-
           </CardHeader>
 
-
           <CardContent className="space-y-6">
-
             <div className="flex justify-center">
-
               <InputOTP maxLength={6} value={otp} onChange={setOtp}>
                 <InputOTPGroup>
                   <InputOTPSlot index={0} />
@@ -348,10 +373,13 @@ const StudentSignup = ({ onBack }) => {
                   <InputOTPSlot index={5} />
                 </InputOTPGroup>
               </InputOTP>
-
             </div>
 
-            <Button onClick={handleVerifyOTP} className="w-full" disabled={otp.length !== 6}>
+            <Button
+              onClick={handleVerifyOTP}
+              className="w-full"
+              disabled={otp.length !== 6}
+            >
               Verify Code
             </Button>
 
@@ -361,7 +389,6 @@ const StudentSignup = ({ onBack }) => {
                 Resend
               </Button>
             </p>
-
           </CardContent>
         </Card>
       </div>
@@ -372,10 +399,13 @@ const StudentSignup = ({ onBack }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
-
         <CardHeader className="text-center relative">
-
-          <Button variant="ghost" size="sm" className="absolute left-4 top-4" onClick={() => setStep(3)}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute left-4 top-4"
+            onClick={() => setStep(3)}
+          >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
@@ -387,16 +417,16 @@ const StudentSignup = ({ onBack }) => {
           <CardTitle>Complete Your Profile</CardTitle>
 
           <CardDescription>Step 4: Enter your details</CardDescription>
-
         </CardHeader>
 
         <CardContent>
           <form onSubmit={handleFinalSubmit} className="space-y-4">
-
             {isVerified && (
               <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 flex items-center gap-2">
                 <CheckCircle className="w-5 h-5 text-primary" />
-                <span className="text-sm font-medium text-primary">Email Verified</span>
+                <span className="text-sm font-medium text-primary">
+                  Email Verified
+                </span>
               </div>
             )}
 
@@ -407,10 +437,11 @@ const StudentSignup = ({ onBack }) => {
                 id="name"
                 placeholder="John Doe"
                 value={formData.fullName}
-                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, fullName: e.target.value })
+                }
                 required
               />
-
             </div>
 
             {/* Student Email */}
@@ -420,7 +451,9 @@ const StudentSignup = ({ onBack }) => {
                 id="studentId"
                 placeholder="STU2024001"
                 value={formData.id}
-                onChange={(e) => setFormData({ ...formData, id: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, id: e.target.value })
+                }
                 required
               />
             </div>
@@ -433,7 +466,9 @@ const StudentSignup = ({ onBack }) => {
                 placeholder="********"
                 type="password"
                 value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
                 required
               />
             </div>
@@ -446,7 +481,9 @@ const StudentSignup = ({ onBack }) => {
                   id="department"
                   placeholder="Computer Science"
                   value={formData.department}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, department: e.target.value })
+                  }
                 />
               </div>
 
@@ -457,15 +494,27 @@ const StudentSignup = ({ onBack }) => {
                   id="year"
                   placeholder="e.g., 2026"
                   value={formData.year}
-                  onChange={(e) => setFormData({ ...formData, year: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, year: e.target.value })
+                  }
                 />
               </div>
-
+              <Label>Gender</Label>
+              <select
+                name="gender"
+                value={newStudent.gender}
+                onChange={(e)=>({...formData,gender:e.target.value})}
+                className="w-full border rounded-md p-2 bg-background"
+              >
+                <option value="">Select Gender</option>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+                <option value="OTHER">Other</option>
+              </select>
             </div>
             <Button type="submit" className="w-full">
               Complete Registration
             </Button>
-
           </form>
         </CardContent>
       </Card>

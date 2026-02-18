@@ -38,13 +38,10 @@ import { toast } from "../../hooks/use-toast";
 const navItems = collegeAdminNavItems;
 
 const AdminClubsPage = () => {
-
   const navigate = useNavigate();
 
-
   // Base URL for all API calls in this page
-  const baseUrl ="http://localhost:8080/campus-connect/college-admin";
-
+  const baseUrl = "http://localhost:8080/campus-connect/college-admin";
 
   // State variables
   const [searchQuery, setSearchQuery] = useState("");
@@ -55,7 +52,6 @@ const AdminClubsPage = () => {
   const [events, setEvents] = useState([]);
   const [viewAnnouncement, setViewAnnouncement] = useState(null);
   const [viewEvent, setViewEvent] = useState(null);
-
 
   //Approve club request
   const approveClub = (clubId) => {
@@ -76,13 +72,15 @@ const AdminClubsPage = () => {
           });
           fetchClubRequest(); // Refresh pending clubs list
           fetchClubs(); // Refresh active clubs list
-        }      
+        }
       })
-      .catch((err) => toast({
-        title: "Error",
-        description: "Failed to approve club request",
-        status: "error",
-      }));
+      .catch((err) =>
+        toast({
+          title: "Error",
+          description: "Failed to approve club request",
+          status: "error",
+        }),
+      );
   };
 
   //fetch Announcements
@@ -98,15 +96,17 @@ const AdminClubsPage = () => {
       .then((data) => {
         setAnnouncements(data);
       })
-      .catch((err) => toast({
-        title: "Error",
-        description: "Failed to fetch announcements",
-        status: "error",
-      }));
+      .catch((err) =>
+        toast({
+          title: "Error",
+          description: "Failed to fetch announcements",
+          status: "error",
+        }),
+      );
   };
 
   //Delete club request
-  const deleteClubRequest=(clubId) => {
+  const deleteClubRequest = (clubId) => {
     fetch(`${baseUrl}/club-request/${clubId}`, {
       method: "DELETE",
       headers: {
@@ -116,7 +116,7 @@ const AdminClubsPage = () => {
     })
       .then((res) => {
         if (res.ok) {
-          fetchClubRequest(); 
+          fetchClubRequest();
           toast({
             title: "Club request rejected",
             description: "The club request has been rejected successfully.",
@@ -124,11 +124,13 @@ const AdminClubsPage = () => {
           });
         }
       })
-      .catch((err) => toast({
-        title: "Error",
-        description: "Failed to reject club request",
-        status: "error",
-      }));
+      .catch((err) =>
+        toast({
+          title: "Error",
+          description: "Failed to reject club request",
+          status: "error",
+        }),
+      );
   };
 
   //fetch pending club requests
@@ -144,11 +146,13 @@ const AdminClubsPage = () => {
       .then((data) => {
         setPendingClubs(data);
       })
-      .catch((err) => toast({
-        title: "Error",
-        description: "Failed to fetch club requests",
-        status: "error",
-      }));
+      .catch((err) =>
+        toast({
+          title: "Error",
+          description: "Failed to fetch club requests",
+          status: "error",
+        }),
+      );
   };
 
   //fetch events
@@ -164,11 +168,13 @@ const AdminClubsPage = () => {
       .then((data) => {
         setEvents(data);
       })
-      .catch((err) => toast({
-        title: "Error",
-        description: "Failed to fetch events",
-        status: "error",
-      }));
+      .catch((err) =>
+        toast({
+          title: "Error",
+          description: "Failed to fetch events",
+          status: "error",
+        }),
+      );
   };
 
   //fetch clubs
@@ -184,13 +190,14 @@ const AdminClubsPage = () => {
       .then((data) => {
         setClubs(data);
       })
-      .catch((err) => toast({
-        title: "Error",
-        description: "Failed to fetch clubs",
-        status: "error",
-      }));
+      .catch((err) =>
+        toast({
+          title: "Error",
+          description: "Failed to fetch clubs",
+          status: "error",
+        }),
+      );
   };
-
 
   //load data on component mount
   useEffect(() => {
@@ -215,10 +222,19 @@ const AdminClubsPage = () => {
     e.title.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
+  const now = new Date();
+
+  const upcomingEvents = filteredEvents.filter(
+    (event) => new Date(event.eventDate) > now,
+  );
+
+  const completedEvents = filteredEvents.filter(
+    (event) => new Date(event.eventDate) <= now,
+  );
+
   //-----------------------------UI----------------------------//
   return (
     <DashboardLayout navItems={navItems} title="Manage Clubs">
-      
       <div className="space-y-6">
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -251,7 +267,13 @@ const AdminClubsPage = () => {
               Announcements ({announcements.length})
             </TabsTrigger>
 
-            <TabsTrigger value="events">Events ({events.length})</TabsTrigger>
+            <TabsTrigger value="upcoming">
+              Upcoming Events ({upcomingEvents.length})
+            </TabsTrigger>
+
+            <TabsTrigger value="completed">
+              Completed Events ({completedEvents.length})
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="active" className="mt-6">
@@ -493,7 +515,10 @@ const AdminClubsPage = () => {
                       <p className="text-sm font-medium text-muted-foreground">
                         Date
                       </p>
-                      <p>{viewAnnouncement.createdAt.split("T")[0]} at {viewAnnouncement.createdAt.split("T")[1].split(".")[0]}</p>
+                      <p>
+                        {viewAnnouncement.createdAt.split("T")[0]} at{" "}
+                        {viewAnnouncement.createdAt.split("T")[1].split(".")[0]}
+                      </p>
                     </div>
 
                     <div>
@@ -507,7 +532,7 @@ const AdminClubsPage = () => {
               </DialogContent>
             </Dialog>
 
-              {/* Announcements List */}
+            {/* Announcements List */}
             <div className="space-y-4">
               {filteredAnnouncements.map((announcement) => (
                 <Card key={announcement.id} className="relative pt-4">
@@ -524,7 +549,8 @@ const AdminClubsPage = () => {
                           {announcement.title}
                         </h3>
                         <p className="text-sm text-muted-foreground">
-                          {announcement.createdAt.split("T")[0]} at {announcement.createdAt.split("T")[1].split(".")[0]}
+                          {announcement.createdAt.split("T")[0]} at{" "}
+                          {announcement.createdAt.split("T")[1].split(".")[0]}
                         </p>
                       </div>
 
@@ -549,7 +575,7 @@ const AdminClubsPage = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="events" className="mt-6">
+          <TabsContent value="upcoming" className="mt-6">
             {/* Event Details Dialog */}
             <Dialog
               open={!!viewEvent}
@@ -607,7 +633,7 @@ const AdminClubsPage = () => {
 
             {/* Events Grid */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredEvents.map((event) => (
+              {upcomingEvents.map((event) => (
                 <Card
                   key={event.id}
                   className="border-border/50 overflow-hidden"
@@ -648,6 +674,43 @@ const AdminClubsPage = () => {
               ))}
             </div>
           </TabsContent>
+
+          <TabsContent value="completed" className="mt-6">
+<div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {completedEvents.map((event) => (
+                <Card
+                  key={event.id}
+                  className="border-border/50 overflow-hidden"
+                >
+                  <img
+                    src={event.image}
+                    alt={event.title}
+                    className="w-full h-40 object-cover opacity-70"
+                  />
+                  <CardContent className="p-5 pt-4">
+                    <Badge variant="secondary" className="mb-2">
+                      Finished
+                    </Badge>
+
+                    <h4 className="font-semibold mb-2">{event.title}</h4>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      {event.description}
+                    </p>
+
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => navigate(`/campus-connect/college-admin/events/${event.id}`)}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      View Details
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+</TabsContent>
+
         </Tabs>
       </div>
     </DashboardLayout>

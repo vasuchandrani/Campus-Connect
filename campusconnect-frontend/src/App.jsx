@@ -22,6 +22,10 @@ import ClubMemberAnnouncementsPage from "./pages/club-member/ClubMemberAnnouncem
 import ClubMemberEventsPage from "./pages/club-member/ClubMemberEventsPage";
 import ClubMembersPage from "./pages/club-member/ClubMembersPage";
 import ClubMemberTeamsPage from "./pages/club-member/ClubMemberTeamsPage";
+import EventDetailPage from "./pages/student/EventDetailPage";
+import AdminEventDetailPage from "./pages/collageAdmin/AdminEventDetailPage";
+import ClubAdminEventDetailPage from "./pages/club-admin/ClubAdminEventDetail";
+import ClubMemberEventDetailPage from "./pages/club-member/ClubMemberEventDetailPage";
 
 function App() {
   return (
@@ -40,23 +44,27 @@ function App() {
       <Route path="/campus-connect/student/newspaper" element={<div>Newspaper Page</div>} />
       <Route path="/campus-connect/student/research" element={<div>Research Page</div>} />
       <Route path="/campus-connect/student/events" element={<EventsPage />} />
+      <Route path="/campus-connect/student/events/:id" element={<EventDetailPage />} />
 
       <Route path="/campus-connect/college-admin/dashboard" element={<CollegeAdminDashboard />} />
       <Route path="/campus-connect/college-admin/clubs" element={<AdminClubsPage />} />
       <Route path="/campus-connect/college-admin/users" element={<AdminUsersPage />} />
       <Route path="/campus-connect/college-admin/clubs/:clubId" element={<ClubDetailAdminPage />} />
+      <Route path="/campus-connect/college-admin/events/:id" element={<AdminEventDetailPage />} />
 
       <Route path="/campus-connect/club-admin/:clubId/dashboard" element={<ClubAdminDashboard />} />
       <Route path="/campus-connect/club-admin/:clubId/announcements" element={<ClubAdminAnnouncementsPage />} />
       <Route path="/campus-connect/club-admin/:clubId/teams" element={<ClubAdminTeamsPage />} />
       <Route path="/campus-connect/club-admin/:clubId/events" element={<ClubAdminEventsPage />} />
       <Route path="/campus-connect/club-admin/:clubId/members" element={<ClubAdminMembersPage />} />
+      <Route path="/campus-connect/club-admin/:clubId/events/:id" element={<ClubAdminEventDetailPage />} />
 
       <Route path="/campus-connect/club-member/:clubId/dashboard" element={<ClubMemberDashboard />} />
       <Route path="/campus-connect/club-member/:clubId/announcements" element={<ClubMemberAnnouncementsPage />} />
       <Route path="/campus-connect/club-member/:clubId/events" element={<ClubMemberEventsPage />} />
       <Route path="/campus-connect/club-member/:clubId/members" element={<ClubMembersPage/>} />
       <Route path="/campus-connect/club-member/:clubId/teams" element={<ClubMemberTeamsPage />} />
+      <Route path="/campus-connect/club-member/:clubId/events/:id" element={<ClubMemberEventDetailPage />} />
           
       <Route path="*" element={<NotFound />} /> 
     </Routes>
