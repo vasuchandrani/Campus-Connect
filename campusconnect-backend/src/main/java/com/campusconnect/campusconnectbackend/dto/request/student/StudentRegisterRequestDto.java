@@ -8,7 +8,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class StudentSignupRequestDto implements SignupRequestDto {
+public class StudentRegisterRequestDto implements SignupRequestDto {
 
     @Override
     public String getRole() {
@@ -25,15 +25,17 @@ public class StudentSignupRequestDto implements SignupRequestDto {
     @Email(message = "Invalid email format")
     private String email;
 
+    @NotBlank
+    private String gender;
+
     @NotBlank(message = "Password is required")
     private String password;
 
-    @NotBlank(message = "First name is required")
-    private String collegeName;
+    @NotBlank(message = "College is required")
+    private Long collegeId;
 
     @NotBlank(message = "Department is required")
     private String department;
 
-    @NotBlank(message = "Year is required")
     private int year;
 }

@@ -17,6 +17,7 @@ public class JournalistAuth {
     private final JwtTokenProvider jwtTokenProvider;
     private final JournalistRepository journalistRepository;
 
+    // journalist login
     public AuthResponseDto authenticate(LoginRequestDto request) {
         String compositeUsername = "JOURNALIST:" + request.getEmail();
 

@@ -39,6 +39,7 @@ public class EmailSenderService {
         }
     }
 
+    // send mail
     public boolean sendHtmlEmail(String to, String subject, String htmlContent) {
         try {
             // create message

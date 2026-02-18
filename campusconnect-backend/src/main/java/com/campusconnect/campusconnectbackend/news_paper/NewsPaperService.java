@@ -32,20 +32,27 @@ public class NewsPaperService {
         return dto;
     }
 
-    // get latest 4 news-papers of college
-    public List<NewsPaperResponseDto> getTopNewsPaper() {
-
-        // get college-id
-        Long collegeId = authService.getCurrentCollegeId();
-        Pageable pageable = PageRequest.of(0, 4);
-
-        List<NewsPaper> newsPapers = newsPaperRepository.findLatestByCollegeId(collegeId, pageable);
+    // get DTO -list
+    private List<NewsPaperResponseDto> getDtoList(List<NewsPaper> newsPapers) {
+        // create response
         List<NewsPaperResponseDto> response = new ArrayList<>();
 
         for (NewsPaper newsPaper : newsPapers) {
             response.add(getDto(newsPaper));
         }
         return response;
+    }
+
+    // get latest 4 news-papers of college
+    public List<NewsPaperResponseDto> getTopNewsPaper() {
+
+        // get college-id
+        Long collegeId = authService.getCurrentCollegeId();
+        Pageable pageable = PageRequest.of(0, 4);
+        // find all newspapers
+        List<NewsPaper> newsPapers = newsPaperRepository.findLatestByCollegeId(collegeId, pageable);
+
+        return getDtoList(newsPapers);
     }
 
     // get latest one news of college

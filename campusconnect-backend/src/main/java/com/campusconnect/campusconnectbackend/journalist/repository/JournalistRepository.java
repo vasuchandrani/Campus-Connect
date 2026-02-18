@@ -1,7 +1,6 @@
 package com.campusconnect.campusconnectbackend.journalist.repository;
 
 import com.campusconnect.campusconnectbackend.journalist.entity.Journalist;
-import com.campusconnect.campusconnectbackend.journalist.entity.JournalistRequest;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

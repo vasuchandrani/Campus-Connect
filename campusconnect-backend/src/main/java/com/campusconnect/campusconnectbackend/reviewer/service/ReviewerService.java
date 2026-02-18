@@ -3,6 +3,7 @@ package com.campusconnect.campusconnectbackend.reviewer.service;
 import com.campusconnect.campusconnectbackend.college.College;
 import com.campusconnect.campusconnectbackend.college.service.CollegeService;
 import com.campusconnect.campusconnectbackend.dto.request.reviewer.AddReviewerRequestDto;
+import com.campusconnect.campusconnectbackend.dto.response.reviewer.ReviewerResponseDto;
 import com.campusconnect.campusconnectbackend.mail_service.dto.reviewer.ReviewerAssignmentDto;
 import com.campusconnect.campusconnectbackend.mail_service.service.EmailDispatcherService;
 import com.campusconnect.campusconnectbackend.reviewer.Reviewer;
@@ -13,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -23,6 +25,31 @@ public class ReviewerService {
     private final PasswordEncoder passwordEncoder;
     private final CollegeService collegeService;
     private final EmailDispatcherService emailDispatcherService;
+
+    // get DTO
+    public ReviewerResponseDto getDto(Reviewer reviewer) {
+        // create dto
+        ReviewerResponseDto dto = new ReviewerResponseDto();
+        // map the data
+        dto.setId(reviewer.getId());
+        dto.setFullName(reviewer.getFullName());
+        dto.setEmail(reviewer.getEmail());
+        dto.setCreatedAt(reviewer.getCreatedAt());
+        dto.setCollegeId(reviewer.getCollege().getId());
+
+        return dto;
+    }
+
+    // get DTO -list
+    public List<ReviewerResponseDto> getDtoList(List<Reviewer> reviewers) {
+        // create response
+        List<ReviewerResponseDto> response = new ArrayList<>();
+
+        for (Reviewer reviewer : reviewers) {
+            response.add(getDto(reviewer));
+        }
+        return response;
+    }
 
     // create reviewer
     @Transactional
@@ -64,10 +91,25 @@ public class ReviewerService {
     }
 
     // get all reviewers of college
-    public List<Reviewer> getReviewers() {
+    public List<ReviewerResponseDto> getReviewers() {
         // find college-id
         Long collegeId = authService.getCurrentCollegeId();
+        // find reviewers
+        List<Reviewer> reviewer = reviewerRepository.findAllByCollege_Id(collegeId);
 
-        return reviewerRepository.findAllByCollege_Id(collegeId);
+        return getDtoList(reviewer);
+    }
+
+    // remove reviewer
+    @Transactional
+    public boolean removeReviewer(Long reviewerId) {
+        try {
+            // delete
+            reviewerRepository.deleteById(reviewerId);
+            return true;
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
+        }
     }
 }

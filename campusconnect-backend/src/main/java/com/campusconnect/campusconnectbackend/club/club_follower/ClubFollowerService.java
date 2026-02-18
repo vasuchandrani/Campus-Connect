@@ -4,7 +4,7 @@ import com.campusconnect.campusconnectbackend.club.Club;
 import com.campusconnect.campusconnectbackend.club.ClubRepository;
 import com.campusconnect.campusconnectbackend.club.club_follower.id.ClubFollowerId;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
-import com.campusconnect.campusconnectbackend.student.service.StudentService;
+import com.campusconnect.campusconnectbackend.student.service.StudentRepoService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,7 +17,7 @@ public class ClubFollowerService {
 
     private final ClubFollowerRepository clubFollowerRepository;
     private final AuthService authService;
-    private final StudentService studentService;
+    private final StudentRepoService studentRepoService;
     private final ClubRepository clubRepository;
 
     // get all followed clubs
@@ -45,7 +45,7 @@ public class ClubFollowerService {
 
             ClubFollower follower = new ClubFollower();
             follower.setId(clubFollowerId);
-            follower.setStudent(studentService.getStudent(studentId));
+            follower.setStudent(studentRepoService.getStudent(studentId));
             follower.setClub(clubRepository.findById(clubId).orElse(null));
 
             clubFollowerRepository.save(follower);

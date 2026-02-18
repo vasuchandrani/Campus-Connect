@@ -8,7 +8,7 @@ import com.campusconnect.campusconnectbackend.college_admin.CollegeAdminReposito
 import com.campusconnect.campusconnectbackend.dto.response.college_admin.CollegeAdminDashboardStatsDto;
 import com.campusconnect.campusconnectbackend.journalist.service.JournalistService;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
-import com.campusconnect.campusconnectbackend.student.StudentRepository;
+import com.campusconnect.campusconnectbackend.student.service.StudentRepoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -17,11 +17,11 @@ import org.springframework.stereotype.Service;
 public class CollegeAdminService {
 
     private final CollegeAdminRepository collegeAdminRepository;
+    private final CollegeRepository collegeRepository;
     private final AuthService authService;
     private final ClubService clubService;
     private final JournalistService journalistService;
-    private final CollegeRepository collegeRepository;
-    private final StudentRepository studentRepository;
+    private final StudentRepoService studentRepoService;
 
     // get college name
     public String getCollegeName() {
@@ -57,7 +57,7 @@ public class CollegeAdminService {
         Long collegeId = authService.getCurrentCollegeId();
 
         int clubs           = clubService.getClubsCountByCollege(collegeId);
-        int students        = studentRepository.countByCollege_Id(collegeId);
+        int students        = studentRepoService.getStudentCountByCollege(collegeId);
         int journalist      = journalistService.getJournalistsCountByCollege(collegeId);
         int publishedPapers = 0;
 

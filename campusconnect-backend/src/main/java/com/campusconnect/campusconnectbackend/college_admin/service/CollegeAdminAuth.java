@@ -14,7 +14,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +24,7 @@ public class CollegeAdminAuth {
     private final PasswordEncoder passwordEncoder;
     private final CollegeRepository collegeRepository;
 
+    // college-admin signup
     public AuthResponseDto store(CollegeAdminSignupRequestDto request) {
 
         // create college
@@ -65,6 +65,7 @@ public class CollegeAdminAuth {
         );
     }
 
+    // college-admin login
     public AuthResponseDto authenticate(LoginRequestDto request) {
 
         String compositeUsername = "COLLEGE_ADMIN:" + request.getEmail();

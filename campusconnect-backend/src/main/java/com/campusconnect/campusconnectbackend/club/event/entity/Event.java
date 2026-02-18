@@ -39,6 +39,9 @@ public class Event {
     @Column(name = "status", nullable = false)
     private String status = "UPCOMING";
 
+    @Column(name = "overview")
+    private String overview;
+
     @CreationTimestamp
     @Column(name = "created_at")
     private LocalDateTime createdAt;

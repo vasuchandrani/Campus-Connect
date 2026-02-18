@@ -5,25 +5,28 @@ import com.campusconnect.campusconnectbackend.club.club_request.ClubRequestServi
 import com.campusconnect.campusconnectbackend.club.ClubService;
 import com.campusconnect.campusconnectbackend.college_admin.service.CollegeAdminService;
 import com.campusconnect.campusconnectbackend.dto.request.reviewer.AddReviewerRequestDto;
+import com.campusconnect.campusconnectbackend.dto.request.student.StudentRegisterRequestDto;
 import com.campusconnect.campusconnectbackend.dto.response.announcement.AnnouncementResponseDto;
 import com.campusconnect.campusconnectbackend.dto.response.club.ClubListDto;
 import com.campusconnect.campusconnectbackend.dto.response.club.ClubRequestResponseDto;
 import com.campusconnect.campusconnectbackend.dto.response.club.club_card.ClubDetailsResponseDto;
 import com.campusconnect.campusconnectbackend.dto.response.college_admin.CollegeAdminDashboardStatsDto;
 import com.campusconnect.campusconnectbackend.dto.response.event.EventResponseDto;
+import com.campusconnect.campusconnectbackend.dto.response.journalist.JournalistReqResponseDto;
+import com.campusconnect.campusconnectbackend.dto.response.journalist.JournalistResponseDto;
 import com.campusconnect.campusconnectbackend.dto.response.news_paper.NewsPaperResponseDto;
 import com.campusconnect.campusconnectbackend.club.event.service.EventService;
-import com.campusconnect.campusconnectbackend.journalist.entity.Journalist;
-import com.campusconnect.campusconnectbackend.journalist.entity.JournalistRequest;
+import com.campusconnect.campusconnectbackend.dto.response.reviewer.ReviewerResponseDto;
+import com.campusconnect.campusconnectbackend.dto.response.student.StudentResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.service.JournalistRequestService;
 import com.campusconnect.campusconnectbackend.journalist.service.JournalistService;
 import com.campusconnect.campusconnectbackend.news_paper.NewsPaperService;
-import com.campusconnect.campusconnectbackend.reviewer.Reviewer;
 import com.campusconnect.campusconnectbackend.reviewer.service.ReviewerService;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
-import com.campusconnect.campusconnectbackend.student.service.StudentService;
+import com.campusconnect.campusconnectbackend.student.service.StudentRepoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 
@@ -39,10 +42,10 @@ public class CollegeAdminController {
     private final AnnouncementService announcementService;
     private final EventService eventService;
     private final ClubService clubService;
-    private final StudentService studentService;
     private final JournalistRequestService journalistRequestService;
     private final JournalistService journalistService;
     private final ReviewerService reviewerService;
+    private final StudentRepoService studentRepoService;
 
     /* Home */
 
@@ -121,43 +124,87 @@ public class CollegeAdminController {
 
     /* Users */
 
+    /* journalist-request */
+
     // get all journalist request
-    @GetMapping("/journalist-req")
-    public List<JournalistRequest>  getJournalistRequests() {
+    @GetMapping("/users/journalist-req")
+    public List<JournalistReqResponseDto>  getJournalistRequests() {
         return journalistRequestService.getJournalistRequests();
     }
+
     // get particular journalist request
-    @GetMapping("/journalist-req/{id}")
-    public JournalistRequest getJournalistRequestById(@PathVariable Long id) {
+    @GetMapping("/users/journalist-req/{id}")
+    public JournalistReqResponseDto getJournalistRequestById(@PathVariable Long id) {
         return journalistRequestService.getJournalistRequest(id);
     }
 
     // accept journalist request
-    @PostMapping("/journalist-req/{id}")
+    @PostMapping("/users/journalist-req/{id}")
     public boolean acceptJournalistRequest(@PathVariable Long id, @RequestBody String password) {
         return journalistRequestService.acceptJournalistRequest(id, password);
     }
+
     // reject journalist request
-    @DeleteMapping("/journalist-req/{id}")
+    @DeleteMapping("/users/journalist-req/{id}")
     public boolean rejectJournalistRequest(@PathVariable Long id) {
         return journalistRequestService.rejectJournalistRequest(id);
     }
 
+    /* journalist */
+
     // get all journalist of college
-    @GetMapping("/journalists")
-    public List<Journalist> getJournalists() {
+    @GetMapping("/users/journalist")
+    public List<JournalistResponseDto> getJournalists() {
         return journalistService.getJournalists();
     }
+    // remove journalist
+    @DeleteMapping("/users/journalist/{journalistId}")
+    public boolean removeJournalist(@PathVariable Long journalistId) {
+        return journalistService.removeJournalist(journalistId);
+    }
+
+    /* reviewer */
 
     // get all reviewers of college
-    @GetMapping("/reviewers")
-    public List<Reviewer> getReviewers() {
+    @GetMapping("/users/reviewer")
+    public List<ReviewerResponseDto> getReviewers() {
         return reviewerService.getReviewers();
     }
 
     // add new reviewer
-    @PostMapping("/reviewers")
+    @PostMapping("/users/reviewer")
     public boolean addReviewer(@RequestBody AddReviewerRequestDto request) {
         return reviewerService.store(request);
     }
+    // remove reviewer
+    @DeleteMapping("/users/reviewer/{reviewerId}")
+    public boolean removeReviewer(@PathVariable Long reviewerId) {
+        return reviewerService.removeReviewer(reviewerId);
+    }
+
+
+    /* students */
+
+    // get all students
+    @GetMapping("/users/student")
+    public List<StudentResponseDto> getStudents() {
+        return studentRepoService.getAllStudents();
+    }
+
+    // add multiple students
+    @PostMapping("/users/student/add-multiple")
+    public String uploadStudents(@RequestParam("file") MultipartFile file) {
+
+        Long collegeId = authService.getCurrentCollegeId();
+        return studentRepoService.processExcel(file, collegeId);
+    }
+
+    // add one student
+    @PostMapping("/users/student/add-one")
+    public String uploadStudent(@RequestBody StudentRegisterRequestDto request) {
+
+        // Long collegeId = authService.getCurrentCollegeId(); -send by frontend, in dto
+        return studentRepoService.registerStudent(request);
+    }
+
 }

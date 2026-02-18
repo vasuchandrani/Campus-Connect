@@ -28,6 +28,8 @@ public class Student {
     @Column(nullable = false, unique = true)
     private String email;
 
+    private String gender;
+
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
