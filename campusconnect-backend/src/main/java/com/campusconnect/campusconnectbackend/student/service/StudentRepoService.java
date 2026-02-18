@@ -1,7 +1,8 @@
 package com.campusconnect.campusconnectbackend.student.service;
 
-import com.campusconnect.campusconnectbackend.dto.request.student.StudentRegisterRequestDto;
-import com.campusconnect.campusconnectbackend.dto.response.student.StudentResponseDto;
+import com.campusconnect.campusconnectbackend.student.dto.req.StudentRegisterRequestDto;
+import com.campusconnect.campusconnectbackend.student.dto.req.StudentSignupRequestDto;
+import com.campusconnect.campusconnectbackend.student.dto.res.StudentResponseDto;
 import com.campusconnect.campusconnectbackend.mail_service.service.EmailDispatcherService;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import com.campusconnect.campusconnectbackend.student.Student;
@@ -100,7 +101,7 @@ public class StudentRepoService {
                 String year     = row.getCell(5).getStringCellValue().trim();
                 String password = generatePassword();
 
-                StudentRegisterRequestDto dto = new StudentRegisterRequestDto();
+                StudentSignupRequestDto dto = new StudentSignupRequestDto();
                 dto.setId(ID);
                 dto.setEmail(email);
                 dto.setFullName(name);
@@ -127,12 +128,25 @@ public class StudentRepoService {
     }
 
     // register single student
-    public String registerStudent(StudentRegisterRequestDto request) {
+    public String registerStudent(StudentRegisterRequestDto request, Long collegeId) {
         try {
+            // generate password
+            String password = generatePassword();
+
+            StudentSignupRequestDto dto = new StudentSignupRequestDto();
+            dto.setId(request.getId());
+            dto.setEmail(request.getEmail());
+            dto.setFullName(request.getFullName());
+            dto.setPassword(password);
+            dto.setGender(request.getGender());
+            dto.setDepartment(request.getDepartment());
+            dto.setYear(request.getYear());
+            dto.setCollegeId(collegeId);
+
             // save in db
-            boolean isSaved = studentAuth.createStudentAccount(request);
+            boolean isSaved = studentAuth.createStudentAccount(dto);
             // send mail
-            boolean mailSent = emailDispatcherService.sendStudentRegistrationMail(request.getEmail(), request.getPassword());
+            boolean mailSent = emailDispatcherService.sendStudentRegistrationMail(request.getEmail(), password);
 
             if (!isSaved || !mailSent) {
                 return "Error: Student "+ request.getFullName() +" with email: "+ request.getEmail() +" has not been saved";
@@ -144,6 +158,7 @@ public class StudentRepoService {
         }
     }
 
+    // get all students of college
     public List<StudentResponseDto> getAllStudents() {
         // find college-id
         Long collegeId = authService.getCurrentCollegeId();

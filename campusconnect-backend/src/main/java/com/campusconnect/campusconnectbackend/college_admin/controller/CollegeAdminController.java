@@ -4,20 +4,20 @@ import com.campusconnect.campusconnectbackend.club.announcement.AnnouncementServ
 import com.campusconnect.campusconnectbackend.club.club_request.ClubRequestService;
 import com.campusconnect.campusconnectbackend.club.ClubService;
 import com.campusconnect.campusconnectbackend.college_admin.service.CollegeAdminService;
-import com.campusconnect.campusconnectbackend.dto.request.reviewer.AddReviewerRequestDto;
-import com.campusconnect.campusconnectbackend.dto.request.student.StudentRegisterRequestDto;
-import com.campusconnect.campusconnectbackend.dto.response.announcement.AnnouncementResponseDto;
-import com.campusconnect.campusconnectbackend.dto.response.club.ClubListDto;
-import com.campusconnect.campusconnectbackend.dto.response.club.ClubRequestResponseDto;
-import com.campusconnect.campusconnectbackend.dto.response.club.club_card.ClubDetailsResponseDto;
-import com.campusconnect.campusconnectbackend.dto.response.college_admin.CollegeAdminDashboardStatsDto;
-import com.campusconnect.campusconnectbackend.dto.response.event.EventResponseDto;
-import com.campusconnect.campusconnectbackend.dto.response.journalist.JournalistReqResponseDto;
-import com.campusconnect.campusconnectbackend.dto.response.journalist.JournalistResponseDto;
-import com.campusconnect.campusconnectbackend.dto.response.news_paper.NewsPaperResponseDto;
+import com.campusconnect.campusconnectbackend.reviewer.dto.req.AddReviewerRequestDto;
+import com.campusconnect.campusconnectbackend.student.dto.req.StudentRegisterRequestDto;
+import com.campusconnect.campusconnectbackend.club.announcement.dto.res.AnnouncementResponseDto;
+import com.campusconnect.campusconnectbackend.club.dto.res.ClubListDto;
+import com.campusconnect.campusconnectbackend.club.dto.res.ClubRequestResponseDto;
+import com.campusconnect.campusconnectbackend.club.dto.res.club_card.ClubDetailsResponseDto;
+import com.campusconnect.campusconnectbackend.college_admin.dto.res.CollegeAdminDashboardStatsDto;
+import com.campusconnect.campusconnectbackend.club.event.dto.res.EventResponseDto;
+import com.campusconnect.campusconnectbackend.journalist.dto.res.JournalistReqResponseDto;
+import com.campusconnect.campusconnectbackend.journalist.dto.res.JournalistResponseDto;
+import com.campusconnect.campusconnectbackend.news_paper.dto.res.NewsPaperResponseDto;
 import com.campusconnect.campusconnectbackend.club.event.service.EventService;
-import com.campusconnect.campusconnectbackend.dto.response.reviewer.ReviewerResponseDto;
-import com.campusconnect.campusconnectbackend.dto.response.student.StudentResponseDto;
+import com.campusconnect.campusconnectbackend.reviewer.dto.res.ReviewerResponseDto;
+import com.campusconnect.campusconnectbackend.student.dto.res.StudentResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.service.JournalistRequestService;
 import com.campusconnect.campusconnectbackend.journalist.service.JournalistService;
 import com.campusconnect.campusconnectbackend.news_paper.NewsPaperService;
@@ -140,8 +140,8 @@ public class CollegeAdminController {
 
     // accept journalist request
     @PostMapping("/users/journalist-req/{id}")
-    public boolean acceptJournalistRequest(@PathVariable Long id, @RequestBody String password) {
-        return journalistRequestService.acceptJournalistRequest(id, password);
+    public boolean acceptJournalistRequest(@PathVariable Long id) {
+        return journalistRequestService.acceptJournalistRequest(id);
     }
 
     // reject journalist request
@@ -203,8 +203,7 @@ public class CollegeAdminController {
     @PostMapping("/users/student/add-one")
     public String uploadStudent(@RequestBody StudentRegisterRequestDto request) {
 
-        // Long collegeId = authService.getCurrentCollegeId(); -send by frontend, in dto
-        return studentRepoService.registerStudent(request);
+        Long collegeId = authService.getCurrentCollegeId();
+        return studentRepoService.registerStudent(request, collegeId);
     }
-
 }

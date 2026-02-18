@@ -3,8 +3,8 @@ package com.campusconnect.campusconnectbackend.security.auth;
 import com.campusconnect.campusconnectbackend.college_admin.service.CollegeAdminAuth;
 import com.campusconnect.campusconnectbackend.dto.request.LoginRequestDto;
 import com.campusconnect.campusconnectbackend.dto.request.SignupRequestDto;
-import com.campusconnect.campusconnectbackend.dto.request.collegeadmin.CollegeAdminSignupRequestDto;
-import com.campusconnect.campusconnectbackend.dto.request.student.StudentRegisterRequestDto;
+import com.campusconnect.campusconnectbackend.college_admin.dto.req.CollegeAdminSignupRequestDto;
+import com.campusconnect.campusconnectbackend.student.dto.req.StudentSignupRequestDto;
 import com.campusconnect.campusconnectbackend.dto.response.AuthResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.service.JournalistAuth;
 import com.campusconnect.campusconnectbackend.reviewer.service.ReviewerAuth;
@@ -32,7 +32,7 @@ public class AuthService {
         return
                 switch (role) {
 
-            case "STUDENT" -> studentAuth.store((StudentRegisterRequestDto) request);
+            case "STUDENT" -> studentAuth.store((StudentSignupRequestDto) request);
 
             case "COLLEGE_ADMIN" -> collegeAdminAuth.store((CollegeAdminSignupRequestDto) request);
 

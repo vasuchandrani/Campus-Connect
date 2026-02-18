@@ -3,7 +3,7 @@ package com.campusconnect.campusconnectbackend.college_admin.service;
 import com.campusconnect.campusconnectbackend.college.College;
 import com.campusconnect.campusconnectbackend.college_admin.CollegeAdmin;
 import com.campusconnect.campusconnectbackend.dto.request.LoginRequestDto;
-import com.campusconnect.campusconnectbackend.dto.request.collegeadmin.CollegeAdminSignupRequestDto;
+import com.campusconnect.campusconnectbackend.college_admin.dto.req.CollegeAdminSignupRequestDto;
 import com.campusconnect.campusconnectbackend.dto.response.AuthResponseDto;
 import com.campusconnect.campusconnectbackend.college_admin.CollegeAdminRepository;
 import com.campusconnect.campusconnectbackend.college.CollegeRepository;

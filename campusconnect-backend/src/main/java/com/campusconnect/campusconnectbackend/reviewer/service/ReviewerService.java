@@ -2,8 +2,8 @@ package com.campusconnect.campusconnectbackend.reviewer.service;
 
 import com.campusconnect.campusconnectbackend.college.College;
 import com.campusconnect.campusconnectbackend.college.service.CollegeService;
-import com.campusconnect.campusconnectbackend.dto.request.reviewer.AddReviewerRequestDto;
-import com.campusconnect.campusconnectbackend.dto.response.reviewer.ReviewerResponseDto;
+import com.campusconnect.campusconnectbackend.reviewer.dto.req.AddReviewerRequestDto;
+import com.campusconnect.campusconnectbackend.reviewer.dto.res.ReviewerResponseDto;
 import com.campusconnect.campusconnectbackend.mail_service.dto.reviewer.ReviewerAssignmentDto;
 import com.campusconnect.campusconnectbackend.mail_service.service.EmailDispatcherService;
 import com.campusconnect.campusconnectbackend.reviewer.Reviewer;
@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -51,10 +52,18 @@ public class ReviewerService {
         return response;
     }
 
+    // generate password
+    private String generatePassword() {
+        return UUID.randomUUID().toString().substring(0, 8);
+    }
+
     // create reviewer
     @Transactional
     public boolean store(AddReviewerRequestDto request) {
         try {
+            // generate password
+            String password = generatePassword();
+
             // find college
             Long collegeId = authService.getCurrentCollegeId();
             College college = collegeService.getCollegeById(collegeId);
@@ -63,7 +72,7 @@ public class ReviewerService {
             Reviewer reviewer = new Reviewer();
             reviewer.setFullName(request.getFullName());
             reviewer.setEmail(request.getEmail());
-            reviewer.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+            reviewer.setPasswordHash(passwordEncoder.encode(password));
             reviewer.setCollege(college);
 
             // save in db
@@ -72,7 +81,7 @@ public class ReviewerService {
             // send mail
             ReviewerAssignmentDto dto = new ReviewerAssignmentDto();
             dto.setEmail(request.getEmail());
-            dto.setPassword(request.getPassword());
+            dto.setPassword(password);
             dto.setDashboardLink("/campusconnect/reviewer/dashboard");
             emailDispatcherService.sendReviewerAssigned(dto);
             return true;

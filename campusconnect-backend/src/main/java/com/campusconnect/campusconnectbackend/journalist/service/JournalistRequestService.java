@@ -1,6 +1,6 @@
 package com.campusconnect.campusconnectbackend.journalist.service;
 
-import com.campusconnect.campusconnectbackend.dto.response.journalist.JournalistReqResponseDto;
+import com.campusconnect.campusconnectbackend.journalist.dto.res.JournalistReqResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.entity.Journalist;
 import com.campusconnect.campusconnectbackend.journalist.entity.JournalistRequest;
 import com.campusconnect.campusconnectbackend.journalist.repository.JournalistRepository;
@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -53,6 +54,11 @@ public class JournalistRequestService {
         return response;
     }
 
+    // generate password
+    private String generatePassword() {
+        return UUID.randomUUID().toString().substring(0, 8);
+    }
+
     // get all journalist request made from the college
     public List<JournalistReqResponseDto> getJournalistRequests() {
         // find college-id
@@ -74,13 +80,16 @@ public class JournalistRequestService {
 
     // accept journalist request
     @Transactional
-    public boolean acceptJournalistRequest(Long id, String password) {
+    public boolean acceptJournalistRequest(Long id) {
         try {
+            // generate password
+            String password = generatePassword();
             // find request
             JournalistRequest request = journalistRequestRepository.findById(id).orElseThrow(
                     () -> new RuntimeException("Journalist Request with id " + id + " not found")
             );
-            // create
+
+            // create journalist
             Journalist journalist = new Journalist();
             journalist.setFullName(request.getStudent().getFullName());
             journalist.setPasswordHash(passwordEncoder.encode(password));

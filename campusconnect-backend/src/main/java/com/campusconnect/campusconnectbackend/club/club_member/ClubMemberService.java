@@ -2,7 +2,7 @@ package com.campusconnect.campusconnectbackend.club.club_member;
 
 import com.campusconnect.campusconnectbackend.club.club_follower.ClubFollowerRepository;
 import com.campusconnect.campusconnectbackend.club.club_team.repository.ClubTeamRepository;
-import com.campusconnect.campusconnectbackend.dto.response.club.ClubDashboardStatsDto;
+import com.campusconnect.campusconnectbackend.club.dto.res.club_admin_member.ClubDashboardStatsDto;
 import com.campusconnect.campusconnectbackend.club.event.service.EventService;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import lombok.RequiredArgsConstructor;

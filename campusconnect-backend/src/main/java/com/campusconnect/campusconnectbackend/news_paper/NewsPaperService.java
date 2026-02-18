@@ -1,6 +1,6 @@
 package com.campusconnect.campusconnectbackend.news_paper;
 
-import com.campusconnect.campusconnectbackend.dto.response.news_paper.NewsPaperResponseDto;
+import com.campusconnect.campusconnectbackend.news_paper.dto.res.NewsPaperResponseDto;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;

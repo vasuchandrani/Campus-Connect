@@ -2,7 +2,7 @@ package com.campusconnect.campusconnectbackend.student.service;
 
 import com.campusconnect.campusconnectbackend.college.service.CollegeService;
 import com.campusconnect.campusconnectbackend.dto.request.LoginRequestDto;
-import com.campusconnect.campusconnectbackend.dto.request.student.StudentRegisterRequestDto;
+import com.campusconnect.campusconnectbackend.student.dto.req.StudentSignupRequestDto;
 import com.campusconnect.campusconnectbackend.dto.response.AuthResponseDto;
 import com.campusconnect.campusconnectbackend.student.StudentRepository;
 import com.campusconnect.campusconnectbackend.security.jwt.JwtTokenProvider;
@@ -25,7 +25,7 @@ public class StudentAuth {
     private final CollegeService collegeService;
 
     // get student-object
-    public Student getObject(StudentRegisterRequestDto dto) {
+    public Student getObject(StudentSignupRequestDto dto) {
         // create student
         Student student = new Student();
         student.setStudentId(dto.getId());
@@ -42,7 +42,7 @@ public class StudentAuth {
 
     // create student account(college-admin feat)
     @Transactional
-    public boolean createStudentAccount(StudentRegisterRequestDto request) {
+    public boolean createStudentAccount(StudentSignupRequestDto request) {
         try {
             // create student
             Student student = getObject(request);
@@ -57,7 +57,7 @@ public class StudentAuth {
 
     // student signup
     @Transactional
-    public AuthResponseDto store(StudentRegisterRequestDto request) {
+    public AuthResponseDto store(StudentSignupRequestDto request) {
 
         // create student
         Student student = getObject(request);

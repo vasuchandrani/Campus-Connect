@@ -1,6 +1,6 @@
 package com.campusconnect.campusconnectbackend.journalist.service;
 
-import com.campusconnect.campusconnectbackend.dto.response.journalist.JournalistResponseDto;
+import com.campusconnect.campusconnectbackend.journalist.dto.res.JournalistResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.entity.Journalist;
 import com.campusconnect.campusconnectbackend.journalist.repository.JournalistRepository;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
