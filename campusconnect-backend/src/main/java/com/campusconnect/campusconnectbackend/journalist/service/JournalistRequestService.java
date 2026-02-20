@@ -33,12 +33,13 @@ public class JournalistRequestService {
         // create dto
         JournalistReqResponseDto dto =  new JournalistReqResponseDto();
         // map the data
-        dto.setId(journalistRequest.getId());
+        dto.setId(journalistRequest.getStudent().getStudentId());
         dto.setWhy(journalistRequest.getWhy());
         dto.setExperience(journalistRequest.getExperience());
         dto.setCollegeId(journalistRequest.getCollege().getId());
         dto.setStudentId(journalistRequest.getStudent().getId());
         dto.setPortfolioLink(journalistRequest.getPortfolioLink());
+        dto.setJournalistName(journalistRequest.getStudent().getFullName());
 
         return dto;
     }

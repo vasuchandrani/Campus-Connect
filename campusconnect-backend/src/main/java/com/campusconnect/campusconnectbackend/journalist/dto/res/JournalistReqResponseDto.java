@@ -10,7 +10,10 @@ import lombok.Setter;
 public class JournalistReqResponseDto {
 
     @NotNull
-    private Long id;
+    private String id;
+
+    @NotBlank
+    private String journalistName;
 
     @NotBlank
     private String why;

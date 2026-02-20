@@ -10,43 +10,44 @@ import java.time.LocalDateTime;
 
 @Getter
 @Setter
-public class EventResponseDto {
+public class EventDetailsResponseDto {
 
     @NotNull
     private Long id;
 
     @NotBlank
+    private String image;
+
+    @NotBlank
     private String title;
+
+    @NotBlank
+    private String clubName;
+
+    @NotNull
+    private LocalDateTime eventDate;
+
+    @NotNull
+    private LocalDateTime endDate;
+
+    @NotBlank
+    private String location;
 
     @NotBlank
     private String description;
 
     @NotBlank
-    private String image;
-
-    private LocalDateTime eventDate;
-
-    private LocalDateTime endDate;
-
-    private LocalDateTime registrationEnd;
-
-    private String location;
-
-    @NotBlank
     private String status;
-
-    @NotBlank
-    private String clubName;
-
-    private boolean isRegister;
-
-    private boolean isRegistrationOpen;
-
-    private LocalDateTime createAt;
 
     private int registrationsCount;
 
-    private List<EventSponsorResponseDto> sponsors;
+    private String overview;
+
+    private List<String> images;
 
     private List<EventSpeakerResponseDto> speakers;
+
+    private List<EventSponsorResponseDto> sponsors;
+
+    private List<EventWinnerResponseDto> winners;
 }

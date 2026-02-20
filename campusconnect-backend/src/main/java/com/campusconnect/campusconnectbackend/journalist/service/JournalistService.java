@@ -22,7 +22,7 @@ public class JournalistService {
         // create dto
         JournalistResponseDto dto = new JournalistResponseDto();
         // map the data
-        dto.setId(journalists.getId());
+        dto.setId(journalists.getStudent().getStudentId());
         dto.setFullName(journalists.getFullName());
         dto.setActive(journalists.isActive());
         dto.setCreatedAt(journalists.getCreatedAt());

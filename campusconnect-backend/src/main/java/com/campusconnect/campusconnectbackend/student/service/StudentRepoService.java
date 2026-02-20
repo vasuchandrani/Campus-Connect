@@ -98,7 +98,7 @@ public class StudentRepoService {
                 String ID       = row.getCell(2).getStringCellValue().trim();
                 String gender   = row.getCell(3).getStringCellValue().trim();
                 String dept     = row.getCell(4).getStringCellValue().trim();
-                String year     = row.getCell(5).getStringCellValue().trim();
+                int year        = (int) row.getCell(5).getNumericCellValue();
                 String password = generatePassword();
 
                 StudentSignupRequestDto dto = new StudentSignupRequestDto();
@@ -107,7 +107,7 @@ public class StudentRepoService {
                 dto.setFullName(name);
                 dto.setGender(gender);
                 dto.setDepartment(dept);
-                dto.setYear(Integer.parseInt(year));
+                dto.setYear(year);
                 dto.setPassword(password);
                 dto.setCollegeId(collegeId);
 
