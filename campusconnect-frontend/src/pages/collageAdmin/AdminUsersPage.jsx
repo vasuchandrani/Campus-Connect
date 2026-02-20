@@ -27,10 +27,16 @@ import {
   DropdownMenuTrigger,
 } from "../../components/ui/DropdownMenu";
 import { collegeAdminNavItems } from "../../config/Navigation";
+import { toast } from "../../hooks/use-toast";
+import { useEffect } from "react";
 
 const navItems = collegeAdminNavItems;
 
 const AdminUsersPage = () => {
+
+  //base URL for API calls related to users
+  const baseUrl = "http://localhost:8080/campus-connect/college-admin/users";
+
   // states
   const [journalists, setJournalists] = useState([]);
   const [reviewers, setReviewers] = useState([]);
@@ -45,6 +51,7 @@ const AdminUsersPage = () => {
   ]);
 
   const [students, setStudents] = useState([]);
+  const [exploreStudents, setExploreStudents] = useState(false);
 
   const [newStudent, setNewStudent] = useState({
     name: "",
@@ -64,10 +71,146 @@ const AdminUsersPage = () => {
     type: null,
     requestId: null,
   });
+  const [reviewerOpen, setReviewerOpen] = useState(false);
+  const [studentOpen, setStudentOpen] = useState(false);
 
-  //Add student temparary
-  const addStudent = (student) => {
-    setStudents((prev) => [...prev, { id: Date.now(), ...student }]);
+  //fetch journalist requests
+  const fetchJournalistsRequests = async () => {
+    const token = localStorage.getItem("authToken");
+
+    fetch(`${baseUrl}/journalist-req`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setJournalistRequests(data);
+      })
+      .catch((err) => {
+        toast({
+          title: "Error",
+          description: "Failed to fetch journalist requests",
+          status: "error",
+        });
+      });
+  };
+
+  //fetch journalists
+  const fetchJournalists = async () => {
+    const token = localStorage.getItem("authToken");
+    fetch(`${baseUrl}/journalist`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setJournalists(data);
+      })
+      .catch((err) => {
+        toast({
+          title: "Error",
+          description: "Failed to fetch journalists",
+          status: "error",
+        });
+      });
+  };
+
+  //fetch reviewers
+  const fetchReviewers = async () => {
+    const token = localStorage.getItem("authToken");
+    fetch(`${baseUrl}/reviewer`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setReviewers(data);
+      })
+      .catch((err) => {
+        toast({
+          title: "Error",
+          description: "Failed to fetch reviewers",
+          status: "error",
+        });
+      });
+  };
+
+  //fetch students
+  const fetchStudents = async () => {
+    const token = localStorage.getItem("authToken");
+    fetch(`${baseUrl}/student`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setStudents(data);
+      })
+      .catch((err) => {
+        toast({
+          title: "Error",
+          description: "Failed to fetch students",
+          status: "error",
+        });
+      });
+  };
+  
+  
+  //load initial data on component mount
+  useEffect(() => {
+    fetchJournalistsRequests();
+    fetchJournalists();
+    fetchReviewers();
+  }, []);
+
+  //fetch students when exploreStudents is toggled
+  useEffect(() => {
+    if (exploreStudents) {
+      fetchStudents();
+    }
+  }, [exploreStudents]);
+
+  //Add student API call
+  const addStudent = async (student) => {
+    await fetch(`${baseUrl}/student/add-one`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+      body: JSON.stringify(student),
+    })
+      .then(async (res) => {
+        if (res.ok) {
+          toast({
+            title: "Success",
+            description: "Student added successfully",
+            status: "success",
+          });
+          // await fetchStudents();
+        } else {
+          throw new Error("Failed to add student");
+        }
+      })
+      .catch((err) => {
+        toast({
+          title: "Error",
+          description: err.message || "Failed to add student",
+          status: "error",
+        });
+      });
   };
 
   //change in data of student
@@ -80,11 +223,18 @@ const AdminUsersPage = () => {
   };
 
   //add student handler
-  const handleAddStudent = () => {
+  const handleAddStudent = async () => {
     const { name, email, department, year, studentId, gender } = newStudent;
 
     if (name && email && department && year && studentId && gender) {
-      addStudent({ ...newStudent });
+      await addStudent({
+        id:studentId,
+        fullName:name,
+        email:email,
+        gender:gender,
+        department:department,
+        year:year,
+      });
 
       // reset form
       setNewStudent({
@@ -95,50 +245,152 @@ const AdminUsersPage = () => {
         studentId: "",
         gender: "",
       });
+
+      setStudentOpen(false);
     }
   };
 
-  //Approve Journalist handler
-  const handleApproveJournalist = (id) => {
-    const request = journalistRequests.find((r) => r.id === id);
+  //Approve Journalist Api call
+  const handleApproveJournalist = async (id) => {
+    fetch(`${baseUrl}/journalist-req/${id}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    })
+      .then(async (res) => {
+        if (res.ok) {
+          toast({
+            title: "Success",
+            description: "Journalist request approved",
+            status: "success",
+          });
+          await fetchJournalistsRequests();
+          await fetchJournalists();
+        } else {
+          throw new Error("Failed to approve journalist request");
+        }
+      })
+      .catch((err) => {
+        toast({
+          title: "Error",
+          description: err.message || "Failed to approve journalist request",
+          status: "error",
+        });
+      }); 
+  };
 
-    if (request) {
-      addJournalist({
-        name: request.studentName,
-        studentId: request.studentId,
+  // Reject Journalist api call
+  const handleRejectJournalist = async (id) => {
+    fetch(`${baseUrl}/journalist-req/${id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    })
+      .then(async (res) => {
+        if (res.ok) {
+          toast({
+            title: "Success",
+            description: "Journalist request rejected",
+            status: "success",
+          });
+          await fetchJournalistsRequests();
+          await fetchJournalists();
+        } else {
+          throw new Error("Failed to reject journalist request");
+        }
+      })
+      .catch((err) => {
+        toast({
+          title: "Error",
+          description: err.message || "Failed to reject journalist request",
+          status: "error",
+        });
       });
-
-      setJournalistRequests((prev) => prev.filter((r) => r.id !== id));
-    }
   };
 
-  // Reject Journalist
-  const handleRejectJournalist = (id) => {
-    setJournalistRequests((prev) => prev.filter((r) => r.id !== id));
-  };
-
-  //temparary add Journalist
-  const addJournalist = (journalist) => {
-    setJournalists((prev) => [...prev, { id: Date.now(), ...journalist }]);
-  };
-
-  //Temparary Add Reviewer
-  const addReviewer = (reviewer) => {
-    setReviewers((prev) => [...prev, { id: Date.now(), ...reviewer }]);
+  //Add reviewer API call
+  const addReviewer = async (reviewer) => {
+    fetch(`${baseUrl}/reviewer`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+      body: JSON.stringify(reviewer),
+    })
+      .then(async (res) => {
+        if (res.ok) {
+          toast({
+            title: "Success",
+            description: "Reviewer added successfully",
+            status: "success",
+          });
+          await fetchReviewers();
+        } else {
+          throw new Error("Failed to add reviewer");
+        }
+      })
+      .catch((err) => {
+        toast({
+          title: "Error",
+          description: err.message || "Failed to add reviewer",
+          status: "error",
+        });
+      });
   };
 
   //Add Reviwer Handler
-  const handleAddReviewer = () => {
+  const handleAddReviewer = async () => {
     if (newReviewerName && newReviewerEmail) {
-      addReviewer({
-        name: newReviewerName,
+      await addReviewer({
+        fullName: newReviewerName,
         email: newReviewerEmail,
       });
+      setReviewerOpen(false);
       setNewReviewerName("");
       setNewReviewerEmail("");
     }
   };
 
+  //add multiple students API call
+  const addMultipleStudents = async () => {
+  const formData = new FormData();
+  formData.append("file", excelFile);
+   await fetch(`${baseUrl}/student/add-multiple`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+      body: formData,
+    })
+      .then(async (res) => {
+        if (res.ok) {
+          toast({
+            title: "Success",
+            description: "Students added successfully",
+            status: "success",
+          });
+        } else {
+          throw new Error("Failed to add students");
+        }
+      })
+      .catch((err) => {
+        toast({
+          title: "Error",
+          description: err.message || "Failed to add students",
+          status: "error",
+        });
+      });
+
+      setExcelFile(null);
+      setStudentOpen(false);
+  };
+
+  //------------------------------UI--------------------------------------------//
   return (
     <DashboardLayout navItems={navItems} title="Manage Users">
       <div className="space-y-6">
@@ -243,12 +495,12 @@ const AdminUsersPage = () => {
                   <CardContent className="p-6 pt-4">
                     <div className="flex justify-between">
                       <div>
-                        <p className="font-semibold">{request.studentName}</p>
+                        <p className="font-semibold">{request.journalistName}</p>
                         <p className="text-sm text-muted-foreground">
                           {request.studentId}
                         </p>
                         <p className="text-sm mt-2">
-                          <b>Reason:</b> {request.reason}
+                          <b>Reason:</b> {request.why}
                         </p>
                         <p className="text-sm">
                           <b>Experience:</b> {request.experience}
@@ -309,11 +561,11 @@ const AdminUsersPage = () => {
                         <div className="flex items-center gap-4 pt-1 pb-1">
                           <Avatar>
                             <AvatarFallback>
-                              {journalist.name.charAt(0)}
+                              {journalist.fullName.charAt(0)}
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="font-medium">{journalist.name}</p>
+                            <p className="font-medium">{journalist.fullName}</p>
                             <p className="text-sm text-muted-foreground">
                               {journalist.studentId}
                             </p>
@@ -346,9 +598,9 @@ const AdminUsersPage = () => {
           <TabsContent value="reviewers" className="mt-6 space-y-4">
             {/* Add Reviewer Button and Dialog*/}
             <div className="flex justify-end">
-              <Dialog>
+              <Dialog open={reviewerOpen} onOpenChange={setReviewerOpen}>
                 <DialogTrigger asChild>
-                  <Button>
+                  <Button onClick={() => setReviewerOpen(true)}>
                     <UserPlus className="w-4 h-4 mr-2" />
                     Add Reviewer
                   </Button>
@@ -403,11 +655,11 @@ const AdminUsersPage = () => {
                         <div className="flex items-center gap-4">
                           <Avatar>
                             <AvatarFallback>
-                              {reviewer.name.charAt(0)}
+                              {reviewer.fullName.charAt(0)}
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="font-medium">{reviewer.name}</p>
+                            <p className="font-medium">{reviewer.fullName}</p>
                             <p className="text-sm text-muted-foreground">
                               {reviewer.email}
                             </p>
@@ -440,9 +692,9 @@ const AdminUsersPage = () => {
           <TabsContent value="students" className="mt-6 space-y-4">
             {/* Add Student Button and dialog*/}
             <div className="flex justify-end">
-              <Dialog>
+              <Dialog open={studentOpen} onOpenChange={setStudentOpen}>
                 <DialogTrigger asChild>
-                  <Button>
+                  <Button onClick={() => setStudentOpen(true)}>
                     <UserPlus className="w-4 h-4 mr-2" />
                     Add Student
                   </Button>
@@ -533,7 +785,7 @@ const AdminUsersPage = () => {
                         onChange={(e) => setExcelFile(e.target.files[0])}
                       />
 
-                      <Button className="w-full">Upload & Add Students</Button>
+                      <Button className="w-full" onClick={addMultipleStudents}>Upload & Add Students</Button>
                     </TabsContent>
                   </Tabs>
                 </DialogContent>
@@ -548,7 +800,7 @@ const AdminUsersPage = () => {
                   {students.length === 0 ? (
                     <div className="p-6 text-center">
                       <p className="text-muted-foreground">
-                        <Button variant="outline" className="mb-2">
+                        <Button variant="outline" className="mb-2" onClick={() => setExploreStudents(true)}>
                           Explore students
                         </Button>
                       </p>
@@ -562,11 +814,11 @@ const AdminUsersPage = () => {
                         <div className="flex items-center gap-4">
                           <Avatar>
                             <AvatarFallback>
-                              {student.name.charAt(0)}
+                              {student.fullName.charAt(0)}
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="font-medium">{student.name}</p>
+                            <p className="font-medium">{student.fullName}</p>
                             <p className="text-sm text-muted-foreground">
                               {student.email}
                             </p>

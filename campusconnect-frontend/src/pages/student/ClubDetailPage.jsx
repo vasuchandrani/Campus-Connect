@@ -49,7 +49,6 @@ const ClubDetailPage = () => {
     })
       .then((res) => res.json())
       .then((data) => {
-        console.log("Fetched club details:", data);
         setClub({
           id: data.id,
           name: data.clubName,
@@ -170,7 +169,6 @@ const toggleFollow = () => {
           <Stat icon={Users} value={club.followerCount} label="Followers" />
         </div>
 
-        {/* {console.log("Club details:", club)} */}
         {/* Admin */}
         <Card className="pt-5">
           <CardContent className="flex items-center gap-4 p-4">

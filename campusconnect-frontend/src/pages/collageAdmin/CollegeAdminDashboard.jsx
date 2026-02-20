@@ -15,9 +15,7 @@ import {
 } from "../../components/ui/Dialog";
 import { toast } from "../../hooks/use-toast";
 
-
 export default function CollegeAdminDashboard() {
-
   const navigate = useNavigate();
   // State variables
   const [stats, setStats] = useState({});
@@ -25,9 +23,8 @@ export default function CollegeAdminDashboard() {
   const [latestNews, setLatestNews] = useState(null);
   const [collegeName, setCollegeName] = useState("");
 
-
   // Base URL for API calls related to college admin
-  const baseUrl ="http://localhost:8080/campus-connect/college-admin";
+  const baseUrl = "http://localhost:8080/campus-connect/college-admin";
 
   // Fetch dashboard stats
   const fetchStats = () => {
@@ -85,7 +82,7 @@ export default function CollegeAdminDashboard() {
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
     })
-      .then((res) => res.text().then(text => setCollegeName(text)))
+      .then((res) => res.text().then((text) => setCollegeName(text)))
       .catch((err) => {
         console.error("Error fetching college name:", err);
         toast({
@@ -103,7 +100,6 @@ export default function CollegeAdminDashboard() {
     getLatestNews();
   }, []);
 
-
   //-----------------------------UI----------------------------//
   return (
     <DashboardLayout navItems={collegeAdminNavItems} title="College Admin">
@@ -118,102 +114,86 @@ export default function CollegeAdminDashboard() {
             </div>
           </div>
         </div>
-{/* STATS */}
-<div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        {/* STATS */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          {/* Students */}
+          <Card className="border-border/50 hover:shadow-soft transition-all duration-300">
+            <CardContent className="p-6 min-h-[110px] flex items-center">
+              <div className="flex items-center gap-6 w-full">
+                {/* Icon */}
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <Users className="w-6 h-6 text-primary" />
+                </div>
 
-  {/* Students */}
-  <Card className="border-border/50 hover:shadow-soft transition-all duration-300">
-    <CardContent className="p-6 min-h-[110px] flex items-center">
-      <div className="flex items-center gap-6 w-full">
+                {/* Text */}
+                <div>
+                  <p className="text-3xl font-bold leading-none">
+                    {stats.students}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">Students</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Icon */}
-        <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-          <Users className="w-6 h-6 text-primary" />
+          {/* Clubs */}
+          <Card className="border-border/50 hover:shadow-soft transition-all duration-300">
+            <CardContent className="p-6 min-h-[110px] flex items-center">
+              <div className="flex items-center gap-6 w-full">
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <Building2 className="w-6 h-6 text-primary" />
+                </div>
+
+                <div>
+                  <p className="text-3xl font-bold leading-none">
+                    {stats.clubs}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">Clubs</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Journalists */}
+          <Card className="border-border/50 hover:shadow-soft transition-all duration-300">
+            <CardContent className="p-6 min-h-[110px] flex items-center">
+              <div className="flex items-center gap-6 w-full">
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <Newspaper className="w-6 h-6 text-primary" />
+                </div>
+
+                <div>
+                  <p className="text-3xl font-bold leading-none">
+                    {stats.journalist}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Journalists
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Published Papers */}
+          <Card className="border-border/50 hover:shadow-soft transition-all duration-300">
+            <CardContent className="p-6 min-h-[110px] flex items-center">
+              <div className="flex items-center gap-6 w-full">
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <BookOpen className="w-6 h-6 text-primary" />
+                </div>
+
+                <div>
+                  <p className="text-3xl font-bold leading-none">
+                    {stats.publishedPapers}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Published Papers
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-
-        {/* Text */}
-        <div>
-          <p className="text-3xl font-bold leading-none">
-            {stats.students}
-          </p>
-          <p className="text-sm text-muted-foreground mt-2">
-            Students
-          </p>
-        </div>
-
-      </div>
-    </CardContent>
-  </Card>
-
-  {/* Clubs */}
-  <Card className="border-border/50 hover:shadow-soft transition-all duration-300">
-    <CardContent className="p-6 min-h-[110px] flex items-center">
-      <div className="flex items-center gap-6 w-full">
-
-        <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-          <Building2 className="w-6 h-6 text-primary" />
-        </div>
-
-        <div>
-          <p className="text-3xl font-bold leading-none">
-            {stats.clubs}
-          </p>
-          <p className="text-sm text-muted-foreground mt-2">
-            Clubs
-          </p>
-        </div>
-
-      </div>
-    </CardContent>
-  </Card>
-
-  {/* Journalists */}
-  <Card className="border-border/50 hover:shadow-soft transition-all duration-300">
-    <CardContent className="p-6 min-h-[110px] flex items-center">
-      <div className="flex items-center gap-6 w-full">
-
-        <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-          <Newspaper className="w-6 h-6 text-primary" />
-        </div>
-
-        <div>
-          <p className="text-3xl font-bold leading-none">
-            {stats.journalist}
-          </p>
-          <p className="text-sm text-muted-foreground mt-2">
-            Journalists
-          </p>
-        </div>
-
-      </div>
-    </CardContent>
-  </Card>
-
-  {/* Published Papers */}
-  <Card className="border-border/50 hover:shadow-soft transition-all duration-300">
-    <CardContent className="p-6 min-h-[110px] flex items-center">
-      <div className="flex items-center gap-6 w-full">
-
-        <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-          <BookOpen className="w-6 h-6 text-primary" />
-        </div>
-
-        <div>
-          <p className="text-3xl font-bold leading-none">
-            {stats.publishedPapers}
-          </p>
-          <p className="text-sm text-muted-foreground mt-2">
-            Published Papers
-          </p>
-        </div>
-
-      </div>
-    </CardContent>
-  </Card>
-
-</div>
-
-
 
         {/* NEWSPAPER */}
         <Section

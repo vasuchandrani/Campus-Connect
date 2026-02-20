@@ -10,66 +10,74 @@ import {
   Users,
   ArrowLeft,
   ImageIcon,
+  Speaker,
+  Award,
 } from "lucide-react";
-import { clubAdminNavItems } from "../../config/Navigation";
+import { clubMemberNavItems } from "../../config/Navigation";
 import { marked } from "marked";
-import { useMemo } from "react";
+import { useMemo,useEffect,useState } from "react";
 
 const ClubAdminEventDetailPage = () => {
   const { clubId, id } = useParams();
   const navigate = useNavigate();
 
-  const events = [
-    {
-      id: "7",
-      title: "Tech Innovation Summit",
-      description:
-        "Join us for an exciting tech summit featuring industry experts.",
-      date: "2026-02-10",
-      time: "10:00 AM",
-      location: "Main Auditorium",
-      clubName: "Coding Club",
-      attendees: 120,
-      maxAttendees: 200,
-      image: "https://images.unsplash.com/photo-1505373877841-8d25f7d46678",
-      overview: `
-## What to Expect
+  const baseUrl = `http://localhost:8080/campus-connect/clubs/${clubId}/admin/events/finished/${id}`;
 
-- Keynote speeches
-- Networking sessions
-- Startup showcase
-
-### Topics Covered
-
-- AI & Machine Learning
-- Web3
-- Cloud Computing
-
-Don't miss this opportunity!
-      `,
-      photos: [
-        "https://images.unsplash.com/photo-1492724441997-5dc865305da7",
-        "https://images.unsplash.com/photo-1515169067868-5387ec356754",
-        "https://images.unsplash.com/photo-1523580846011-d3a5bc25702b",
-      ],
-    },
-
-  ];
-
-  const event = events.find((e) => e.id === id);
-
-  const navItems = () => {
-    return clubAdminNavItems.map((item) => ({
+  //--------------Nav---------------//
+    const navItems = () => {
+    return clubMemberNavItems.map((item) => ({
       ...item,
       href: item.href.replace(":clubId", clubId),
     }));
   };
 
+  //state variables
+  const [event, setEvent] = useState({});
+
+  // Function to format date and time
+  const formatDate = (dateTime) => {
+    if (!dateTime) return { date: "", time: "" };
+    const [date, time] = dateTime.split("T");
+    return { date, time: time.substring(0, 5) };
+  };
+
+  //fetching event details
+  const fetchEventDetails = () => {
+    const token = localStorage.getItem("authToken");
+
+    fetch(baseUrl, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setEvent(data);
+      })
+      .catch((err) => {
+        toast({
+          title: "Error",
+          description: "Failed to fetch event details",
+          status: "error",
+        });
+      });
+  };
+
+  // Fetch event details on component mount
+  useEffect(() => {
+    fetchEventDetails();
+  }, []);
+
+
+// Memoized rendered overview to avoid unnecessary re-renders
   const renderedOverview = useMemo(() => {
     if (!event?.overview) return "";
     return marked.parse(event.overview.trim());
   }, [event?.overview]);
 
+  // If event data is can't be fetched or is null, show a not found message
   if (!event) {
     return (
       <DashboardLayout navItems={navItems()} title="Event Not Found">
@@ -112,7 +120,7 @@ Don't miss this opportunity!
               <Calendar className="w-5 h-5 text-primary" />
               <div>
                 <p className="text-sm text-muted-foreground">Date</p>
-                <p className="font-medium">{event.date}</p>
+                <p className="font-medium">{formatDate(event.eventDate).date}</p>
               </div>
             </CardContent>
           </Card>
@@ -122,7 +130,7 @@ Don't miss this opportunity!
               <Clock className="w-5 h-5 text-primary" />
               <div>
                 <p className="text-sm text-muted-foreground">Time</p>
-                <p className="font-medium">{event.time}</p>
+                <p className="font-medium">{formatDate(event.eventDate).time}</p>
               </div>
             </CardContent>
           </Card>
@@ -143,7 +151,7 @@ Don't miss this opportunity!
               <div>
                 <p className="text-sm text-muted-foreground">Attendees</p>
                 <p className="font-medium">
-                  {event.attendees}/{event.maxAttendees}
+                  {event.registrationsCount}
                 </p>
               </div>
             </CardContent>
@@ -175,9 +183,9 @@ Don't miss this opportunity!
           </Card>
         )}
 
-
+        {/* Sponsors, Speakers, Winners, Photos - only show if data exists */}
         {
-          event.sponser && event.sponser.length > 0 && (
+          event.sponsors && event.sponsors.length > 0 && (
             <Card className="border-border/50">
               <CardContent className="p-6 pt-4">
                 <div className="flex items-center gap-2 mb-4">
@@ -186,7 +194,7 @@ Don't miss this opportunity!
                 </div>
 
                 <div className="space-y-4">
-                  {event.sponser.map((sponsor, index) => (
+                  {event.sponsors.map((sponsor, index) => (
                     <div key={index} className="p-1  rounded-lg">
                       <h4 className="text-md font-medium">{sponsor.name}</h4>
                       <p className="text-sm text-muted-foreground">{sponsor.tagline}</p>
@@ -211,7 +219,30 @@ Don't miss this opportunity!
                   {event.speakers.map((speaker, index) => (
                     <div key={index} className="p-1 rounded-lg">
                       <h4 className="text-md font-medium">{speaker.name}</h4>
-                      <p className="text-sm text-muted-foreground">{speaker.description}</p>
+                      {speaker.tagline && <p className="text-sm text-muted-foreground">{speaker.tagline}</p>}
+                      {speaker.email && <p className="text-sm text-muted-foreground">{speaker.email}</p>}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )
+        }
+
+        {
+          event.winners && event.winners.length > 0 && (
+            <Card className="border-border/50">
+              <CardContent className="p-6 pt-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <Award className="w-5 h-5 text-primary" />
+                  <h3 className="text-lg font-semibold">Event Winners</h3>
+                </div>
+
+                <div className="space-y-4">
+                  {event.winners.map((winner, index) => (
+                    <div key={index} className="p-1 rounded-lg">
+                      <h4 className="text-md font-medium">{winner.name}</h4>
+                      {winner.email && <p className="text-sm text-muted-foreground">{winner.email}</p>}
                     </div>
                   ))}
                 </div>
@@ -221,17 +252,17 @@ Don't miss this opportunity!
         }
 
         {/* Photos */}
-        {event.photos && event.photos.length > 0 && (
+        {event.images && event.images.length > 0 && (
           <Card className="border-border/50">
             <CardContent className="p-6 pt-4">
               <div className="flex items-center gap-2 mb-4">
                 <ImageIcon className="w-5 h-5 text-primary" />
                 <h3 className="text-lg font-semibold">Event Photos</h3>
-                <Badge variant="secondary">{event.photos.length} photos</Badge>
+                <Badge variant="secondary">{event.images.length} photos</Badge>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {event.photos.map((photo, index) => (
+                {event.images.map((photo, index) => (
                   <img
                     key={index}
                     src={photo}

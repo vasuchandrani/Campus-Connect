@@ -39,7 +39,6 @@ const ClubMembersPage = () => {
     })
       .then((res) => res.json())
       .then((data) => {
-        console.log("Fetched members:", data);
         setClubMembers(data);
       })
       .catch((err) => {
