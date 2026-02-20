@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.*;
 import java.time.LocalDateTime;
 
 @Getter
@@ -21,5 +22,11 @@ public class EventRequestDto {
 
     private LocalDateTime eventDate;
 
+    private LocalDateTime endDate;
+
     private String location;
+
+    private List<EventSponsorRequestDto> sponsors;
+
+    private List<EventSpeakerRequestDto> speakers;
 }

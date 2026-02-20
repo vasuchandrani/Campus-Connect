@@ -29,7 +29,7 @@ public class EventRegistrationService {
         // fins student
         Long studentId = authService.getCurrentUserId();
         // find event
-        Event event =  eventRepository.findById(eventId).orElseThrow(
+        Event event =  eventRepository.findEventById(eventId).orElseThrow(
                 () -> new RuntimeException("Event with id " + eventId + " not found")
         );
 
@@ -49,7 +49,7 @@ public class EventRegistrationService {
 
         EventRegistration registration = new EventRegistration();
         registration.setEventRegistrationId(id);
-        registration.setEvent(eventRepository.findEventById(eventId));
+        registration.setEvent(event);
         registration.setStudent(studentRepoService.getStudent(studentId));
 
         eventRegistrationRepository.save(registration);

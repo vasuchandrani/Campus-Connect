@@ -31,6 +31,9 @@ public class Event {
     @Column(name = "event_time", nullable = false)
     private LocalDateTime eventDate;
 
+    @Column(name = "end_date", nullable = false)
+    private LocalDateTime endDate;
+
     @Column(name = "registration_end")
     private LocalDateTime registrationEnd;
 
@@ -42,22 +45,6 @@ public class Event {
 
     @Column(columnDefinition = "TEXT")
     private String overview;
-
-    @ElementCollection
-    @CollectionTable(
-            name = "event_speakers",
-            joinColumns = @JoinColumn(name = "event_id")
-    )
-    @Column(name = "speaker_name")
-    private List<String> speakers;
-
-    @ElementCollection
-    @CollectionTable(
-            name = "event_sponsors",
-            joinColumns = @JoinColumn(name = "event_id")
-    )
-    @Column(name = "sponsor_name")
-    private List<String> sponsors;
 
     @Column(name = "prize_money")
     private Integer prizeMoney;
@@ -72,4 +59,11 @@ public class Event {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "club_id", nullable = false)
     private Club club;
+
+    @OneToMany(mappedBy = "event", cascade =  CascadeType.ALL, orphanRemoval = true)
+    private Set<EventSpeaker> speakers =  new HashSet<>();
+
+    @OneToMany(mappedBy = "event", cascade =  CascadeType.ALL, orphanRemoval = true)
+    private Set<EventSponsor> sponsors =  new HashSet<>();
+
 }

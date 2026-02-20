@@ -6,15 +6,18 @@ import com.campusconnect.campusconnectbackend.club.ClubService;
 import com.campusconnect.campusconnectbackend.club.club_team.ClubTeamService;
 import com.campusconnect.campusconnectbackend.club.announcement.dto.req.AnnouncementPatchRequestDto;
 import com.campusconnect.campusconnectbackend.club.announcement.dto.req.AnnouncementRequestDto;
-import com.campusconnect.campusconnectbackend.club.event.dto.req.EventPatchRequestDto;
+import com.campusconnect.campusconnectbackend.club.dto.req.SaveOverviewRequestDto;
 import com.campusconnect.campusconnectbackend.club.event.dto.req.EventRequestDto;
 import com.campusconnect.campusconnectbackend.club.announcement.dto.res.AnnouncementResponseDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.club_admin_member.ClubDashboardStatsDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.club_admin_member.ClubTeamDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.club_card.ClubMemberDto;
+import com.campusconnect.campusconnectbackend.club.event.dto.res.EventDetailsResponseDto;
 import com.campusconnect.campusconnectbackend.club.event.dto.res.EventResponseDto;
+import com.campusconnect.campusconnectbackend.club.event.overview_generation.EventOverviewService;
 import com.campusconnect.campusconnectbackend.club.event.service.EventService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,6 +33,7 @@ public class ClubMemberController {
     private final ClubTeamService clubTeamService;
     private final ClubRepository clubRepository;
     private final ClubService clubService;
+    private final EventOverviewService eventOverviewService;
 
     /* Home */
 
@@ -62,10 +66,28 @@ public class ClubMemberController {
 
     /* Events */
 
-    // get all events
-    @GetMapping("/events")
-    public List<EventResponseDto> getEvents(@PathVariable Long clubId) {
-        return eventService.getAllEvents(clubId);
+    // get all live & upcoming events of club
+    @GetMapping("/events/active")
+    public List<EventResponseDto> getActiveEventsByCollege(@PathVariable Long clubId) {
+        return eventService.getActiveEventsByClub(clubId);
+    }
+
+    // get all finished events of club
+    @GetMapping("/events/finished")
+    public List<EventResponseDto> getFinishedEventsByCollege(@PathVariable Long clubId) {
+        return eventService.getFinishedEventsByClub(clubId);
+    }
+
+    // get particular active event
+    @GetMapping("/events/active/{eventId}")
+    public EventResponseDto getEvent(@PathVariable Long eventId) {
+        return eventService.getEvent(eventId);
+    }
+
+    // view details of finished-events
+    @GetMapping("/events/finished/{eventId}")
+    public EventDetailsResponseDto getEventDetails(@PathVariable Long eventId) {
+        return eventService.getEventDetails(eventId);
     }
 
     // create new event
@@ -75,15 +97,30 @@ public class ClubMemberController {
     }
 
     // modify any event
-    @PatchMapping("/events/{eventId}")
-    public boolean updateEvent(@PathVariable Long eventId, @RequestBody EventPatchRequestDto request) {
+    @PatchMapping("/events/active/{eventId}")
+    public boolean updateEvent(@PathVariable Long eventId, @RequestBody EventRequestDto request) {
         return eventService.updateEvent(request, eventId);
     }
 
     // delete any event
-    @DeleteMapping("/events/{eventId}")
+    @DeleteMapping("/events/active/{eventId}")
     public boolean deleteEvent(@PathVariable Long eventId) {
         return eventService.deleteEvent(eventId);
+    }
+
+
+    /* Generate Overview */
+
+    // generate overview
+    @PostMapping("/events/finished/{eventId}/generate-overview")
+    public String generateOverview(@PathVariable Long eventId) {
+        return eventOverviewService.generateOverview(eventId);
+    }
+
+    // save overview
+    @PatchMapping("/events/finished/{eventId}/save-overview")
+    public String saveOverview(@PathVariable Long eventId, @RequestBody SaveOverviewRequestDto request) {
+        return eventOverviewService.saveOverview(eventId, request);
     }
 
 

@@ -3,6 +3,7 @@ package com.campusconnect.campusconnectbackend.college_admin.controller;
 import com.campusconnect.campusconnectbackend.club.announcement.AnnouncementService;
 import com.campusconnect.campusconnectbackend.club.club_request.ClubRequestService;
 import com.campusconnect.campusconnectbackend.club.ClubService;
+import com.campusconnect.campusconnectbackend.club.event.dto.res.EventDetailsResponseDto;
 import com.campusconnect.campusconnectbackend.college_admin.service.CollegeAdminService;
 import com.campusconnect.campusconnectbackend.reviewer.dto.req.AddReviewerRequestDto;
 import com.campusconnect.campusconnectbackend.student.dto.req.StudentRegisterRequestDto;
@@ -110,17 +111,29 @@ public class CollegeAdminController {
         return announcementService.getAnnouncementById(id);
     }
 
-    // get all events of college
-    @GetMapping("/events")
-    public List<EventResponseDto> getEvents() {
-        return eventService.getAllEventsByCollege();
-    }
-    // get particular event
-    @GetMapping("/events/{id}")
-    public EventResponseDto getEventById(@PathVariable Long id) {
-        return eventService.getEvent(id);
+    // get all live & upcoming events of college
+    @GetMapping("/events/active")
+    public List<EventResponseDto> getActiveEventsByCollege() {
+        return eventService.getActiveEventsByCollege();
     }
 
+    // get all finished events of college
+    @GetMapping("/events/finished")
+    public List<EventResponseDto> getFinishedEventsByCollege() {
+        return eventService.getFinishedEventsByCollege();
+    }
+
+    // get particular active event
+    @GetMapping("/events/active/{eventId}")
+    public EventResponseDto getEvent(@PathVariable Long eventId) {
+        return eventService.getEvent(eventId);
+    }
+
+    // view details of finished-events
+    @GetMapping("/events/finished/{eventId}")
+    public EventDetailsResponseDto getEventDetails(@PathVariable Long eventId) {
+        return eventService.getEventDetails(eventId);
+    }
 
     /* Users */
 

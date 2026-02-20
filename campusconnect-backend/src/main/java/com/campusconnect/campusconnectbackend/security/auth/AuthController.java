@@ -2,8 +2,8 @@ package com.campusconnect.campusconnectbackend.security.auth;
 
 import com.campusconnect.campusconnectbackend.dto.request.LoginRequestDto;
 import com.campusconnect.campusconnectbackend.college_admin.dto.req.CollegeAdminSignupRequestDto;
-import com.campusconnect.campusconnectbackend.student.dto.req.StudentRegisterRequestDto;
 import com.campusconnect.campusconnectbackend.dto.response.AuthResponseDto;
+import com.campusconnect.campusconnectbackend.student.dto.req.StudentSignupRequestDto;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,7 +18,7 @@ public class AuthController {
     // student
     @PostMapping("/student/signup")
     public AuthResponseDto studentSignup(
-            @RequestBody StudentRegisterRequestDto request) {
+            @RequestBody StudentSignupRequestDto request) {
         return authService.signup(request);
     }
     @PostMapping("/student/login")

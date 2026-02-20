@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 public class JournalistResponseDto {
 
     @NotNull
-    private Long id;
+    private String id;
 
     @NotBlank
     private String fullName;

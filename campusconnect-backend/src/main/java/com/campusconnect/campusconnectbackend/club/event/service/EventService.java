@@ -2,12 +2,12 @@ package com.campusconnect.campusconnectbackend.club.event.service;
 
 import com.campusconnect.campusconnectbackend.club.Club;
 import com.campusconnect.campusconnectbackend.club.ClubService;
-import com.campusconnect.campusconnectbackend.club.event.dto.req.EventPatchRequestDto;
 import com.campusconnect.campusconnectbackend.club.event.dto.req.EventRequestDto;
-import com.campusconnect.campusconnectbackend.club.event.dto.res.EventResponseDto;
-import com.campusconnect.campusconnectbackend.club.event.entity.Event;
-import com.campusconnect.campusconnectbackend.club.event.repository.EventRegistrationRepository;
-import com.campusconnect.campusconnectbackend.club.event.repository.EventRepository;
+import com.campusconnect.campusconnectbackend.club.event.dto.req.EventSpeakerRequestDto;
+import com.campusconnect.campusconnectbackend.club.event.dto.req.EventSponsorRequestDto;
+import com.campusconnect.campusconnectbackend.club.event.dto.res.*;
+import com.campusconnect.campusconnectbackend.club.event.entity.*;
+import com.campusconnect.campusconnectbackend.club.event.repository.*;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +25,10 @@ public class EventService {
     private final EventRegistrationRepository eventRegistrationRepository;
     private final ClubService clubService;
     private final AuthService authService;
+    private final EventImagesRepository eventImagesRepository;
+    private final EventSponsorRepository eventSponsorRepository;
+    private final EventSpeakerRepository eventSpeakerRepository;
+    private final EventWinnerRepository eventWinnerRepository;
 
     // check is student registered?
     private boolean isRegistered(Long eventId){
@@ -52,6 +56,7 @@ public class EventService {
         dto.setClubName(event.getClub().getName());
         dto.setId(event.getId());
         dto.setEventDate(event.getEventDate());
+        dto.setEndDate(event.getEndDate());
         dto.setLocation(event.getLocation());
         dto.setDescription(event.getDescription());
         dto.setTitle(event.getTitle());
@@ -68,6 +73,8 @@ public class EventService {
         dto.setCreateAt(event.getCreatedAt());
         dto.setRegistrationsCount(registrations(event.getId()));
 
+        dto.setSponsors(getSponsors(event.getId()));
+        dto.setSpeakers(getSpeakers(event.getId()));
         return dto;
     }
 
@@ -83,31 +90,162 @@ public class EventService {
         return response;
     }
 
-    // get all events of college
-    public List<EventResponseDto> getAllEventsByCollege() {
+    // get event sponsors list
+    private List<EventSponsorResponseDto> getSponsors(Long eventId) {
+        // find sponsors
+        List<EventSponsor> sponsors = eventSponsorRepository.findAllByEvent_Id(eventId);
+        List<EventSponsorResponseDto> response = new ArrayList<>();
+        for (EventSponsor sponsor : sponsors) {
+            EventSponsorResponseDto dto = new EventSponsorResponseDto();
+            dto.setId(sponsor.getId());
+            dto.setName(sponsor.getName());
+            dto.setTagline(sponsor.getTagline());
+            response.add(dto);
+        }
+        return response;
+    }
+
+    // get event speakers list
+    private List<EventSpeakerResponseDto> getSpeakers(Long eventId) {
+        // find speakers
+        List<EventSpeaker> speakers = eventSpeakerRepository.findAllByEvent_Id(eventId);
+        List<EventSpeakerResponseDto> response = new ArrayList<>();
+        for (EventSpeaker speaker : speakers) {
+            EventSpeakerResponseDto dto = new EventSpeakerResponseDto();
+            dto.setId(speaker.getId());
+            dto.setName(speaker.getName());
+            dto.setTagline(speaker.getTagline());
+            dto.setEmail(speaker.getEmail());
+            response.add(dto);
+        }
+        return response;
+    }
+
+    // save sponsors
+    private boolean saveSponsors(List<EventSponsorRequestDto> sponsors, Event event) {
+        try {
+            for (EventSponsorRequestDto s : sponsors) {
+                // create sponsor
+                EventSponsor sponsor = new EventSponsor();
+                sponsor.setName(s.getName());
+                sponsor.setTagline(s.getTagline());
+                sponsor.setEvent(event);
+                // save in db
+                eventSponsorRepository.save(sponsor);
+            }
+            return true;
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    // save speakers
+    private boolean saveSpeakers(List<EventSpeakerRequestDto> speakers, Event event) {
+        try {
+            for (EventSpeakerRequestDto s : speakers) {
+                // create speaker
+                EventSpeaker speaker = new EventSpeaker();
+                speaker.setName(s.getName());
+                speaker.setTagline(s.getTagline());
+                speaker.setEvent(event);
+                // save in db
+                eventSpeakerRepository.save(speaker);
+            }
+            return true;
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    // get all active events of college (live & upcoming)
+    public List<EventResponseDto> getActiveEventsByCollege() {
 
         // find all clubs of college
         List<Club> clubs = clubService.getAllClubsByCollege();
+        List<String> statuses = List.of("UPCOMING", "LIVE");
 
-        List<Event> events = eventRepository.findAllByClubs(clubs);
-
-        return getDtoList(events);
-    }
-
-    // get all events of club
-    public List<EventResponseDto> getAllEvents(Long clubId) {
-        // find events of club
-        List<Event> events = eventRepository.findEventByClub_Id(clubId);
+        // find all live and upcoming events
+        List<Event> events = eventRepository.findByStatusInAndClubIn(statuses, clubs);
 
         return getDtoList(events);
     }
 
-    // get particular event
+    // get all finished events of college
+    public List<EventResponseDto> getFinishedEventsByCollege() {
+        // find all clubs of college
+        List<Club> clubs = clubService.getAllClubsByCollege();
+        List<String> statuses = List.of("FINISHED");
+
+        // find all finished events
+        List<Event> events = eventRepository.findByStatusInAndClubIn(statuses, clubs);
+
+        return getDtoList(events);
+    }
+
+    // get particular active event
     public EventResponseDto getEvent(Long eventId) {
         // find event
-        Event e = eventRepository.findEventById(eventId);
+        Event e = eventRepository.findEventById(eventId).orElseThrow(
+                () -> new RuntimeException("Event with id " + eventId + " not found")
+        );
 
         return getDto(e);
+    }
+
+    // get finished event details
+    public EventDetailsResponseDto getEventDetails(Long eventId) {
+        // find event
+        Event event = eventRepository.findEventById(eventId).orElseThrow(
+                () -> new RuntimeException("Event with id " + eventId + " not found")
+        );
+
+        // find images of event
+        List<EventImages> images = eventImagesRepository.findAllByEvent_Id(eventId);
+        List<String> imageUrls = new ArrayList<>();
+        for (EventImages img : images) {
+            imageUrls.add(img.getImageUrl());
+        }
+
+        // find all winners of event
+        List<EventWinner> winnerList = eventWinnerRepository.findAllByEvent_Id(eventId);
+        List<EventWinnerResponseDto> winners = new ArrayList<>();
+        for (EventWinner winner : winnerList) {
+            EventWinnerResponseDto dto = new EventWinnerResponseDto();
+            dto.setId(winner.getId());
+            dto.setName(winner.getName());
+            dto.setEmail(winner.getEmail());
+            dto.setEventId(winner.getEvent().getId());
+            winners.add(dto);
+        }
+
+        // fins all sponsors of event
+        List<EventSponsorResponseDto> sponsors = getSponsors(eventId);
+
+        // find all speakers of event
+        List<EventSpeakerResponseDto> speakers = getSpeakers(eventId);
+
+        // create response
+        EventDetailsResponseDto response = new EventDetailsResponseDto();
+        // map all data
+        response.setId(event.getId());
+        response.setImage(event.getImage());
+        response.setTitle(event.getTitle());
+        response.setClubName(event.getClub().getName());
+        response.setDescription(event.getDescription());
+        response.setEventDate(event.getEventDate());
+        response.setEndDate(event.getEndDate());
+        response.setLocation(event.getLocation());
+        response.setStatus(event.getStatus());
+        response.setRegistrationsCount(registrations(eventId));
+        response.setOverview(event.getOverview());
+        response.setImages(imageUrls);
+        response.setSponsors(sponsors);
+        response.setSpeakers(speakers);
+        response.setWinners(winners);
+
+        return response;
     }
 
     // get count of events by status
@@ -184,19 +322,27 @@ public class EventService {
     @Transactional
     public boolean createEvent(EventRequestDto request, Long clubId) {
         try {
-            // create
+            // create event
             Event event = new Event();
             event.setTitle(request.getTitle());
             event.setDescription(request.getDescription());
             event.setRegistrationEnd(request.getRegistrationEnd());
             event.setImage(request.getImageUrl());
             event.setEventDate(request.getEventDate());
+            event.setEndDate(request.getEndDate());
             event.setLocation(request.getLocation());
             event.setClub(clubService.getClubById(clubId));
 
             // save in db
             eventRepository.save(event);
-            return true;
+
+            // save sponsors
+            boolean sponsorsSaved = saveSponsors(request.getSponsors(), event);
+
+            // save speakers
+            boolean speakersSaved = saveSpeakers(request.getSpeakers(), event);
+
+            return sponsorsSaved && speakersSaved;
         }
         catch (Exception e) {
             System.out.println(e.getMessage());
@@ -206,18 +352,26 @@ public class EventService {
 
     // modify the event
     @Transactional
-    public boolean updateEvent(EventPatchRequestDto request, Long eventId) {
+    public boolean updateEvent(EventRequestDto request, Long eventId) {
 
         // get event
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new RuntimeException("Event not found"));
 
+        eventSponsorRepository.deleteAllByEvent_Id(eventId);
+        eventSpeakerRepository.deleteAllByEvent_Id(eventId);
         // update
+        if(request.getTitle() != null) {
+            event.setTitle(request.getTitle());
+        }
         if (request.getDescription() != null) {
             event.setDescription(request.getDescription());
         }
         if (request.getEventDate() != null) {
             event.setEventDate(request.getEventDate());
+        }
+        if (request.getEndDate() != null) {
+            event.setEndDate(request.getEndDate());
         }
         if (request.getRegistrationEnd() != null) {
             event.setRegistrationEnd(request.getRegistrationEnd());
@@ -227,6 +381,12 @@ public class EventService {
         }
         if (request.getImageUrl() != null) {
             event.setImage(request.getImageUrl());
+        }
+        if (request.getSponsors() != null) {
+            saveSponsors(request.getSponsors(), event);
+        }
+        if (request.getSpeakers() != null) {
+            saveSpeakers(request.getSpeakers(), event);
         }
 
         // save in db
@@ -246,5 +406,31 @@ public class EventService {
         // delete
         eventRepository.deleteById(eventId);
         return true;
+    }
+
+    // get all active events of club (live & upcoming)
+    public List<EventResponseDto> getActiveEventsByClub(Long clubId) {
+
+        // find club
+        Club club = clubService.getClubById(clubId);
+        List<String> statuses = List.of("UPCOMING", "LIVE");
+
+        // find all live and upcoming events
+        List<Event> events = eventRepository.findByClubAndStatusIn(club, statuses);
+
+        return getDtoList(events);
+    }
+
+    // get all finished events of college
+    public List<EventResponseDto> getFinishedEventsByClub(Long clubId) {
+
+        // find club
+        Club club = clubService.getClubById(clubId);
+        List<String> statuses = List.of("FINISHED");
+
+        // find all finished events
+        List<Event> events = eventRepository.findByClubAndStatusIn(club, statuses);
+
+        return getDtoList(events);
     }
 }

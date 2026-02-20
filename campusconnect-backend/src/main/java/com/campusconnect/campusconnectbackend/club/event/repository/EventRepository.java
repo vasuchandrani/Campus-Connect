@@ -5,20 +5,13 @@ import com.campusconnect.campusconnectbackend.club.event.entity.Event;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface EventRepository extends JpaRepository<Event, Long> {
 
-
-    @Query("""
-        select e
-        from Event e
-        where e.club in :clubs
-        order by e.eventDate desc
-    """)
-    List<Event> findAllByClubs(@Param("clubs") List<Club> clubs);
 
     @Query("""
         select count(e)
@@ -53,11 +46,9 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             Pageable pageable
     );
 
-    List<Event> club(Club club);
-
     List<Event> findEventByClub_Id(Long clubId);
 
-    Event findEventById(Long id);
+    Optional<Event> findEventById(Long id);
 
     @Query("""
         select e
@@ -78,4 +69,10 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     List<Event> findUpcomingEventsByClub(Long clubId, Pageable upcomingPage);
 
     int countEventsByClub_IdAndStatus(Long clubId, String status);
+
+    List<Event> findByStatusInAndClubIn(Collection<String> statuses, Collection<Club> clubs);
+
+    Collection<String> club(Club club);
+
+    List<Event> findByClubAndStatusIn(Club club, Collection<String> statuses);
 }
