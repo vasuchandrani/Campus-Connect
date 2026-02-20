@@ -49,7 +49,8 @@ const AdminClubsPage = () => {
   const [clubs, setClubs] = useState([]);
   const [pendingClubs, setPendingClubs] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
-  const [events, setEvents] = useState([]);
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [completedEvents, setCompletedEvents] = useState([]);
   const [viewAnnouncement, setViewAnnouncement] = useState(null);
   const [viewEvent, setViewEvent] = useState(null);
 
@@ -155,9 +156,9 @@ const AdminClubsPage = () => {
       );
   };
 
-  //fetch events
-  const fetchEvents = () => {
-    fetch(`${baseUrl}/events`, {
+  //fetch Upcomming events
+  const fetchUpcomingEvents = () => {
+    fetch(`${baseUrl}/events/active`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -166,12 +167,34 @@ const AdminClubsPage = () => {
     })
       .then((res) => res.json())
       .then((data) => {
-        setEvents(data);
+        setUpcomingEvents(data);
       })
       .catch((err) =>
         toast({
           title: "Error",
-          description: "Failed to fetch events",
+          description: "Failed to fetch upcoming events",
+          status: "error",
+        }),
+      );
+  };
+
+  //fetch completed events
+  const fetchCompletedEvents = () => {
+    fetch(`${baseUrl}/events/finished`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setCompletedEvents(data);
+      })
+      .catch((err) =>
+        toast({
+          title: "Error",
+          description: "Failed to fetch completed events",
           status: "error",
         }),
       );
@@ -204,8 +227,16 @@ const AdminClubsPage = () => {
     fetchClubs();
     fetchClubRequest();
     fetchAnnouncements();
-    fetchEvents();
+    fetchCompletedEvents();
+    fetchUpcomingEvents();
   }, []);
+
+  //sort upcoming events to show LIVE ones first
+  const upcomming = [...upcomingEvents].sort((a, b) => {
+    if (a.status === "LIVE" && b.status !== "LIVE") return -1;
+    if (a.status !== "LIVE" && b.status === "LIVE") return 1;
+    return 0;
+  });
 
   //for searching
   const filteredClubs = clubs.filter((club) =>
@@ -218,18 +249,11 @@ const AdminClubsPage = () => {
   const filteredAnnouncements = announcements.filter((a) =>
     a.title.toLowerCase().includes(searchQuery.toLowerCase()),
   );
-  const filteredEvents = events.filter((e) =>
+  const filteredUpcomingEvents = upcomming.filter((e) =>
     e.title.toLowerCase().includes(searchQuery.toLowerCase()),
   );
-
-  const now = new Date();
-
-  const upcomingEvents = filteredEvents.filter(
-    (event) => new Date(event.eventDate) > now,
-  );
-
-  const completedEvents = filteredEvents.filter(
-    (event) => new Date(event.eventDate) <= now,
+  const filteredCompletedEvents = completedEvents.filter((e) =>
+    e.title.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   //-----------------------------UI----------------------------//
@@ -268,11 +292,11 @@ const AdminClubsPage = () => {
             </TabsTrigger>
 
             <TabsTrigger value="upcoming">
-              Upcoming Events ({upcomingEvents.length})
+              Active Events ({filteredUpcomingEvents.length})
             </TabsTrigger>
 
             <TabsTrigger value="completed">
-              Completed Events ({completedEvents.length})
+              Completed Events ({filteredCompletedEvents.length})
             </TabsTrigger>
           </TabsList>
 
@@ -633,7 +657,7 @@ const AdminClubsPage = () => {
 
             {/* Events Grid */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {upcomingEvents.map((event) => (
+              {filteredUpcomingEvents.map((event) => (
                 <Card
                   key={event.id}
                   className="border-border/50 overflow-hidden"
@@ -645,10 +669,21 @@ const AdminClubsPage = () => {
                   />
 
                   <CardContent className="p-5 pt-4">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center justify-between gap-2 mb-2">
                       {event.clubName && (
                         <Badge variant="outline">{event.clubName}</Badge>
                       )}
+                      <Badge
+                        variant={
+                          event.status === "LIVE"
+                            ? "destructive"
+                            : event.status === "UPCOMING"
+                              ? "secondary"
+                              : "default"
+                        }
+                      >
+                        {event.status}
+                      </Badge>
                     </div>
 
                     <h4 className="font-semibold mb-2">{event.title}</h4>
@@ -659,8 +694,7 @@ const AdminClubsPage = () => {
                           (event.description.length > 40 ? "..." : "")}
                       </p>
                     )}
-
-                    {/* ONLY DETAILS BUTTON */}
+                    
                     <Button
                       variant="outline"
                       className="w-full"
@@ -676,8 +710,8 @@ const AdminClubsPage = () => {
           </TabsContent>
 
           <TabsContent value="completed" className="mt-6">
-<div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {completedEvents.map((event) => (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredCompletedEvents.map((event) => (
                 <Card
                   key={event.id}
                   className="border-border/50 overflow-hidden"
@@ -700,7 +734,11 @@ const AdminClubsPage = () => {
                     <Button
                       variant="outline"
                       className="w-full"
-                      onClick={() => navigate(`/campus-connect/college-admin/events/${event.id}`)}
+                      onClick={() =>
+                        navigate(
+                          `/campus-connect/college-admin/events/${event.id}`,
+                        )
+                      }
                     >
                       <Eye className="w-4 h-4 mr-2" />
                       View Details
@@ -709,8 +747,7 @@ const AdminClubsPage = () => {
                 </Card>
               ))}
             </div>
-</TabsContent>
-
+          </TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>

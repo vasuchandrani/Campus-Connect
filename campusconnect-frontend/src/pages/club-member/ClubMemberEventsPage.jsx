@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
@@ -26,6 +26,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { FileText } from "lucide-react";
 import { marked } from "marked";
+import { Badge } from "../../components/ui/Badge";
 
 const ClubMemberEventsPage = () => {
   // Get clubId from URL params
@@ -45,7 +46,8 @@ const ClubMemberEventsPage = () => {
   };
 
   // State variables
-  const [clubEvents, setClubEvents] = useState([]);
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [pastEvents, setPastEvents] = useState([]);
   const [dialogType, setDialogType] = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -55,16 +57,35 @@ const ClubMemberEventsPage = () => {
   const [overviewPhotos, setOverviewPhotos] = useState([]);
   const [newPhotoUrl, setNewPhotoUrl] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isOverviewOpen, setIsOverviewOpen] = useState(false);
+  const [speakers, setSpeakers] = useState([]);
+  const [newSpeaker, setNewSpeaker] = useState({
+    name: "",
+    email: "",
+    tagline: "",
+  });
+  const [sponsors, setSponsors] = useState([]);
+  const [newSponsor, setNewSponsor] = useState({ name: "", tagline: "" });
+
+  const [winners, setWinners] = useState([]);
+  const [newWinner, setNewWinner] = useState({ name: "", email: "" });
+
   const [newEvent, setNewEvent] = useState({
     title: "",
     date: "",
     time: "",
+    endDate: "",
+    endTime: "",
     registrationEnd: "",
     location: "",
     description: "",
     image: "",
+    speakers: [],
+    sponsors: [],
   });
 
+  //render preview of markdown overview
   const renderedPreview = marked.parse(overviewMarkdown || "");
 
   //format date and time for display
@@ -75,18 +96,35 @@ const ClubMemberEventsPage = () => {
   };
 
   // Fetch club events
-  const fetchClubEvents = () => {
+  const fetchClubEvents = async () => {
     const token = localStorage.getItem("authToken");
 
-    fetch(`${baseUrl}/events`, {
+    fetch(`${baseUrl}/events/finished`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
-      .then((data) => setClubEvents(data))
+      .then((data) => {
+        setPastEvents(data);
+      })
       .catch((err) =>
         toast({
           title: "Error",
           description: "Failed to fetch events",
+          status: "error",
+        }),
+      );
+
+    fetch(`${baseUrl}/events/active`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setUpcomingEvents(data);
+      })
+      .catch((err) =>
+        toast({
+          title: "Error",
+          description: "Failed to fetch upcoming events",
           status: "error",
         }),
       );
@@ -98,6 +136,7 @@ const ClubMemberEventsPage = () => {
 
     const eventDate = `${newEvent.date}T${newEvent.time}:00`;
     const registrationEnd = `${newEvent.registrationEnd}T23:59:59`;
+    const endDate = `${newEvent.endDate}T${newEvent.endTime}:00`;
 
     const payload = {
       title: newEvent.title,
@@ -106,9 +145,12 @@ const ClubMemberEventsPage = () => {
       imageUrl: newEvent.image,
       eventDate,
       registrationEnd,
+      endDate,
+      speakers,
+      sponsors,
     };
 
-    fetch(`${baseUrl}/events`, {
+    fetch(`${baseUrl}/events/active`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -124,13 +166,13 @@ const ClubMemberEventsPage = () => {
         });
         fetchClubEvents();
       })
-      .catch((err) =>
+      .catch((err) => {
         toast({
           title: "Error",
           description: "Failed to create event",
           status: "error",
-        }),
-      );
+        });
+      });
 
     setCreateOpen(false);
     setNewEvent({
@@ -141,6 +183,8 @@ const ClubMemberEventsPage = () => {
       location: "",
       description: "",
       image: "",
+      endDate: "",
+      endTime: "",
     });
   };
 
@@ -150,6 +194,7 @@ const ClubMemberEventsPage = () => {
 
     const eventDate = `${selectedEvent.date}T${selectedEvent.time}:00`;
     const registrationEnd = `${selectedEvent.registrationEndDate}T23:59:59`;
+    const endDate = `${selectedEvent.endDate}T${selectedEvent.endTime}:00`;
 
     const payload = {
       title: selectedEvent.title,
@@ -158,9 +203,12 @@ const ClubMemberEventsPage = () => {
       imageUrl: selectedEvent.image,
       eventDate,
       registrationEnd,
+      endDate,
+      speakers: speakers,
+      sponsors: sponsors,
     };
 
-    fetch(`${baseUrl}/events/${selectedEvent.id}`, {
+    fetch(`${baseUrl}/events/active/${selectedEvent.id}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -169,62 +217,81 @@ const ClubMemberEventsPage = () => {
       body: JSON.stringify(payload),
     })
       .then(() => {
+        fetchClubEvents();
         toast({
           title: "Success",
           description: "Event updated successfully",
           status: "success",
         });
-        fetchClubEvents();
       })
-      .catch((err) =>
+      .catch((err) => {
         toast({
           title: "Error",
           description: "Failed to update event",
           status: "error",
-        }),
-      );
+        });
+      });
 
     setDialogType(null);
     setSelectedEvent(null);
   };
 
-  //delete event
+  // Handle delete event
   const handleDelete = (id) => {
     const token = localStorage.getItem("authToken");
 
-    fetch(`${baseUrl}/events/${id}`, {
+    fetch(`${baseUrl}/events/active/${id}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(() => {
+        fetchClubEvents();
         toast({
           title: "Success",
           description: "Event deleted successfully",
           status: "success",
         });
-        fetchClubEvents();
       })
-      .catch((err) =>
+      .catch((err) => {
         toast({
           title: "Error",
           description: "Failed to delete event",
           status: "error",
-        }),
-      );
+        });
+      });
   };
 
   //load events on component mount and whenever clubId changes
   useEffect(() => {
     fetchClubEvents();
-  }, []);
+  }, [clubId]);
 
-  const upcomingEvents = clubEvents.filter(
-    (event) => new Date(event.eventDate) > new Date(),
-  );
-  const pastEvents = clubEvents.filter(
-    (event) => new Date(event.eventDate) <= new Date(),
-  );
+  
+  //sort upcoming events - live first, then registration open, then by date
+  const sortedEvents = useMemo(() => {
+    const statusPriority = {
+      LIVE: 1,
+      UPCOMING: 2,
+    };
 
+    return [...upcomingEvents].sort((a, b) => {
+      const statusDiff =
+        (statusPriority[a.status] || 99) - (statusPriority[b.status] || 99);
+
+      if (statusDiff !== 0) return statusDiff;
+
+      if (a.status === "UPCOMING") {
+        if (a.register && !b.register) return -1;
+        if (!a.register && b.register) return 1;
+
+        return new Date(a.eventDate) - new Date(b.eventDate);
+      }
+
+      return 0;
+    });
+  }, [upcomingEvents]);
+
+  //add photo to photo array for overview
   const handleAddPhoto = () => {
     if (!newPhotoUrl.trim()) return;
     if (overviewPhotos.length >= 10) return;
@@ -233,30 +300,154 @@ const ClubMemberEventsPage = () => {
     setNewPhotoUrl("");
   };
 
+  //remove photo from overview photo array
   const handleRemovePhoto = (index) => {
     setOverviewPhotos(overviewPhotos.filter((_, i) => i !== index));
   };
 
+  // generate markdown overview using AI
   const handleGenerateOverview = async () => {
+    const token = localStorage.getItem("authToken");
+
     setIsGenerating(true);
-
-    // fake delay
-    setTimeout(() => {
-      setOverviewMarkdown(
-        `## ${overviewEvent?.title}
-
-This event was successfully conducted at ${overviewEvent?.location}.
-
-### Highlights
-- Amazing participation
-- Interactive sessions
-- Great feedback from attendees
-
-Overall, the event was a big success 🎉`,
-      );
-      setIsGenerating(false);
-    }, 1500);
+    await fetch(
+      `${baseUrl}/events/finished/${overviewEvent.id}/generate-overview`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    )
+      .then(async (response) => {
+        if (response.ok) {
+          const data = await response.text();
+          setOverviewMarkdown(data);
+          toast({
+            title: "Success",
+            description: "Overview generated successfully",
+            status: "success",
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to generate overview",
+            status: "error",
+          });
+        }
+      })
+      .catch((err) => {
+        toast({
+          title: "Error",
+          description: "Failed to generate overview",
+          status: "error",
+        });
+      });
+    setIsGenerating(false);
   };
+
+  // Save markdown overview and photos to event
+  const handleSaveOverview = async () => {
+    setIsSaving(true);
+
+    const token = localStorage.getItem("authToken");
+    await fetch(
+      `${baseUrl}/events/finished/${overviewEvent.id}/save-overview`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          overview: overviewMarkdown,
+          imageUrls: overviewPhotos,
+          winners: winners,
+        }),
+      },
+    )
+      .then((response) => {
+        if (response.ok) {
+          toast({
+            title: "Success",
+            description: "Overview saved successfully",
+            status: "success",
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to save overview",
+            status: "error",
+          });
+        }
+      })
+      .catch((err) => {
+        toast({
+          title: "Error",
+          description: "Failed to save overview",
+          status: "error",
+        });
+      });
+    setIsSaving(false);
+    setIsOverviewOpen(false);
+  };
+  
+  //add speaker to speakers array for overview
+  const handleAddSpeaker = () => {
+    if (!newSpeaker.name.trim() || !newSpeaker.email.trim()) return;
+
+    setSpeakers([...speakers, newSpeaker]);
+    setNewSpeaker({ name: "", email: "", tagline: "" });
+  };
+
+  //remove speaker from speakers array for overview
+  const handleRemoveSpeaker = (index) => {
+    setSpeakers(speakers.filter((_, i) => i !== index));
+  };
+
+  //add sponsor to sponsors array for overview
+  const handleAddSponsor = () => {
+    if (!newSponsor.name.trim() || !newSponsor.tagline.trim()) return;
+
+    setSponsors([...sponsors, newSponsor]);
+    setNewSponsor({ name: "", tagline: "" });
+  };
+
+  //remove sponsor from sponsors array for overview
+  const handleRemoveSponsor = (index) => {
+    setSponsors(sponsors.filter((_, i) => i !== index));
+  };
+
+  //add winner to winners array for overview
+  const handleAddWinner = () => {
+    if (!newWinner.name.trim() || !newWinner.email.trim()) return;
+
+    setWinners([...winners, newWinner]);
+    setNewWinner({ name: "", email: "" });
+  };
+
+  //remove winner from winners array for overview
+  const handleRemoveWinner = (index) => {
+    setWinners(winners.filter((_, i) => i !== index));
+  };
+
+  //calculate event duration in hours and minutes
+  function getDuration(startDate, endDate) {
+    if (!startDate || !endDate) return "";
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    const diffMs = end - start; // milliseconds
+    if (diffMs < 0) return "Invalid dates";
+
+    const totalMinutes = Math.floor(diffMs / (1000 * 60));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    return `${hours}h ${minutes}m`;
+  }
 
   //---------------------------UI----------------------------//
   return (
@@ -270,7 +461,33 @@ Overall, the event was a big success 🎉`,
           </div>
 
           {/* CREATE */}
-          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <Dialog
+            open={createOpen}
+            onOpenChange={(open) => {
+              setCreateOpen(open);
+
+              if (!open) {
+                // Reset main event form
+                setNewEvent({
+                  title: "",
+                  image: "",
+                  date: "",
+                  time: "",
+                  registrationEnd: "",
+                  location: "",
+                  description: "",
+                  endDate: "",
+                  endTime: "",
+                });
+
+                setSpeakers([]);
+                setSponsors([]);
+
+                setNewSpeaker({ name: "", email: "", tagline: "" });
+                setNewSponsor({ name: "", tagline: "" });
+              }
+            }}
+          >
             <DialogTrigger asChild>
               <Button>
                 <Plus className="w-4 h-4 mr-2" />
@@ -309,22 +526,48 @@ Overall, the event was a big success 🎉`,
                 )}
 
                 <div className="grid grid-cols-2 gap-4">
-                  <Label>Date</Label>
-                  <Input
-                    type="date"
-                    value={newEvent.date}
-                    onChange={(e) =>
-                      setNewEvent({ ...newEvent, date: e.target.value })
-                    }
-                  />
-                  <Label>Time</Label>
-                  <Input
-                    type="time"
-                    value={newEvent.time}
-                    onChange={(e) =>
-                      setNewEvent({ ...newEvent, time: e.target.value })
-                    }
-                  />
+                  <div>
+                    <Label>EventDate</Label>
+                    <Input
+                      type="date"
+                      value={newEvent.date}
+                      onChange={(e) =>
+                        setNewEvent({ ...newEvent, date: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label>EventTime</Label>
+                    <Input
+                      type="time"
+                      value={newEvent.time}
+                      onChange={(e) =>
+                        setNewEvent({ ...newEvent, time: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Event End Date</Label>
+                    <Input
+                      type="date"
+                      value={newEvent.endDate}
+                      onChange={(e) =>
+                        setNewEvent({ ...newEvent, endDate: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label>Event End Time</Label>
+                    <Input
+                      type="time"
+                      value={newEvent.endTime}
+                      onChange={(e) =>
+                        setNewEvent({ ...newEvent, endTime: e.target.value })
+                      }
+                    />
+                  </div>
                 </div>
 
                 <Label>Registration End Date</Label>
@@ -355,6 +598,141 @@ Overall, the event was a big success 🎉`,
                   }
                 />
 
+                {/* SPEAKERS SECTION */}
+                <div className="space-y-4 mt-6">
+                  <Label>Speakers ({speakers.length})</Label>
+
+                  {/* Add Speaker Form */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <Input
+                      placeholder="Name"
+                      value={newSpeaker.name}
+                      onChange={(e) =>
+                        setNewSpeaker({ ...newSpeaker, name: e.target.value })
+                      }
+                    />
+                    <Input
+                      placeholder="Email"
+                      type="email"
+                      value={newSpeaker.email}
+                      onChange={(e) =>
+                        setNewSpeaker({
+                          ...newSpeaker,
+                          email: e.target.value,
+                        })
+                      }
+                    />
+                    <Input
+                      placeholder="Tagline (e.g. AI Expert)"
+                      value={newSpeaker.tagline}
+                      onChange={(e) =>
+                        setNewSpeaker({
+                          ...newSpeaker,
+                          tagline: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddSpeaker}
+                    disabled={!newSpeaker.name || !newSpeaker.email}
+                  >
+                    + Add Speaker
+                  </Button>
+
+                  {/* Speaker List */}
+                  {speakers.length > 0 && (
+                    <div className="space-y-2">
+                      {speakers.map((speaker, index) => (
+                        <div
+                          key={index}
+                          className="border rounded-md p-3 flex justify-between items-start"
+                        >
+                          <div>
+                            <p className="font-semibold">{speaker.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {speaker.email}
+                            </p>
+                            {speaker.tagline && (
+                              <p className="text-xs italic mt-1">
+                                {speaker.tagline}
+                              </p>
+                            )}
+                          </div>
+
+                          <button
+                            onClick={() => handleRemoveSpeaker(index)}
+                            className="text-destructive text-sm"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* SPONSORS SECTION */}
+                <div className="space-y-4 mt-8">
+                  <Label>Sponsors ({sponsors.length})</Label>
+
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Sponsor Name"
+                      value={newSponsor.name}
+                      onChange={(e) =>
+                        setNewSponsor({ ...newSponsor, name: e.target.value })
+                      }
+                    />
+                    <Input
+                      placeholder="Tagline (e.g. Gold Sponsor)"
+                      value={newSponsor.tagline}
+                      onChange={(e) =>
+                        setNewSponsor({
+                          ...newSponsor,
+                          tagline: e.target.value,
+                        })
+                      }
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddSponsor}
+                      disabled={!newSponsor.name || !newSponsor.tagline}
+                    >
+                      + Add
+                    </Button>
+                  </div>
+
+                  {sponsors.length > 0 && (
+                    <div className="space-y-2">
+                      {sponsors.map((sponsor, index) => (
+                        <div
+                          key={index}
+                          className="border rounded-md p-3 flex justify-between"
+                        >
+                          <div>
+                            <p className="font-semibold">{sponsor.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {sponsor.tagline}
+                            </p>
+                          </div>
+
+                          <button
+                            onClick={() => handleRemoveSponsor(index)}
+                            className="text-destructive text-sm"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <Button className="w-full" onClick={handleCreateEvent}>
                   Create Event
                 </Button>
@@ -366,7 +744,16 @@ Overall, the event was a big success 🎉`,
         {/* VIEW + EDIT DIALOG */}
         <Dialog
           open={dialogType !== null}
-          onOpenChange={() => setDialogType(null)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setDialogType(null);
+              setSelectedEvent(null);
+              setSpeakers([]);
+              setSponsors([]);
+              setNewSpeaker({ name: "", email: "", tagline: "" });
+              setNewSponsor({ name: "", tagline: "" });
+            }
+          }}
         >
           <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -396,12 +783,29 @@ Overall, the event was a big success 🎉`,
                       <strong>Location:</strong> {selectedEvent.location}
                     </p>
                     <p>
-                      <strong>Date:</strong>{" "}
+                      <strong>start Date:</strong>{" "}
                       {formatDate(selectedEvent.eventDate).date}
                     </p>
+
                     <p>
-                      <strong>Time:</strong>{" "}
+                      <strong>Start Time:</strong>{" "}
                       {formatDate(selectedEvent.eventDate).time}
+                    </p>
+                    <p>
+                      {selectedEvent.eventDate && selectedEvent.endDate && (
+                        <span>
+                          <strong>End Date:</strong>{" "}
+                          {selectedEvent.endDate.split("T")[0]}
+                        </span>
+                      )}
+                    </p>
+                    <p>
+                      {selectedEvent.endDate && (
+                        <span>
+                          <strong>End Time:</strong>{" "}
+                          {selectedEvent.endDate.split("T")[1].substring(0, 5)}
+                        </span>
+                      )}
                     </p>
                     <p>
                       <strong>Registration End:</strong>{" "}
@@ -412,59 +816,114 @@ Overall, the event was a big success 🎉`,
                       {selectedEvent.status.replace(/"/g, "")}
                     </p>
                     <p>
-                      <strong>Registered:</strong>{" "}
-                      {selectedEvent.register ? "Yes" : "No"}
+                      <strong>Registration Count:</strong>{" "}
+                      {selectedEvent.registrationsCount}
                     </p>
+                    <div>
+                      {selectedEvent.speakers &&
+                        selectedEvent.speakers.length > 0 && (
+                          <>
+                            <strong>Speakers:</strong>
+                            <ul className="list-disc pl-5">
+                              {selectedEvent.speakers.map((speaker, index) => (
+                                <li key={index}>{speaker.name}</li>
+                              ))}
+                            </ul>
+                          </>
+                        )}
+                    </div>
+
+                    <div>
+                      {selectedEvent.sponsors &&
+                        selectedEvent.sponsors.length > 0 && (
+                          <>
+                            <strong>Sponsors:</strong>
+                            <ul className="list-disc pl-5">
+                              {selectedEvent.sponsors.map((sponsor, index) => (
+                                <li key={index}>{sponsor.name}</li>
+                              ))}
+                            </ul>
+                          </>
+                        )}
+                    </div>
                   </>
                 ) : (
                   <>
-                    <Label>Image URL</Label>
-                    <Input
-                      value={selectedEvent.image}
-                      onChange={(e) =>
-                        setSelectedEvent({
-                          ...selectedEvent,
-                          image: e.target.value,
-                        })
-                      }
-                    />
-
+                    {/* EVENT START */}
                     <div className="grid grid-cols-2 gap-4">
-                      <Label>Date</Label>
-                      <Input
-                        type="date"
-                        value={selectedEvent.date || ""}
-                        onChange={(e) =>
-                          setSelectedEvent({
-                            ...selectedEvent,
-                            date: e.target.value,
-                          })
-                        }
-                      />
-                      <Label>Time</Label>
-                      <Input
-                        type="time"
-                        value={selectedEvent.time || ""}
-                        onChange={(e) =>
-                          setSelectedEvent({
-                            ...selectedEvent,
-                            time: e.target.value,
-                          })
-                        }
-                      />
+                      <div>
+                        <Label>Event Date</Label>
+                        <Input
+                          type="date"
+                          value={selectedEvent.date || ""}
+                          onChange={(e) =>
+                            setSelectedEvent({
+                              ...selectedEvent,
+                              date: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+
+                      <div>
+                        <Label>Event Time</Label>
+                        <Input
+                          type="time"
+                          value={selectedEvent.time || ""}
+                          onChange={(e) =>
+                            setSelectedEvent({
+                              ...selectedEvent,
+                              time: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
                     </div>
 
+                    {/* EVENT END */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Event End Date</Label>
+                        <Input
+                          type="date"
+                          value={selectedEvent.endDate || ""}
+                          onChange={(e) =>
+                            setSelectedEvent({
+                              ...selectedEvent,
+                              endDate: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+
+                      <div>
+                        <Label>Event End Time</Label>
+                        <Input
+                          type="time"
+                          value={
+                            selectedEvent.endTime || ""
+                          }
+                          onChange={(e) =>
+                            setSelectedEvent({
+                              ...selectedEvent,
+                              endTime: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
                     <Label>Registration End Date</Label>
                     <Input
                       type="date"
-                      value={selectedEvent.registrationEndDate || ""}
+                      value={selectedEvent.registrationEnd?.split("T")[0] || ""}
                       onChange={(e) =>
                         setSelectedEvent({
                           ...selectedEvent,
-                          registrationEndDate: e.target.value,
+                          registrationEnd: e.target.value,
                         })
                       }
                     />
+
                     <Label>Location</Label>
                     <Input
                       value={selectedEvent.location}
@@ -475,6 +934,7 @@ Overall, the event was a big success 🎉`,
                         })
                       }
                     />
+
                     <Label>Description</Label>
                     <Textarea
                       value={selectedEvent.description}
@@ -485,6 +945,128 @@ Overall, the event was a big success 🎉`,
                         })
                       }
                     />
+
+                    {/* SPEAKERS SECTION */}
+                    <div className="space-y-4 mt-6">
+                      <Label>Speakers ({speakers.length})</Label>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <Input
+                          placeholder="Name"
+                          value={newSpeaker.name}
+                          onChange={(e) =>
+                            setNewSpeaker({
+                              ...newSpeaker,
+                              name: e.target.value,
+                            })
+                          }
+                        />
+                        <Input
+                          placeholder="Email"
+                          value={newSpeaker.email}
+                          onChange={(e) =>
+                            setNewSpeaker({
+                              ...newSpeaker,
+                              email: e.target.value,
+                            })
+                          }
+                        />
+                        <Input
+                          placeholder="Tagline"
+                          value={newSpeaker.tagline}
+                          onChange={(e) =>
+                            setNewSpeaker({
+                              ...newSpeaker,
+                              tagline: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleAddSpeaker}
+                      >
+                        + Add Speaker
+                      </Button>
+
+                      {speakers.map((speaker, index) => (
+                        <div
+                          key={index}
+                          className="border rounded-md p-3 flex justify-between"
+                        >
+                          <div>
+                            <p className="font-semibold">{speaker.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {speaker.email}
+                            </p>
+                            <p className="text-xs italic">{speaker.tagline}</p>
+                          </div>
+                          <button
+                            onClick={() => handleRemoveSpeaker(index)}
+                            className="text-destructive text-sm"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* SPONSORS SECTION */}
+                    <div className="space-y-4 mt-8">
+                      <Label>Sponsors ({sponsors.length})</Label>
+
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Name"
+                          value={newSponsor.name}
+                          onChange={(e) =>
+                            setNewSponsor({
+                              ...newSponsor,
+                              name: e.target.value,
+                            })
+                          }
+                        />
+                        <Input
+                          placeholder="Tagline"
+                          value={newSponsor.tagline}
+                          onChange={(e) =>
+                            setNewSponsor({
+                              ...newSponsor,
+                              tagline: e.target.value,
+                            })
+                          }
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleAddSponsor}
+                        >
+                          + Add
+                        </Button>
+                      </div>
+
+                      {sponsors.map((sponsor, index) => (
+                        <div
+                          key={index}
+                          className="border rounded-md p-3 flex justify-between"
+                        >
+                          <div>
+                            <p className="font-semibold">{sponsor.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {sponsor.tagline}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleRemoveSponsor(index)}
+                            className="text-destructive text-sm"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
 
                     <Button onClick={handleSaveEdit} className="w-full">
                       Save Changes
@@ -498,13 +1080,19 @@ Overall, the event was a big success 🎉`,
 
         {/* Add Overview Dialog */}
         <Dialog
-          open={!!overviewEvent}
+          open={isOverviewOpen}
           onOpenChange={(open) => {
+            setIsOverviewOpen(open);
+
             if (!open) {
               setOverviewEvent(null);
               setOverviewMarkdown("");
               setOverviewPhotos([]);
               setOverviewTab("write");
+
+              setWinners([]);
+
+              setNewWinner({ name: "", email: "" });
             }
           }}
         >
@@ -592,6 +1180,62 @@ Write your markdown here..."
                       ))}
                     </div>
                   )}
+
+                  {/* WINNERS SECTION */}
+                  <div className="space-y-4 mt-8">
+                    <Label>Winners ({winners.length})</Label>
+
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Winner Name"
+                        value={newWinner.name}
+                        onChange={(e) =>
+                          setNewWinner({ ...newWinner, name: e.target.value })
+                        }
+                      />
+                      <Input
+                        placeholder="Email"
+                        type="email"
+                        value={newWinner.email}
+                        onChange={(e) =>
+                          setNewWinner({ ...newWinner, email: e.target.value })
+                        }
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleAddWinner}
+                        disabled={!newWinner.name || !newWinner.email}
+                      >
+                        + Add
+                      </Button>
+                    </div>
+
+                    {winners.length > 0 && (
+                      <div className="space-y-2">
+                        {winners.map((winner, index) => (
+                          <div
+                            key={index}
+                            className="border rounded-md p-3 flex justify-between"
+                          >
+                            <div>
+                              <p className="font-semibold">{winner.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {winner.email}
+                              </p>
+                            </div>
+
+                            <button
+                              onClick={() => handleRemoveWinner(index)}
+                              className="text-destructive text-sm"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </TabsContent>
 
@@ -639,7 +1283,13 @@ Write your markdown here..."
                 {isGenerating ? "Generating..." : "Generate Overview"}
               </Button>
 
-              <Button className="flex-1">Save Overview</Button>
+              <Button
+                className="flex-1"
+                onClick={handleSaveOverview}
+                disabled={isSaving}
+              >
+                {isSaving ? "Saving..." : "Save Overview"}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -648,7 +1298,7 @@ Write your markdown here..."
         <Tabs defaultValue="upcoming" className="mt-4">
           <TabsList>
             <TabsTrigger value="upcoming">
-              Upcoming & Live ({upcomingEvents.length})
+              Active & Live ({sortedEvents.length})
             </TabsTrigger>
             <TabsTrigger value="finished">
               Finished ({pastEvents.length})
@@ -658,7 +1308,7 @@ Write your markdown here..."
           {/* ================= UPCOMING TAB ================= */}
           <TabsContent value="upcoming" className="mt-6">
             <div className="grid md:grid-cols-3 gap-4">
-              {upcomingEvents.map((event) => {
+              {sortedEvents.map((event) => {
                 const formatted = formatDate(event.eventDate);
 
                 return (
@@ -672,49 +1322,68 @@ Write your markdown here..."
                     )}
 
                     <CardContent className="p-6">
-                      {/* 🔥 KEEP YOUR EXISTING ACTION BUTTONS */}
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setSelectedEvent(event);
-                            setDialogType("view");
-                          }}
+                      <div className="flex items-center justify-between mb-2">
+                        <Badge
+                          variant={
+                            event.status === "LIVE"
+                              ? "destructive"
+                              : event.status === "UPCOMING"
+                                ? "secondary"
+                                : "default"
+                          }
                         >
-                          <Eye className="w-4 h-4" />
-                        </Button>
+                          {event.status}
+                        </Badge>
+                        <div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setSelectedEvent(event);
+                              setDialogType("view");
+                            }}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
 
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            const { date, time } = formatDate(event.eventDate);
-                            const regEnd = formatDate(
-                              event.registrationEnd,
-                            ).date;
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              const { date, time } = formatDate(
+                                event.eventDate,
+                              );
+                              const { date: endDate, time: endTime } =
+                                formatDate(event.endDate);
+                              const regEnd = formatDate(
+                                event.registrationEnd,
+                              ).date;
 
-                            setSelectedEvent({
-                              ...event,
-                              date,
-                              time,
-                              registrationEndDate: regEnd,
-                            });
+                              setSelectedEvent({
+                                ...event,
+                                date,
+                                time,
+                                endDate,
+                                endTime,
+                                registrationEndDate: regEnd,
+                              });
+                              setSpeakers(event.speakers || []);
+                              setSponsors(event.sponsors || []);
+                              setDialogType("edit");
+                            }}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
 
-                            setDialogType("edit");
-                          }}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive"
-                          onClick={() => handleDelete(event.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive"
+                            onClick={() => handleDelete(event.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
 
                       <h3 className="text-xl font-semibold mb-3">
@@ -737,6 +1406,14 @@ Write your markdown here..."
                         <div className="flex items-center gap-2">
                           <MapPin className="w-4 h-4" />
                           <span>{event.location}</span>
+                        </div>
+                        <div>
+                          {event.eventDate && event.endDate && (
+                            <span className="text-sm">
+                              Duration:{" "}
+                              {getDuration(event.eventDate, event.endDate)}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </CardContent>
@@ -774,7 +1451,8 @@ Write your markdown here..."
                       </div>
 
                       <p className="text-muted-foreground text-sm mb-4">
-                        {event.description.substring(0, 120)}
+                        {event.description.substring(0, 40) +
+                          (event.description.length > 40 ? "..." : "")}
                       </p>
 
                       <div className="space-y-2 text-sm text-muted-foreground">
@@ -797,7 +1475,7 @@ Write your markdown here..."
                           className="w-auto"
                           onClick={() =>
                             navigate(
-                              `/campus-connect/club-member/${clubId}/events/${event.id}`,
+                              `/campus-connect/club-admin/${clubId}/events/${event.id}`,
                             )
                           }
                         >
@@ -807,7 +1485,10 @@ Write your markdown here..."
                         <Button
                           variant="secondary"
                           className="w-auto"
-                          onClick={() => setOverviewEvent(event)}
+                          onClick={() => {
+                            setOverviewEvent(event);
+                            setIsOverviewOpen(true);
+                          }}
                         >
                           <FileText className="w-4 h-4 mr-2" />
                           Add Overview

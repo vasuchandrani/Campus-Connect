@@ -170,14 +170,14 @@ const ClubAdminDashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Upcoming Events */}
+          {/* Active Events */}
           <Card>
             <CardContent className="p-6 flex items-center gap-4 min-h-[110px]">
               <CalendarDays className="w-6 h-6 text-primary" />
 
               <div className="flex flex-col justify-center ml-10">
                 <p className="text-2xl font-bold">{stats.events}</p>
-                <p className="text-sm text-muted-foreground">Upcoming Events</p>
+                <p className="text-sm text-muted-foreground">Active Events</p>
               </div>
             </CardContent>
           </Card>

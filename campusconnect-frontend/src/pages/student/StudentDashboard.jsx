@@ -259,7 +259,7 @@ const StudentDashboard = () => {
                 <Calendar className="w-6 h-6 text-accent" />
               </div>
               <p className="text-2xl font-bold">{stats.events}</p>
-              <p className="text-sm text-muted-foreground">Upcoming Events</p>
+              <p className="text-sm text-muted-foreground">Active Events</p>
             </CardContent>
           </Card>
         </div>

@@ -1,4 +1,4 @@
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
@@ -21,22 +21,23 @@ import {
   TabsTrigger,
 } from "../../components/ui/Tabs";
 import { useNavigate } from "react-router-dom";
+import { useMemo } from "react";
 
 const EventsPage = () => {
-
   // Base URL for API calls related to student events
   const baseUrl = "http://localhost:8080/campus-connect/student";
 
   const navigate = useNavigate();
 
   // State variables
-  const [events, setEvents] = useState([]);
   const [registeredEvents, setRegisteredEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [finishedEvents, setFinishedEvents] = useState([]);
 
-  // Fetch events from API
+  // Fetch Upcomming events from API
   const getEvents = async () => {
-    fetch(`${baseUrl}/events`, {
+    fetch(`${baseUrl}/events/active`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -45,8 +46,7 @@ const EventsPage = () => {
     })
       .then((res) => res.json())
       .then((data) => {
-        console.log("Fetched events:", data);
-        setEvents(data);
+        setUpcomingEvents(data);
       })
       .catch((err) => {
         console.error("Error fetching events:", err);
@@ -54,18 +54,35 @@ const EventsPage = () => {
       });
   };
 
+  const getFinishedEvents = async () => {
+    fetch(`${baseUrl}/events/finished`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setFinishedEvents(data);
+      })
+      .catch((err) => {
+        console.error("Error fetching finished events:", err);
+        alert("Failed to load finished events");
+      });
+  };
+
   //set registered events whenever events change
   useEffect(() => {
-    const registed = events.filter((e) => e.register);
+    const registed = upcomingEvents.filter((e) => e.register);
     setRegisteredEvents(registed);
-  }, [events]);
+  }, [upcomingEvents]);
 
   //change registration status for an event
   const toggleRegistration = (eventId) => {
-    const eventObj = events.find((e) => e.id === eventId);
+    const eventObj = upcomingEvents.find((e) => e.id === eventId);
     if (eventObj.register) {
-
-      fetch(`${baseUrl}/events/${eventId}/unregister`, {
+      fetch(`${baseUrl}/events/active/${eventId}/unregister`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -91,8 +108,7 @@ const EventsPage = () => {
           });
         });
     } else {
-
-      fetch(`${baseUrl}/events/${eventId}/register`, {
+      fetch(`${baseUrl}/events/active/${eventId}/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -120,39 +136,55 @@ const EventsPage = () => {
     }
   };
 
-  // Sort events: registered events first
-  const sortedEvents = [...events].sort((a, b) => {
-    const aRegistered = registeredEvents.some((re) => re.id === a.id);
-    const bRegistered = registeredEvents.some((re) => re.id === b.id);
+  //sort events - live first, then upcoming (registered first, then nearest date)
+  const sortedEvents = useMemo(() => {
+    const statusPriority = {
+      LIVE: 1,
+      UPCOMING: 2,
+    };
 
-    return bRegistered - aRegistered; // true=1, false=0
-  });
+    return [...upcomingEvents].sort((a, b) => {
+      // 1️⃣ Sort by status priority
+      const statusDiff =
+        (statusPriority[a.status] || 99) - (statusPriority[b.status] || 99);
 
-  // Separate events into upcoming and finished
-  const now = new Date();
-  const upcomingEvents = sortedEvents.filter(
-    (e) => new Date(e.eventDate) >= now
-  );
-  const finishedEvents = sortedEvents.filter(
-    (e) => new Date(e.eventDate) < now
-  );
+      if (statusDiff !== 0) return statusDiff;
+
+      // 2️⃣ If both UPCOMING → registered first
+      if (a.status === "UPCOMING") {
+        if (a.register && !b.register) return -1;
+        if (!a.register && b.register) return 1;
+
+        // 3️⃣ Then nearest date
+        return new Date(a.eventDate) - new Date(b.eventDate);
+      }
+
+      return 0;
+    });
+  }, [upcomingEvents]);
 
   // Load events on component mount
   useEffect(() => {
     getEvents();
+    getFinishedEvents();
   }, []);
+
+    //formate date and time for display
+  const formatDate = (dateTime) => {
+    if (!dateTime) return { date: "", time: "" };
+    const [date, time] = dateTime.split("T");
+    return { date, time: time.substring(0, 5) };
+  };
 
   return (
     <DashboardLayout navItems={studentNavItems} title="Events">
       <div className="space-y-6">
-
         <h1 className="text-3xl font-bold">Events</h1>
 
         <Tabs defaultValue="upcoming">
-
           <TabsList>
             <TabsTrigger value="upcoming">
-              Happening & Upcoming ({upcomingEvents.length})
+              Active  ({upcomingEvents.length})
             </TabsTrigger>
             <TabsTrigger value="finished">
               Finished ({finishedEvents.length})
@@ -176,34 +208,87 @@ const EventsPage = () => {
                   </DialogHeader>
                   {selectedEvent && (
                     <div className="space-y-4 pt-4">
-                      <p>
-                        <strong>Title:</strong> {selectedEvent.title}
-                      </p>
-                      <p>
-                        <strong>Description:</strong> {selectedEvent.description}
-                      </p>
-                      <p>
-                        <strong>Date & Time:</strong>{" "}
-                        {selectedEvent.eventDate.split("T")[0]} •{" "}
-                        {selectedEvent.eventDate.split("T")[1]}
-                      </p>
-                      <p>
-                        <strong>Location:</strong> {selectedEvent.location}
-                      </p>
-                      <p>
-                        <strong>Club:</strong> {selectedEvent.clubName}
-                      </p>
-                      <p>
-                        <strong>Registration End:</strong>{" "}
-                        {selectedEvent.registrationEnd.split("T")[0]} •{" "}
-                        {selectedEvent.registrationEnd.split("T")[1]}
-                      </p>
+                      <>
+                    <p>
+                      <strong>Title:</strong> {selectedEvent.title}
+                    </p>
+                    <p>
+                      <strong>Description:</strong> {selectedEvent.description}
+                    </p>
+                    <p>
+                      <strong>Location:</strong> {selectedEvent.location}
+                    </p>
+                    <p>
+                      <strong>start Date:</strong>{" "}
+                      {formatDate(selectedEvent.eventDate).date}
+                    </p>
+
+                    <p>
+                      <strong>Start Time:</strong>{" "}
+                      {formatDate(selectedEvent.eventDate).time}
+                    </p>
+                    <p>
+                      {selectedEvent.eventDate && selectedEvent.endDate && (
+                        <span>
+                          <strong>End Date:</strong>{" "}
+                          {selectedEvent.endDate.split("T")[0]}
+                        </span>
+                      )}
+                    </p>
+                    <p>
+                      {selectedEvent.endDate && (
+                        <span>
+                          <strong>End Time:</strong>{" "}
+                          {selectedEvent.endDate.split("T")[1].substring(0, 5)}
+                        </span>
+                      )}
+                    </p>
+                    <p>
+                      <strong>Registration End:</strong>{" "}
+                      {formatDate(selectedEvent.registrationEnd).date}
+                    </p>
+                    <p>
+                      <strong>Status:</strong>{" "}
+                      {selectedEvent.status.replace(/"/g, "")}
+                    </p>
+                    <p>
+                      <strong>Registration Count:</strong>{" "}
+                      {selectedEvent.registrationsCount}
+                    </p>
+                    <div>
+                      {selectedEvent.speakers &&
+                        selectedEvent.speakers.length > 0 && (
+                          <>
+                            <strong>Speakers:</strong>
+                            <ul className="list-disc pl-5">
+                              {selectedEvent.speakers.map((speaker, index) => (
+                                <li key={index}>{speaker.name}</li>
+                              ))}
+                            </ul>
+                          </>
+                        )}
+                    </div>
+
+                    <div>
+                      {selectedEvent.sponsors &&
+                        selectedEvent.sponsors.length > 0 && (
+                          <>
+                            <strong>Sponsors:</strong>
+                            <ul className="list-disc pl-5">
+                              {selectedEvent.sponsors.map((sponsor, index) => (
+                                <li key={index}>{sponsor.name}</li>
+                              ))}
+                            </ul>
+                          </>
+                        )}
+                    </div>
+                  </>
                     </div>
                   )}
                 </DialogContent>
               </Dialog>
 
-              {upcomingEvents.map((event) => {
+              {sortedEvents.map((event) => {
                 const isRegistered = registeredEvents.some(
                   (re) => re.id === event.id,
                 );
@@ -219,8 +304,20 @@ const EventsPage = () => {
                       className="w-full h-40 object-cover"
                     />
                     <CardContent className="p-5 pt-4">
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center justify-between mb-2">
                         <Badge variant="outline">{event.clubName}</Badge>
+
+                        <Badge
+                          variant={
+                            event.status === "LIVE"
+                              ? "destructive"
+                              : event.status === "UPCOMING"
+                                ? "secondary"
+                                : "default"
+                          }
+                        >
+                          {event.status}
+                        </Badge>
                       </div>
 
                       <h4 className="font-semibold mb-2">{event.title}</h4>
@@ -244,18 +341,32 @@ const EventsPage = () => {
                             ) : (
                               "Register"
                             )}
-                          </Button>)
-                          :(
-                            <Button disabled className="flex-1">
-                              Registration Closed
-                            </Button>
-                          )}
+                          </Button>
+                        ) : (
+                          <Button disabled className="flex-1">
+                            {isRegistered ? (
+                              <>
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                Registered
+                              </>
+                            ) : (
+                              "Registration Closed"
+                            )}
+                          </Button>
+                        )}
 
                         {/* Eye icon button for event details */}
                         <Button
                           variant="outline"
                           className="flex-1"
-                          onClick={() => setSelectedEvent(event)}
+                          onClick={() => {
+                            setSelectedEvent({
+                              ...event,
+                              eventDate: event.eventDate,
+                              registrationEnd: event.registrationEnd,
+                              endDate: event.endDate,
+                            });
+                          }}
                         >
                           <Eye className="w-4 h-4 mr-2" />
                           Details
@@ -287,14 +398,17 @@ const EventsPage = () => {
                     </Badge>
 
                     <h4 className="font-semibold mb-2">{event.title}</h4>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      {event.description}
+                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                      {event.description.substring(0, 40) +
+                        (event.description.length > 40 ? "..." : "")}
                     </p>
 
                     <Button
                       variant="outline"
                       className="w-full"
-                      onClick={() => navigate(`/campus-connect/student/events/${event.id}`)}
+                      onClick={() =>
+                        navigate(`/campus-connect/student/events/${event.id}`)
+                      }
                     >
                       <Eye className="w-4 h-4 mr-2" />
                       View Details
@@ -304,9 +418,7 @@ const EventsPage = () => {
               ))}
             </div>
           </TabsContent>
-
         </Tabs>
-
       </div>
     </DashboardLayout>
   );
