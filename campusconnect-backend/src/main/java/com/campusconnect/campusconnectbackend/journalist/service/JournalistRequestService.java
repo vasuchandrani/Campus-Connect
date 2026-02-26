@@ -1,5 +1,7 @@
 package com.campusconnect.campusconnectbackend.journalist.service;
 
+import com.campusconnect.campusconnectbackend.college.College;
+import com.campusconnect.campusconnectbackend.journalist.dto.req.JournalistRequestDto;
 import com.campusconnect.campusconnectbackend.journalist.dto.res.JournalistReqResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.entity.Journalist;
 import com.campusconnect.campusconnectbackend.journalist.entity.JournalistRequest;
@@ -8,6 +10,8 @@ import com.campusconnect.campusconnectbackend.journalist.repository.JournalistRe
 import com.campusconnect.campusconnectbackend.mail_service.dto.journalist.JournalistAssignmentDto;
 import com.campusconnect.campusconnectbackend.mail_service.service.EmailDispatcherService;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
+import com.campusconnect.campusconnectbackend.student.Student;
+import com.campusconnect.campusconnectbackend.student.service.StudentRepoService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,6 +31,7 @@ public class JournalistRequestService {
     private final JournalistRequestRepository journalistRequestRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailDispatcherService emailDispatcherService;
+    private final StudentRepoService studentRepoService;
 
     // get DTO
     private JournalistReqResponseDto getDto(JournalistRequest journalistRequest) {
@@ -59,6 +64,37 @@ public class JournalistRequestService {
     private String generatePassword() {
         return UUID.randomUUID().toString().substring(0, 8);
     }
+
+    /* Student */
+
+    // become a journalist request sent by student
+    public String createJournalistRequest(JournalistRequestDto requestDto) {
+        try {
+            // find student
+            Long studentId = authService.getCurrentUserId();
+            Student student = studentRepoService.getStudent(studentId);
+
+            // find college
+            College college =  student.getCollege();
+
+            // create
+            JournalistRequest request = new JournalistRequest();
+            request.setStudent(student);
+            request.setCollege(college);
+            request.setWhy(requestDto.getWhy());
+            request.setExperience(requestDto.getExperience());
+            request.setPortfolioLink(requestDto.getPortfolioLink());
+            // save in db
+            journalistRequestRepository.save(request);
+
+            return "Your Request sent successfully";
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    /* College-Admin */
 
     // get all journalist request made from the college
     public List<JournalistReqResponseDto> getJournalistRequests() {

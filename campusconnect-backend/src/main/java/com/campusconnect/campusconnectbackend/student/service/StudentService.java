@@ -36,7 +36,7 @@ public class StudentService {
     public StudentDashboardStatsDto getStats() {
 
         int joinedClub = clubMemberService.getJoinedClubCount();
-        int upcomingEvents = eventService.getEventsCountByStatus("UPCOMING");
+        int upcomingEvents = eventService.getUpcomingEventsCountByCollege();
 
         StudentDashboardStatsDto dto = new StudentDashboardStatsDto();
         dto.setJoinedClubs(joinedClub);

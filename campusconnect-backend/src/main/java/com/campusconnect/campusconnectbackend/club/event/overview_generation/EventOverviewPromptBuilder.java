@@ -68,7 +68,7 @@ public class EventOverviewPromptBuilder {
                 .formatted(
                         event.getTitle(),
                         event.getDescription(),
-                        event.getEventDate(),
+                        event.getStartTime(),
                         event.getLocation(),
                         safeList(speakers),
                         safeList(sponsors),

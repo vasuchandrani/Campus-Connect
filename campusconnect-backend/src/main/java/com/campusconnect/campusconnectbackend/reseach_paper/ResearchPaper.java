@@ -26,11 +26,14 @@ public class ResearchPaper {
     @Column(name = "content", nullable = false)
     private String content;
 
+    @Column(name = "subject", nullable = false)
+    private String subject;
+
     @Column(name = "image_url")
     private String imageUrl;
 
     @Column(name = "status", nullable = false)
-    private String status;
+    private String status = "NOT REVIEWED";
 
     @Column(name = "reviewer_feedback")
     private String reviewerFeedback;

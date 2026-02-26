@@ -29,19 +29,16 @@ public class Event {
     private String image;
 
     @Column(name = "event_time", nullable = false)
-    private LocalDateTime eventDate;
+    private LocalDateTime startTime;
 
     @Column(name = "end_date", nullable = false)
-    private LocalDateTime endDate;
+    private LocalDateTime endTime;
 
     @Column(name = "registration_end")
     private LocalDateTime registrationEnd;
 
     @Column(name = "location", nullable = false)
     private String location;
-
-    @Column(name = "status", nullable = false)
-    private String status = "UPCOMING";
 
     @Column(columnDefinition = "TEXT")
     private String overview;

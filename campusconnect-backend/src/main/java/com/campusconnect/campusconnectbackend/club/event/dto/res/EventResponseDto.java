@@ -24,29 +24,30 @@ public class EventResponseDto {
     @NotBlank
     private String image;
 
-    private LocalDateTime eventDate;
+    private LocalDateTime startTime;
 
-    private LocalDateTime endDate;
+    private LocalDateTime endTime;
 
     private LocalDateTime registrationEnd;
 
     private String location;
 
     @NotBlank
-    private String status;
-
-    @NotBlank
     private String clubName;
-
-    private boolean isRegister;
-
-    private boolean isRegistrationOpen;
 
     private LocalDateTime createAt;
 
+    private boolean isRegister;
+
     private int registrationsCount;
+
+    private String overview;
+
+    private List<String> images;
 
     private List<EventSponsorResponseDto> sponsors;
 
     private List<EventSpeakerResponseDto> speakers;
+
+    private List<EventWinnerResponseDto> winners;
 }

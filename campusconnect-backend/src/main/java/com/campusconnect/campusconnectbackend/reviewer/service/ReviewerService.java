@@ -2,6 +2,9 @@ package com.campusconnect.campusconnectbackend.reviewer.service;
 
 import com.campusconnect.campusconnectbackend.college.College;
 import com.campusconnect.campusconnectbackend.college.service.CollegeService;
+import com.campusconnect.campusconnectbackend.reseach_paper.ResearchPaper;
+import com.campusconnect.campusconnectbackend.reseach_paper.ResearchPaperRepository;
+import com.campusconnect.campusconnectbackend.reseach_paper.ResearchPaperService;
 import com.campusconnect.campusconnectbackend.reviewer.dto.req.AddReviewerRequestDto;
 import com.campusconnect.campusconnectbackend.reviewer.dto.res.ReviewerResponseDto;
 import com.campusconnect.campusconnectbackend.mail_service.dto.reviewer.ReviewerAssignmentDto;
@@ -26,6 +29,8 @@ public class ReviewerService {
     private final PasswordEncoder passwordEncoder;
     private final CollegeService collegeService;
     private final EmailDispatcherService emailDispatcherService;
+    private final ResearchPaperService researchPaperService;
+    private final ResearchPaperRepository researchPaperRepository;
 
     // get DTO
     public ReviewerResponseDto getDto(Reviewer reviewer) {
@@ -116,6 +121,43 @@ public class ReviewerService {
             // delete
             reviewerRepository.deleteById(reviewerId);
             return true;
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    // assign-reviewer
+    @Transactional
+    public String assignReviewer(Long id, AddReviewerRequestDto request) {
+        try {
+            // find research-paper
+            ResearchPaper paper = researchPaperRepository.findById(id).orElseThrow(
+                    () -> new RuntimeException("Research Paper not found")
+            );
+            // find reviewer
+            Reviewer reviewer = reviewerRepository.findByEmail(request.getEmail()).orElse(null);
+
+            if (reviewer != null) {
+                // modify paper
+                paper.setReviewer(reviewer);
+                paper.setStatus("UNDER REVIEW");
+            }
+            else {
+                // create new reviewer
+                Reviewer newReviewer = new Reviewer();
+                newReviewer.setFullName(request.getFullName());
+                newReviewer.setEmail(request.getEmail());
+                // save in db
+                reviewerRepository.save(newReviewer);
+
+                // modify paper
+                paper.setReviewer(newReviewer);
+                paper.setStatus("UNDER REVIEW");
+            }
+            researchPaperRepository.save(paper);
+
+            return "Reviewer Assigned";
         }
         catch (Exception e) {
             throw new RuntimeException(e.getMessage());

@@ -5,74 +5,139 @@ import com.campusconnect.campusconnectbackend.club.event.entity.Event;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 public interface EventRepository extends JpaRepository<Event, Long> {
 
-
-    @Query("""
-        select count(e)
-        from Event e
-        where e.club in :clubs
-          and e.status = :status
-    """)
-    int countEventsByClubsAndStatus(List<Club> clubs, String status);
-
-    @Query("""
-        select e
-        from Event e
-        where e.club in :clubs
-          and e.status = 'LIVE'
-        order by e.eventDate asc, e.createdAt asc
-    """)
-    List<Event> findLiveEvents(
-            List<Club> clubs,
-            Pageable pageable
-    );
-
-    @Query("""
-        select e
-        from Event e
-        where e.club in :clubs
-          and e.status = 'UPCOMING'
-          and e.eventDate >= CURRENT_DATE
-        order by e.eventDate asc, e.createdAt asc
-    """)
-    List<Event> findUpcomingEvents(
-            List<Club> clubs,
-            Pageable pageable
-    );
-
     List<Event> findEventByClub_Id(Long clubId);
 
     Optional<Event> findEventById(Long id);
 
-    @Query("""
-        select e
-        from Event e
-        where e.club.id = :clubId
-          and e.status = 'LIVE'
-        order by e.eventDate asc, e.createdAt asc
-    """)
-    List<Event> findLiveEventsByClub(Long clubId, Pageable livePage);
+    /* By College */
 
     @Query("""
-        select e
-        from Event e
-        where e.club.id = :clubId
-          and e.status = 'UPCOMING'
-        order by e.eventDate asc, e.createdAt asc
+        SELECT COUNT(e)
+        FROM Event e
+        WHERE e.club IN :clubs
+          AND e.startTime > :now
     """)
-    List<Event> findUpcomingEventsByClub(Long clubId, Pageable upcomingPage);
+    int countUpcomingEventsByClubs(
+            @Param("clubs") List<Club> clubs,
+            @Param("now") LocalDateTime now
+    );
 
-    int countEventsByClub_IdAndStatus(Long clubId, String status);
+    @Query("""
+        SELECT e
+        FROM Event e
+        WHERE e.club IN :clubs
+          AND e.startTime <= :now
+          AND e.endTime >= :now
+        ORDER BY e.startTime ASC
+    """)
+    List<Event> findLiveEvents(
+            @Param("clubs") List<Club> clubs,
+            @Param("now") LocalDateTime now,
+            Pageable pageable
+    );
 
-    List<Event> findByStatusInAndClubIn(Collection<String> statuses, Collection<Club> clubs);
+    @Query("""
+        SELECT e
+        FROM Event e
+        WHERE e.club IN :clubs
+          AND e.startTime > :now
+        ORDER BY e.startTime ASC
+    """)
+    List<Event> findUpcomingEvents(
+            @Param("clubs") List<Club> clubs,
+            @Param("now") LocalDateTime now,
+            Pageable pageable
+    );
 
-    Collection<String> club(Club club);
+    @Query("""
+        SELECT e
+        FROM Event e
+        WHERE e.club IN :clubs
+          AND (
+                (e.startTime <= :now AND e.endTime >= :now)
+             OR (e.startTime > :now)
+          )
+        ORDER BY e.startTime ASC
+    """)
+    List<Event> findActiveEventsByCollege(@Param("clubs") List<Club> clubs, @Param("now") LocalDateTime now);
 
-    List<Event> findByClubAndStatusIn(Club club, Collection<String> statuses);
+    @Query("""
+        SELECT e
+        FROM Event e
+        WHERE e.club IN :clubs
+          AND e.endTime < :now
+        ORDER BY e.endTime DESC
+    """)
+    List<Event> findFinishedEventsByCollege(@Param("clubs") List<Club> clubs, @Param("now") LocalDateTime now);
+
+
+    /* By Club */
+
+    @Query("""
+        SELECT e
+        FROM Event e
+        WHERE e.club.id = :clubId
+          AND e.startTime <= :now
+          AND e.endTime >= :now
+        ORDER BY e.startTime ASC
+    """)
+    List<Event> findLiveEventsByClub(
+            @Param("clubId") Long clubId,
+            @Param("now") LocalDateTime now,
+            Pageable pageable
+    );
+
+    @Query("""
+        SELECT e
+        FROM Event e
+        WHERE e.club.id = :clubId
+          AND e.startTime > :now
+        ORDER BY e.startTime ASC
+    """)
+    List<Event> findUpcomingEventsByClub(
+            @Param("clubId") Long clubId,
+            @Param("now") LocalDateTime now,
+            Pageable pageable
+    );
+
+    @Query("""
+        SELECT COUNT(e)
+        FROM Event e
+        WHERE e.club.id = :clubId
+          AND e.startTime > :now
+    """)
+    int countUpcomingEventsByClubId(
+            @Param("clubId") Long clubId,
+            @Param("now") LocalDateTime now
+    );
+
+    @Query("""
+        SELECT e
+        FROM Event e
+        WHERE e.club.id = :clubId
+          AND (
+                (e.startTime <= :now AND e.endTime >= :now)
+             OR (e.startTime > :now)
+          )
+        ORDER BY e.startTime ASC
+    """)
+    List<Event> findActiveEventsByClub(@Param("clubId") Long clubId, @Param("now") LocalDateTime now);
+
+    @Query("""
+        SELECT e
+        FROM Event e
+        WHERE e.club.id = :clubId
+          AND e.endTime < :now
+        ORDER BY e.endTime DESC
+    """)
+    List<Event> findFinishedEventsByClub(@Param("clubId") Long clubId, @Param("now") LocalDateTime now);
 }
