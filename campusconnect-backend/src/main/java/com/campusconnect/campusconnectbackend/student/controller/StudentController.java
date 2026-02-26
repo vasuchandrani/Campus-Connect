@@ -3,7 +3,11 @@ package com.campusconnect.campusconnectbackend.student.controller;
 import com.campusconnect.campusconnectbackend.club.announcement.AnnouncementService;
 import com.campusconnect.campusconnectbackend.club.club_follower.ClubFollowerService;
 import com.campusconnect.campusconnectbackend.club.ClubService;
-import com.campusconnect.campusconnectbackend.club.event.dto.res.EventDetailsResponseDto;
+import com.campusconnect.campusconnectbackend.journalist.dto.req.JournalistRequestDto;
+import com.campusconnect.campusconnectbackend.journalist.service.JournalistRequestService;
+import com.campusconnect.campusconnectbackend.reseach_paper.ResearchPaperService;
+import com.campusconnect.campusconnectbackend.reseach_paper.dto.req.ResearchRequestDto;
+import com.campusconnect.campusconnectbackend.reseach_paper.dto.res.ResearchesResponseDto;
 import com.campusconnect.campusconnectbackend.student.dto.req.ClubRequestDto;
 import com.campusconnect.campusconnectbackend.club.announcement.dto.res.AnnouncementResponseDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.YourClubListDto;
@@ -34,6 +38,8 @@ public class StudentController {
     private final AnnouncementService announcementService;
     private final AuthService authService;
     private final ClubFollowerService clubFollowerService;
+    private final JournalistRequestService journalistRequestService;
+    private final ResearchPaperService researchPaperService;
 
 
     /* Home */
@@ -125,8 +131,8 @@ public class StudentController {
 
     // view details of finished-events
     @GetMapping("/events/finished/{eventId}")
-    public EventDetailsResponseDto getEventDetails(@PathVariable Long eventId) {
-        return eventService.getEventDetails(eventId);
+    public EventResponseDto getEventDetails(@PathVariable Long eventId) {
+        return eventService.getEvent(eventId);
     }
 
     // register in event
@@ -163,5 +169,51 @@ public class StudentController {
     @GetMapping("/notifications")
     public List<AnnouncementResponseDto> getNotifications() {
         return announcementService.getNotifications();
+    }
+
+    /* News-paper */
+
+    // latest-newspaper
+    @GetMapping("/latest-news")
+    public NewsPaperResponseDto getLatestNews() {
+        return newsPaperService.getLatestOne();
+    }
+
+    // get all newspapers
+    @GetMapping("/news-papers")
+    public List<NewsPaperResponseDto> getNewsPapers() {
+        return newsPaperService.getNewsPapersByCollege();
+    }
+
+    // become a journalist
+    @PostMapping("/news-papers/become")
+    public String becomeJournalistRequest(@RequestBody JournalistRequestDto request) {
+        return journalistRequestService.createJournalistRequest(request);
+    }
+
+    /* Research */
+
+    // get all research-papers
+    @GetMapping("/researches")
+    public List<ResearchesResponseDto> getResearches() {
+        return researchPaperService.getAllResearchPapers();
+    }
+
+    // get particular research-paper
+    @GetMapping("/researches/{id}")
+    public ResearchesResponseDto getResearchPaper(@PathVariable Long id) {
+        return researchPaperService.getResearchPaper(id);
+    }
+
+    // get my research-papers
+    @GetMapping("/researches/mine")
+    public List<ResearchesResponseDto> getMyResearches() {
+        return researchPaperService.getMyResearchPapers();
+    }
+
+    // submit research-paper
+    @PostMapping("/researches")
+    public String submitResearchPaper(@RequestBody ResearchRequestDto request) {
+        return researchPaperService.submitPaper(request);
     }
 }

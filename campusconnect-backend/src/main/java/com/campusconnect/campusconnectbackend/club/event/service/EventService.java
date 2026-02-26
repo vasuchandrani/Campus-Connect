@@ -37,11 +37,6 @@ public class EventService {
                 .existsByEvent_IdAndStudent_Id(eventId, studentId);
     }
 
-    // is registration open?
-    private boolean isRegistrationOpen(Event event) {
-        return !event.getRegistrationEnd().isBefore(LocalDateTime.now()); // registration closed
-    }
-
     // get registrations of an event
     private int registrations(Long eventId){
         return eventRegistrationRepository.countByEvent_Id(eventId);
@@ -53,28 +48,26 @@ public class EventService {
         EventResponseDto dto = new EventResponseDto();
         // map the data
         dto.setId(event.getId());
-        dto.setClubName(event.getClub().getName());
-        dto.setId(event.getId());
-        dto.setEventDate(event.getEventDate());
-        dto.setEndDate(event.getEndDate());
-        dto.setLocation(event.getLocation());
-        dto.setDescription(event.getDescription());
         dto.setTitle(event.getTitle());
+        dto.setDescription(event.getDescription());
+        dto.setClubName(event.getClub().getName());
+        dto.setStartTime(event.getStartTime());
+        dto.setEndTime(event.getEndTime());
+        dto.setLocation(event.getLocation());
         dto.setImage(event.getImage());
         dto.setRegistrationEnd(event.getRegistrationEnd());
-
-        boolean isRegistrationOpen = isRegistrationOpen(event);
-        dto.setRegistrationOpen(isRegistrationOpen);
 
         boolean isRegister = isRegistered(event.getId());
         dto.setRegister(isRegister);
 
-        dto.setStatus(event.getStatus());
         dto.setCreateAt(event.getCreatedAt());
         dto.setRegistrationsCount(registrations(event.getId()));
 
         dto.setSponsors(getSponsors(event.getId()));
         dto.setSpeakers(getSpeakers(event.getId()));
+        dto.setWinners(getWinners(event.getId()));
+        dto.setImages(getImages(event.getId()));
+        dto.setOverview(event.getOverview());
         return dto;
     }
 
@@ -121,6 +114,34 @@ public class EventService {
         return response;
     }
 
+    // get event winner list
+    private List<EventWinnerResponseDto> getWinners(Long eventId) {
+        // find all winners of event
+        List<EventWinner> winnerList = eventWinnerRepository.findAllByEvent_Id(eventId);
+        List<EventWinnerResponseDto> winners = new ArrayList<>();
+        for (EventWinner winner : winnerList) {
+            EventWinnerResponseDto dto = new EventWinnerResponseDto();
+            dto.setId(winner.getId());
+            dto.setName(winner.getName());
+            dto.setEmail(winner.getEmail());
+            dto.setEventId(winner.getEvent().getId());
+            winners.add(dto);
+        }
+        return winners;
+    }
+
+    // get images of event
+    private List<String> getImages(Long eventId) {
+        // find images of event
+        List<EventImages> images = eventImagesRepository.findAllByEvent_Id(eventId);
+        List<String> imageUrls = new ArrayList<>();
+        for (EventImages img : images) {
+            imageUrls.add(img.getImageUrl());
+        }
+
+        return imageUrls;
+    }
+
     // save sponsors
     private boolean saveSponsors(List<EventSponsorRequestDto> sponsors, Event event) {
         try {
@@ -164,10 +185,9 @@ public class EventService {
 
         // find all clubs of college
         List<Club> clubs = clubService.getAllClubsByCollege();
-        List<String> statuses = List.of("UPCOMING", "LIVE");
 
         // find all live and upcoming events
-        List<Event> events = eventRepository.findByStatusInAndClubIn(statuses, clubs);
+        List<Event> events = eventRepository.findActiveEventsByCollege(clubs, LocalDateTime.now());
 
         return getDtoList(events);
     }
@@ -176,15 +196,14 @@ public class EventService {
     public List<EventResponseDto> getFinishedEventsByCollege() {
         // find all clubs of college
         List<Club> clubs = clubService.getAllClubsByCollege();
-        List<String> statuses = List.of("FINISHED");
 
         // find all finished events
-        List<Event> events = eventRepository.findByStatusInAndClubIn(statuses, clubs);
+        List<Event> events = eventRepository.findFinishedEventsByCollege(clubs, LocalDateTime.now());
 
         return getDtoList(events);
     }
 
-    // get particular active event
+    // get particular event
     public EventResponseDto getEvent(Long eventId) {
         // find event
         Event e = eventRepository.findEventById(eventId).orElseThrow(
@@ -194,67 +213,13 @@ public class EventService {
         return getDto(e);
     }
 
-    // get finished event details
-    public EventDetailsResponseDto getEventDetails(Long eventId) {
-        // find event
-        Event event = eventRepository.findEventById(eventId).orElseThrow(
-                () -> new RuntimeException("Event with id " + eventId + " not found")
-        );
-
-        // find images of event
-        List<EventImages> images = eventImagesRepository.findAllByEvent_Id(eventId);
-        List<String> imageUrls = new ArrayList<>();
-        for (EventImages img : images) {
-            imageUrls.add(img.getImageUrl());
-        }
-
-        // find all winners of event
-        List<EventWinner> winnerList = eventWinnerRepository.findAllByEvent_Id(eventId);
-        List<EventWinnerResponseDto> winners = new ArrayList<>();
-        for (EventWinner winner : winnerList) {
-            EventWinnerResponseDto dto = new EventWinnerResponseDto();
-            dto.setId(winner.getId());
-            dto.setName(winner.getName());
-            dto.setEmail(winner.getEmail());
-            dto.setEventId(winner.getEvent().getId());
-            winners.add(dto);
-        }
-
-        // fins all sponsors of event
-        List<EventSponsorResponseDto> sponsors = getSponsors(eventId);
-
-        // find all speakers of event
-        List<EventSpeakerResponseDto> speakers = getSpeakers(eventId);
-
-        // create response
-        EventDetailsResponseDto response = new EventDetailsResponseDto();
-        // map all data
-        response.setId(event.getId());
-        response.setImage(event.getImage());
-        response.setTitle(event.getTitle());
-        response.setClubName(event.getClub().getName());
-        response.setDescription(event.getDescription());
-        response.setEventDate(event.getEventDate());
-        response.setEndDate(event.getEndDate());
-        response.setLocation(event.getLocation());
-        response.setStatus(event.getStatus());
-        response.setRegistrationsCount(registrations(eventId));
-        response.setOverview(event.getOverview());
-        response.setImages(imageUrls);
-        response.setSponsors(sponsors);
-        response.setSpeakers(speakers);
-        response.setWinners(winners);
-
-        return response;
-    }
-
     // get count of events by status
-    public int getEventsCountByStatus(String status) {
+    public int getUpcomingEventsCountByCollege() {
 
         // get all clubs of college
         List<Club> clubs = clubService.getAllClubsByCollege();
 
-        return eventRepository.countEventsByClubsAndStatus(clubs, status);
+        return eventRepository.countUpcomingEventsByClubs(clubs, LocalDateTime.now());
     }
 
     // get top events of college (live & upcoming)
@@ -264,7 +229,7 @@ public class EventService {
 
         // find live events
         Pageable livePage = PageRequest.of(0, 3);
-        List<Event> liveEvents = eventRepository.findLiveEvents(clubs, livePage);
+        List<Event> liveEvents = eventRepository.findLiveEvents(clubs, LocalDateTime.now(),livePage);
         List<EventResponseDto> response = new ArrayList<>();
 
         for (Event event : liveEvents) {
@@ -277,7 +242,7 @@ public class EventService {
 
             // find upcoming events
             Pageable upcomingPage = PageRequest.of(0, remaining);
-            List<Event> upcomingEvents = eventRepository.findUpcomingEvents(clubs, upcomingPage);
+            List<Event> upcomingEvents = eventRepository.findUpcomingEvents(clubs, LocalDateTime.now(),upcomingPage);
 
             for (Event event : upcomingEvents) {
                 EventResponseDto dto = getDto(event);
@@ -294,7 +259,7 @@ public class EventService {
     public List<EventResponseDto> getTopEventsByClub(Long clubId) {
         // find live events
         Pageable livePage = PageRequest.of(0, 3);
-        List<Event> liveEvents = eventRepository.findLiveEventsByClub(clubId, livePage);
+        List<Event> liveEvents = eventRepository.findLiveEventsByClub(clubId, LocalDateTime.now(),livePage);
         List<EventResponseDto> response = new ArrayList<>();
 
         for (Event event : liveEvents) {
@@ -307,7 +272,7 @@ public class EventService {
 
             // find upcoming events
             Pageable upcomingPage = PageRequest.of(0, remaining);
-            List<Event> upcomingEvents = eventRepository.findUpcomingEventsByClub(clubId, upcomingPage);
+            List<Event> upcomingEvents = eventRepository.findUpcomingEventsByClub(clubId, LocalDateTime.now(),upcomingPage);
 
             for (Event event : upcomingEvents) {
                 EventResponseDto dto = getDto(event);
@@ -328,8 +293,8 @@ public class EventService {
             event.setDescription(request.getDescription());
             event.setRegistrationEnd(request.getRegistrationEnd());
             event.setImage(request.getImageUrl());
-            event.setEventDate(request.getEventDate());
-            event.setEndDate(request.getEndDate());
+            event.setStartTime(request.getStartTime());
+            event.setEndTime(request.getEndTime());
             event.setLocation(request.getLocation());
             event.setClub(clubService.getClubById(clubId));
 
@@ -367,11 +332,11 @@ public class EventService {
         if (request.getDescription() != null) {
             event.setDescription(request.getDescription());
         }
-        if (request.getEventDate() != null) {
-            event.setEventDate(request.getEventDate());
+        if (request.getStartTime() != null) {
+            event.setStartTime(request.getStartTime());
         }
-        if (request.getEndDate() != null) {
-            event.setEndDate(request.getEndDate());
+        if (request.getEndTime() != null) {
+            event.setEndTime(request.getEndTime());
         }
         if (request.getRegistrationEnd() != null) {
             event.setRegistrationEnd(request.getRegistrationEnd());
@@ -411,12 +376,8 @@ public class EventService {
     // get all active events of club (live & upcoming)
     public List<EventResponseDto> getActiveEventsByClub(Long clubId) {
 
-        // find club
-        Club club = clubService.getClubById(clubId);
-        List<String> statuses = List.of("UPCOMING", "LIVE");
-
         // find all live and upcoming events
-        List<Event> events = eventRepository.findByClubAndStatusIn(club, statuses);
+        List<Event> events = eventRepository.findActiveEventsByClub(clubId, LocalDateTime.now());
 
         return getDtoList(events);
     }
@@ -424,12 +385,8 @@ public class EventService {
     // get all finished events of college
     public List<EventResponseDto> getFinishedEventsByClub(Long clubId) {
 
-        // find club
-        Club club = clubService.getClubById(clubId);
-        List<String> statuses = List.of("FINISHED");
-
         // find all finished events
-        List<Event> events = eventRepository.findByClubAndStatusIn(club, statuses);
+        List<Event> events = eventRepository.findFinishedEventsByClub(clubId, LocalDateTime.now());
 
         return getDtoList(events);
     }

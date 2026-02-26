@@ -71,4 +71,32 @@ public class NewsPaperService {
         assert news != null;
         return getDto(news);
     }
+
+    // get new-papers of college
+    public List<NewsPaperResponseDto> getNewsPapersByCollege() {
+
+        // find college
+        Long collegeId = authService.getCurrentCollegeId();
+
+        List<NewsPaper> newsPapers = newsPaperRepository.findAllByCollege_Id(collegeId);
+
+        return getDtoList(newsPapers);
+    }
+
+    /* College-Admin */
+
+    // unpublish newspaper
+    public String unpublishNewsPaper(Long newsPaperId) {
+        try {
+            // delete if exist
+            if (newsPaperRepository.existsById(newsPaperId)) {
+                newsPaperRepository.deleteById(newsPaperId);
+                return "Newspaper unpublished";
+            }
+            return "Newspaper not found";
+        }
+        catch (Exception e) {
+            throw  new RuntimeException(e.getMessage());
+        }
+    }
 }

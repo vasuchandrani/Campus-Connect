@@ -14,7 +14,6 @@ import com.campusconnect.campusconnectbackend.club.dto.res.club_admin_member.Clu
 import com.campusconnect.campusconnectbackend.club.dto.res.club_admin_member.ClubTeamDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.club_card.ClubMemberDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.club_admin_member.TeamNameDto;
-import com.campusconnect.campusconnectbackend.club.event.dto.res.EventDetailsResponseDto;
 import com.campusconnect.campusconnectbackend.club.event.dto.res.EventResponseDto;
 import com.campusconnect.campusconnectbackend.club.event.overview_generation.EventOverviewService;
 import com.campusconnect.campusconnectbackend.club.event.service.EventService;
@@ -114,8 +113,8 @@ public class ClubAdminController {
 
     // view details of finished-events
     @GetMapping("/events/finished/{eventId}")
-    public EventDetailsResponseDto getEventDetails(@PathVariable Long eventId) {
-        return eventService.getEventDetails(eventId);
+    public EventResponseDto getEventDetails(@PathVariable Long eventId) {
+        return eventService.getEvent(eventId);
     }
 
     // create new event

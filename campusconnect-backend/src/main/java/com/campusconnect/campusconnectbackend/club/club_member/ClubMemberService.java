@@ -38,7 +38,7 @@ public class ClubMemberService {
     public ClubDashboardStatsDto getStats(Long clubId) {
 
         ClubDashboardStatsDto dto = new ClubDashboardStatsDto();
-        dto.setEvents(eventService.getEventsCountByStatus("UPCOMING"));
+        dto.setEvents(eventService.getUpcomingEventsCountByCollege());
         dto.setMembers(getJoinedMemberCount(clubId));
         dto.setTeams(clubTeamRepository.countByClub_Id(clubId));
         dto.setFollowers(clubFollowerRepository.countByClub_Id(clubId));

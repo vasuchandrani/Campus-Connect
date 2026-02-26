@@ -12,12 +12,10 @@ import com.campusconnect.campusconnectbackend.club.announcement.dto.res.Announce
 import com.campusconnect.campusconnectbackend.club.dto.res.club_admin_member.ClubDashboardStatsDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.club_admin_member.ClubTeamDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.club_card.ClubMemberDto;
-import com.campusconnect.campusconnectbackend.club.event.dto.res.EventDetailsResponseDto;
 import com.campusconnect.campusconnectbackend.club.event.dto.res.EventResponseDto;
 import com.campusconnect.campusconnectbackend.club.event.overview_generation.EventOverviewService;
 import com.campusconnect.campusconnectbackend.club.event.service.EventService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -86,8 +84,8 @@ public class ClubMemberController {
 
     // view details of finished-events
     @GetMapping("/events/finished/{eventId}")
-    public EventDetailsResponseDto getEventDetails(@PathVariable Long eventId) {
-        return eventService.getEventDetails(eventId);
+    public EventResponseDto getEventDetails(@PathVariable Long eventId) {
+        return eventService.getEvent(eventId);
     }
 
     // create new event

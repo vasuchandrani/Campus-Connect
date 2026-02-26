@@ -32,7 +32,7 @@ public class ClubAdminService {
     // get stats
     public ClubDashboardStatsDto getStats(Long clubId) {
         ClubDashboardStatsDto dto = new ClubDashboardStatsDto();
-        dto.setEvents(eventService.getEventsCountByStatus("UPCOMING"));
+        dto.setEvents(eventService.getUpcomingEventsCountByCollege());
         dto.setMembers(clubMemberService.getJoinedMemberCount(clubId));
         dto.setTeams(clubTeamService.getTeamCount(clubId));
         dto.setFollowers(clubFollowerService.getFollowerCount(clubId));

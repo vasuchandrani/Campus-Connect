@@ -10,4 +10,6 @@ public interface ResearchPaperRepository extends JpaRepository<ResearchPaper, Lo
     List<ResearchPaper> findAllByCollege_Id(Long collegeId);
 
     List<ResearchPaper> findAllByStudent_Id(Long studentId);
+
+    List<ResearchPaper> findAllByCollege_IdAndStatus(Long collegeId, String status);
 }

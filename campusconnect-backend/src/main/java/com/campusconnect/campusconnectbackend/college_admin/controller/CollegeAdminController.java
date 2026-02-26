@@ -3,8 +3,10 @@ package com.campusconnect.campusconnectbackend.college_admin.controller;
 import com.campusconnect.campusconnectbackend.club.announcement.AnnouncementService;
 import com.campusconnect.campusconnectbackend.club.club_request.ClubRequestService;
 import com.campusconnect.campusconnectbackend.club.ClubService;
-import com.campusconnect.campusconnectbackend.club.event.dto.res.EventDetailsResponseDto;
 import com.campusconnect.campusconnectbackend.college_admin.service.CollegeAdminService;
+import com.campusconnect.campusconnectbackend.mail_service.dto.reviewer.ReviewerAssignmentDto;
+import com.campusconnect.campusconnectbackend.reseach_paper.ResearchPaperService;
+import com.campusconnect.campusconnectbackend.reseach_paper.dto.res.ResearchesResponseDto;
 import com.campusconnect.campusconnectbackend.reviewer.dto.req.AddReviewerRequestDto;
 import com.campusconnect.campusconnectbackend.student.dto.req.StudentRegisterRequestDto;
 import com.campusconnect.campusconnectbackend.club.announcement.dto.res.AnnouncementResponseDto;
@@ -47,6 +49,7 @@ public class CollegeAdminController {
     private final JournalistService journalistService;
     private final ReviewerService reviewerService;
     private final StudentRepoService studentRepoService;
+    private final ResearchPaperService researchPaperService;
 
     /* Home */
 
@@ -131,8 +134,8 @@ public class CollegeAdminController {
 
     // view details of finished-events
     @GetMapping("/events/finished/{eventId}")
-    public EventDetailsResponseDto getEventDetails(@PathVariable Long eventId) {
-        return eventService.getEventDetails(eventId);
+    public EventResponseDto getEventDetails(@PathVariable Long eventId) {
+        return eventService.getEvent(eventId);
     }
 
     /* Users */
@@ -219,4 +222,45 @@ public class CollegeAdminController {
         Long collegeId = authService.getCurrentCollegeId();
         return studentRepoService.registerStudent(request, collegeId);
     }
+
+    /* News-paper */
+
+    // get all newspapers
+    @GetMapping("/news-papers")
+    public List<NewsPaperResponseDto> getNewsPapers() {
+        return newsPaperService.getNewsPapersByCollege();
+    }
+
+    // unpublish newspaper
+    @DeleteMapping("/news-papers/{newsId}")
+    public String unpublishNewsPaper(@PathVariable Long newsId) {
+        return newsPaperService.unpublishNewsPaper(newsId);
+    }
+
+    /* Research */
+
+    // get all not-reviewed researches
+    @GetMapping("/researches")
+    public List<ResearchesResponseDto> getNotReviewedResearches() {
+        return researchPaperService.getNotReviewedResearches();
+    }
+
+    // get particular research-paper
+    @GetMapping("/researches/{id}")
+    public ResearchesResponseDto getResearchPaper(@PathVariable Long id) {
+        return researchPaperService.getResearchPaper(id);
+    }
+
+    // assign reviewer
+    // get all reviewer
+    @GetMapping("/researches/review/{id}")
+    public List<ReviewerResponseDto> getReviewers(@PathVariable Long id) {
+        return reviewerService.getReviewers();
+    }
+
+    @PostMapping("/researches/review/{id}")
+    public String assignReviewer(@PathVariable Long id, @RequestBody AddReviewerRequestDto request) {
+        return reviewerService.assignReviewer(id, request);
+    }
+
 }

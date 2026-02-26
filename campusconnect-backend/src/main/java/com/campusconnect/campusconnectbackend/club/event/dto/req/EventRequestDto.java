@@ -20,9 +20,9 @@ public class EventRequestDto {
 
     private LocalDateTime registrationEnd;
 
-    private LocalDateTime eventDate;
+    private LocalDateTime startTime;
 
-    private LocalDateTime endDate;
+    private LocalDateTime endTime;
 
     private String location;
 

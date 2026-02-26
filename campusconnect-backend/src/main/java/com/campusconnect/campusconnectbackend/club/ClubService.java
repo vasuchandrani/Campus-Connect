@@ -17,6 +17,7 @@ import com.campusconnect.campusconnectbackend.student.Student;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -114,7 +115,7 @@ public class ClubService {
         // get count details
         int clubMemberCnt = clubMemberRepository.countByClub_Id(clubId);
         int teamCnt       = clubTeamRepository.countByClub_Id(clubId);
-        int eventCnt      = eventRepository.countEventsByClub_IdAndStatus(clubId, "UPCOMING");
+        int eventCnt      = eventRepository.countUpcomingEventsByClubId(clubId, LocalDateTime.now());
         int followerCnt   = clubFollowerRepository.countByClub_Id(clubId);
 
         // get club-admin details
@@ -147,7 +148,7 @@ public class ClubService {
             eventSummaryDto.setTitle(event.getTitle());
             eventSummaryDto.setDescription(event.getDescription());
             eventSummaryDto.setImage(event.getImage());
-            eventSummaryDto.setEventDate(event.getEventDate());
+            eventSummaryDto.setEventDate(event.getStartTime());
             eventSummaryDto.setLocation(event.getLocation());
             events.add(eventSummaryDto);
         }
