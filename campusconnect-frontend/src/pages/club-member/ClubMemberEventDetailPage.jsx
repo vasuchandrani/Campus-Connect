@@ -11,6 +11,7 @@ import {
   ArrowLeft,
   ImageIcon,
   Speaker,
+  Award,
 } from "lucide-react";
 import { clubMemberNavItems } from "../../config/Navigation";
 import { marked } from "marked";

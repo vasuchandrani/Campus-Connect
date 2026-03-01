@@ -76,7 +76,7 @@ const StudentSignup = ({ onBack }) => {
 
       setFormData((prev) => ({
         ...prev,
-        collegeId: college.id,
+        collegeId: selectedCollegeId,
       }));
   };
 

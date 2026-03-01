@@ -26,6 +26,11 @@ import EventDetailPage from "./pages/student/EventDetailPage";
 import AdminEventDetailPage from "./pages/collageAdmin/AdminEventDetailPage";
 import ClubAdminEventDetailPage from "./pages/club-admin/ClubAdminEventDetail";
 import ClubMemberEventDetailPage from "./pages/club-member/ClubMemberEventDetailPage";
+import JournalistArticlesPage from "./pages/journalist/JournalistArticlesPage";
+import JournalistDashboard from "./pages/journalist/JournalistDashboard";
+import JournalistWritePage from "./pages/journalist/JournalistWritePage";
+import AdminNewspaperPage from "./pages/collageAdmin/AdminNewspaperPage";
+import StudentNewspaperPage from "./pages/student/StudentNewspaperPage";
 
 function App() {
   return (
@@ -33,7 +38,7 @@ function App() {
       <Route path="/auth" element={<Auth />} />
       <Route path="/" element={<Index />} />
 
-      <Route path="/campus-connect/journalist-dashboard" element={<div>Journalist Dashboard</div>} />
+      <Route path="/campus-connect/journalist-dashboard" element={<JournalistDashboard />} />
       <Route path="/campus-connect/admin-dashboard" element={<div>Admin Dashboard</div>} />
       <Route path="/campus-connect/reviewer-dashboard" element={<div>Reviewer Dashboard</div>} />
 
@@ -41,7 +46,7 @@ function App() {
       <Route path="/campus-connect/student/clubs/:clubId" element={<ClubDetailPage />} />
       <Route path="/campus-connect/student/clubs" element={<ClubsPage />} />
       <Route path="/campus-connect/student/announcements" element={<AnnouncementsPage />} />
-      <Route path="/campus-connect/student/newspaper" element={<div>Newspaper Page</div>} />
+      <Route path="/campus-connect/student/newspaper" element={<StudentNewspaperPage />} />
       <Route path="/campus-connect/student/research" element={<div>Research Page</div>} />
       <Route path="/campus-connect/student/events" element={<EventsPage />} />
       <Route path="/campus-connect/student/events/:id" element={<EventDetailPage />} />
@@ -51,6 +56,7 @@ function App() {
       <Route path="/campus-connect/college-admin/users" element={<AdminUsersPage />} />
       <Route path="/campus-connect/college-admin/clubs/:clubId" element={<ClubDetailAdminPage />} />
       <Route path="/campus-connect/college-admin/events/:id" element={<AdminEventDetailPage />} />
+      <Route path="/campus-connect/college-admin/newspaper" element={<AdminNewspaperPage />} />
 
       <Route path="/campus-connect/club-admin/:clubId/dashboard" element={<ClubAdminDashboard />} />
       <Route path="/campus-connect/club-admin/:clubId/announcements" element={<ClubAdminAnnouncementsPage />} />
@@ -65,6 +71,9 @@ function App() {
       <Route path="/campus-connect/club-member/:clubId/members" element={<ClubMembersPage/>} />
       <Route path="/campus-connect/club-member/:clubId/teams" element={<ClubMemberTeamsPage />} />
       <Route path="/campus-connect/club-member/:clubId/events/:id" element={<ClubMemberEventDetailPage />} />
+
+      <Route path="/campus-connect/journalist-articles" element={<JournalistArticlesPage />} />
+      <Route path="/campus-connect/journalist-write" element={<JournalistWritePage />} />
           
       <Route path="*" element={<NotFound />} /> 
     </Routes>

@@ -47,7 +47,6 @@ export const journalistNavItems = [
   { label: "Dashboard", href: "/campus-connect/journalist-dashboard", icon: LayoutDashboard },
   { label: "My Articles", href: "/campus-connect/journalist-articles", icon: FileText },
   { label: "Write", href: "/campus-connect/journalist-write", icon: PenSquare },
-  { label: "Analytics", href: "/campus-connect/journalist-analytics", icon: BarChart3 },
   { label: "Settings", href: "/campus-connect/journalist-settings", icon: Settings },
 ];
 
