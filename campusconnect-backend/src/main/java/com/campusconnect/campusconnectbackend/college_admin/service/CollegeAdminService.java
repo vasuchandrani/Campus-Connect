@@ -7,6 +7,7 @@ import com.campusconnect.campusconnectbackend.college_admin.CollegeAdmin;
 import com.campusconnect.campusconnectbackend.college_admin.CollegeAdminRepository;
 import com.campusconnect.campusconnectbackend.college_admin.dto.res.CollegeAdminDashboardStatsDto;
 import com.campusconnect.campusconnectbackend.journalist.service.JournalistService;
+import com.campusconnect.campusconnectbackend.news_paper.service.NewsPaperService;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import com.campusconnect.campusconnectbackend.student.service.StudentRepoService;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ public class CollegeAdminService {
     private final ClubService clubService;
     private final JournalistService journalistService;
     private final StudentRepoService studentRepoService;
+    private final NewsPaperService newsPaperService;
 
     // get college name
     public String getCollegeName() {
@@ -59,7 +61,7 @@ public class CollegeAdminService {
         int clubs           = clubService.getClubsCountByCollege(collegeId);
         int students        = studentRepoService.getStudentCountByCollege(collegeId);
         int journalist      = journalistService.getJournalistsCountByCollege(collegeId);
-        int publishedPapers = 0;
+        int publishedPapers = newsPaperService.getNewsPapersCountByCollege(collegeId);
 
         // create
         CollegeAdminDashboardStatsDto dto = new CollegeAdminDashboardStatsDto();

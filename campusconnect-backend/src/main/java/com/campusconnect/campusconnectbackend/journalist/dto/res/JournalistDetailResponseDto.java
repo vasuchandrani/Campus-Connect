@@ -7,7 +7,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @RequiredArgsConstructor
-public class JournalistStatResponseDto {
-    int draft;
-    int published;
+public class JournalistDetailResponseDto {
+    String name;
+    String CollageName;
 }

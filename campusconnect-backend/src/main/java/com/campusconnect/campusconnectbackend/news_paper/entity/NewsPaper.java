@@ -1,4 +1,4 @@
-package com.campusconnect.campusconnectbackend.news_paper;
+package com.campusconnect.campusconnectbackend.news_paper.entity;
 
 import com.campusconnect.campusconnectbackend.college.College;
 import com.campusconnect.campusconnectbackend.journalist.entity.Journalist;
@@ -22,7 +22,7 @@ public class NewsPaper {
     @Column(name = "title", nullable = false)
     private String title;
 
-    @Column(name = "content", nullable = false)
+    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
     @Column(name = "image_url")
