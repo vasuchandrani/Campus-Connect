@@ -12,6 +12,7 @@ import com.campusconnect.campusconnectbackend.club.dto.res.club_admin_member.Clu
 import com.campusconnect.campusconnectbackend.club.dto.res.club_admin_member.ClubTeamMemberDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.club_card.ClubMemberDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.club_admin_member.TeamNameDto;
+import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -98,89 +99,68 @@ public class ClubTeamService {
 
     // create team
     @Transactional
-    public boolean createTeam(Long clubId, TeamNameDto request) {
-        try {
-            // create
-            ClubTeam team = new ClubTeam();
-            team.setName(request.getName());
-            team.setDescription(request.getDescription());
-            team.setClub(clubRepository.findClubById(clubId));
-            // save in db
-            clubTeamRepository.save(team);
-            return true;
-        }
-        catch (Exception e) {
-            System.out.println(e.getMessage());
-            return false;
-        }
+    public MessageResponseDto createTeam(Long clubId, TeamNameDto request) {
+        // create
+        ClubTeam team = new ClubTeam();
+        team.setName(request.getName());
+        team.setDescription(request.getDescription());
+        team.setClub(clubRepository.findClubById(clubId));
+        // save in db
+        clubTeamRepository.save(team);
+
+        return new MessageResponseDto("Team created successfully");
     }
 
     // delete team
     @Transactional
-    public boolean deleteTeam(Long teamId) {
-        try {
-            if (!clubTeamRepository.existsById(teamId)) {
-                throw new Exception("Club Team does not exist");
-            }
-            clubTeamRepository.deleteById(teamId);
-            return true;
+    public MessageResponseDto deleteTeam(Long teamId) {
+
+        if (!clubTeamRepository.existsById(teamId)) {
+            throw new RuntimeException("Club Team does not exist");
         }
-        catch (Exception e) {
-            System.out.println(e.getMessage());
-            return false;
-        }
+        clubTeamRepository.deleteById(teamId);
+
+        return new MessageResponseDto("Team deleted successfully");
     }
 
     // add team member
     @Transactional
-    public boolean addTeamMember(Long clubId, Long teamId, Long studentId) {
-        try {
-            // find club member
-            ClubMember student = clubMemberRepository.findStudentByClub_IdAndStudent_Id(clubId, studentId).orElseThrow(
-                    () -> new RuntimeException("Club Member Not Found")
-            );
+    public MessageResponseDto addTeamMember(Long clubId, Long teamId, Long studentId) {
 
-            // create clubTeamMemberId
-            ClubTeamMemberId id  = new ClubTeamMemberId();
-            id.setTeamId(teamId);
-            id.setStudentId(studentId);
+        // find club member
+        ClubMember student = clubMemberRepository.findStudentByClub_IdAndStudent_Id(clubId, studentId).orElseThrow(
+                () -> new RuntimeException("Club Member Not Found")
+        );
 
-            // create member
-            ClubTeamMember member = new ClubTeamMember();
-            member.setId(id);
-            member.setTeam(clubTeamRepository.findById(teamId));
-            member.setStudent(student.getStudent());
-            member.setRole(student.getRole());
-            // save in db
-            clubTeamMemberRepository.save(member);
-            return true;
-        }
-        catch (Exception e) {
-            System.out.println(e.getMessage());
-            return false;
-        }
+        // create clubTeamMemberId
+        ClubTeamMemberId id  = new ClubTeamMemberId();
+        id.setTeamId(teamId);
+        id.setStudentId(studentId);
+
+        // create member
+        ClubTeamMember member = new ClubTeamMember();
+        member.setId(id);
+        member.setTeam(clubTeamRepository.findById(teamId));
+        member.setStudent(student.getStudent());
+        member.setRole(student.getRole());
+        // save in db
+        clubTeamMemberRepository.save(member);
+        return new MessageResponseDto("Team-member added successfully");
     }
 
     // delete team member
     @Transactional
-    public boolean deleteTeamMember(Long teamId, Long studentId) {
-        try {
-            // create id
-            ClubTeamMemberId id  = new ClubTeamMemberId();
-            id.setTeamId(teamId);
-            id.setStudentId(studentId);
+    public MessageResponseDto deleteTeamMember(Long teamId, Long studentId) {
 
-            // check if member exist
-            if (clubTeamMemberRepository.existsById(id)) {
-                // delete member
-                clubTeamMemberRepository.deleteById(id);
-                return true;
-            }
-            return false;
+        // create id
+        ClubTeamMemberId id  = new ClubTeamMemberId();
+        id.setTeamId(teamId);
+        id.setStudentId(studentId);
+
+        // check if member exist
+        if (!clubTeamMemberRepository.existsById(id)) {
+            throw new RuntimeException("Team-member does not exist");
         }
-        catch (Exception e) {
-            System.out.println(e.getMessage());
-            return false;
-        }
+        return new MessageResponseDto("Team-member removed successfully");
     }
 }

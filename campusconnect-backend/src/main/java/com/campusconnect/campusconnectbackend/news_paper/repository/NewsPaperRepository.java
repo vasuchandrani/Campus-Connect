@@ -4,6 +4,7 @@ import com.campusconnect.campusconnectbackend.news_paper.entity.NewsPaper;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.*;
 
@@ -24,7 +25,17 @@ public interface NewsPaperRepository extends JpaRepository<NewsPaper, Long> {
 
     List<NewsPaper> findByJournalist_Id(Long journalistId);
 
-    List<NewsPaper> findTop3ByJournalist_IdOrderByCreatedAtDesc(Long currentUserId);
-
+    @Query("""
+        SELECT n
+        FROM NewsPaper n
+        WHERE n.journalist.id = :journalistId
+        ORDER BY n.createdAt DESC
+    """)
+    List<NewsPaper> findLatestNewsPapers(
+            @Param("journalistId") Long journalistId,
+            Pageable pageable
+    );
     int countByCollege_Id(Long collegeId);
+
+    int countByJournalist_Id(Long journalistId);
 }

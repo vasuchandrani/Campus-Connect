@@ -5,6 +5,7 @@ import com.campusconnect.campusconnectbackend.club.event.entity.EventRegistratio
 import com.campusconnect.campusconnectbackend.club.event.entity.id.EventRegistrationId;
 import com.campusconnect.campusconnectbackend.club.event.repository.EventRegistrationRepository;
 import com.campusconnect.campusconnectbackend.club.event.repository.EventRepository;
+import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import com.campusconnect.campusconnectbackend.student.service.StudentRepoService;
 import jakarta.transaction.Transactional;
@@ -24,7 +25,7 @@ public class EventRegistrationService {
 
     // register student in event
     @Transactional
-    public boolean registerStudent(Long eventId) {
+    public MessageResponseDto registerStudent(Long eventId) {
 
         // fins student
         Long studentId = authService.getCurrentUserId();
@@ -36,11 +37,11 @@ public class EventRegistrationService {
         // prevent duplicate registration
         if (eventRegistrationRepository
             .existsByEvent_IdAndStudent_Id(eventId, studentId)) {
-            return false;
+            return new MessageResponseDto("You are already registered for this event");
         }
 
         if (event.getRegistrationEnd().isBefore(LocalDateTime.now())) {
-            return false; // registration closed
+            return new MessageResponseDto("Registration has been closed for this event"); // registration closed
         }
 
         EventRegistrationId id = new EventRegistrationId();
@@ -53,12 +54,13 @@ public class EventRegistrationService {
         registration.setStudent(studentRepoService.getStudent(studentId));
 
         eventRegistrationRepository.save(registration);
-        return true;
+
+        return new MessageResponseDto("You are registered successfully");
     }
 
     // unregister student from event
     @Transactional
-    public boolean unRegisterStudent(Long eventId) {
+    public MessageResponseDto unRegisterStudent(Long eventId) {
 
         // find student
         Long studentId = authService.getCurrentUserId();
@@ -70,16 +72,16 @@ public class EventRegistrationService {
         // check if registered or not
         if (!eventRegistrationRepository
                 .existsByEvent_IdAndStudent_Id(eventId, studentId)) {
-            return false;
+            return new MessageResponseDto("You are already unregistered for this event");
         }
 
         if (event.getRegistrationEnd().isBefore(LocalDateTime.now())) {
-            return false; // registration closed
+            return new MessageResponseDto("Registration change has been closed"); // registration closed
         }
 
         eventRegistrationRepository
                 .deleteByEvent_IdAndStudent_Id(eventId, studentId);
 
-        return true;
+        return new MessageResponseDto("You are unregistered successfully");
     }
 }

@@ -2,15 +2,16 @@ package com.campusconnect.campusconnectbackend.reviewer.service;
 
 import com.campusconnect.campusconnectbackend.college.College;
 import com.campusconnect.campusconnectbackend.college.service.CollegeService;
+import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.reseach_paper.ResearchPaper;
 import com.campusconnect.campusconnectbackend.reseach_paper.ResearchPaperRepository;
-import com.campusconnect.campusconnectbackend.reseach_paper.ResearchPaperService;
 import com.campusconnect.campusconnectbackend.reviewer.dto.req.AddReviewerRequestDto;
 import com.campusconnect.campusconnectbackend.reviewer.dto.res.ReviewerResponseDto;
 import com.campusconnect.campusconnectbackend.mail_service.dto.reviewer.ReviewerAssignmentDto;
 import com.campusconnect.campusconnectbackend.mail_service.service.EmailDispatcherService;
 import com.campusconnect.campusconnectbackend.reviewer.Reviewer;
 import com.campusconnect.campusconnectbackend.reviewer.ReviewerRepository;
+import com.campusconnect.campusconnectbackend.reviewer.dto.res.ReviewerStatsResponseDto;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +30,6 @@ public class ReviewerService {
     private final PasswordEncoder passwordEncoder;
     private final CollegeService collegeService;
     private final EmailDispatcherService emailDispatcherService;
-    private final ResearchPaperService researchPaperService;
     private final ResearchPaperRepository researchPaperRepository;
 
     // get DTO
@@ -62,38 +62,36 @@ public class ReviewerService {
         return UUID.randomUUID().toString().substring(0, 8);
     }
 
+    /* College-Admin */
+
     // create reviewer
     @Transactional
-    public boolean store(AddReviewerRequestDto request) {
-        try {
-            // generate password
-            String password = generatePassword();
+    public MessageResponseDto store(AddReviewerRequestDto request) {
+        // generate password
+        String password = generatePassword();
 
-            // find college
-            Long collegeId = authService.getCurrentCollegeId();
-            College college = collegeService.getCollegeById(collegeId);
+        // find college
+        Long collegeId = authService.getCurrentCollegeId();
+        College college = collegeService.getCollegeById(collegeId);
 
-            // create
-            Reviewer reviewer = new Reviewer();
-            reviewer.setFullName(request.getFullName());
-            reviewer.setEmail(request.getEmail());
-            reviewer.setPasswordHash(passwordEncoder.encode(password));
-            reviewer.setCollege(college);
+        // create
+        Reviewer reviewer = new Reviewer();
+        reviewer.setFullName(request.getFullName());
+        reviewer.setEmail(request.getEmail());
+        reviewer.setPasswordHash(passwordEncoder.encode(password));
+        reviewer.setCollege(college);
 
-            // save in db
-            reviewerRepository.save(reviewer);
+        // save in db
+        reviewerRepository.save(reviewer);
 
-            // send mail
-            ReviewerAssignmentDto dto = new ReviewerAssignmentDto();
-            dto.setEmail(request.getEmail());
-            dto.setPassword(password);
-            dto.setDashboardLink("/campusconnect/reviewer/dashboard");
-            emailDispatcherService.sendReviewerAssigned(dto);
-            return true;
-        }
-        catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
-        }
+        // send mail
+        ReviewerAssignmentDto dto = new ReviewerAssignmentDto();
+        dto.setEmail(request.getEmail());
+        dto.setPassword(password);
+        dto.setDashboardLink("/campusconnect/reviewer/dashboard");
+        emailDispatcherService.sendReviewerAssigned(dto);
+
+        return new MessageResponseDto("Reviewer added successfully");
     }
 
     // get reviewer-name
@@ -116,51 +114,68 @@ public class ReviewerService {
 
     // remove reviewer
     @Transactional
-    public boolean removeReviewer(Long reviewerId) {
-        try {
-            // delete
-            reviewerRepository.deleteById(reviewerId);
-            return true;
+    public MessageResponseDto removeReviewer(Long reviewerId) {
+
+        // check if exist
+        if (!reviewerRepository.existsById(reviewerId)) {
+            throw new RuntimeException("Reviewer not found!");
         }
-        catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
-        }
+        // delete
+        reviewerRepository.deleteById(reviewerId);
+
+        return new MessageResponseDto("Reviewer removed successfully");
     }
 
     // assign-reviewer
     @Transactional
-    public String assignReviewer(Long id, AddReviewerRequestDto request) {
-        try {
-            // find research-paper
-            ResearchPaper paper = researchPaperRepository.findById(id).orElseThrow(
-                    () -> new RuntimeException("Research Paper not found")
-            );
-            // find reviewer
-            Reviewer reviewer = reviewerRepository.findByEmail(request.getEmail()).orElse(null);
+    public MessageResponseDto assignReviewer(Long id, AddReviewerRequestDto request) {
 
-            if (reviewer != null) {
-                // modify paper
-                paper.setReviewer(reviewer);
-                paper.setStatus("UNDER REVIEW");
-            }
-            else {
-                // create new reviewer
-                Reviewer newReviewer = new Reviewer();
-                newReviewer.setFullName(request.getFullName());
-                newReviewer.setEmail(request.getEmail());
-                // save in db
-                reviewerRepository.save(newReviewer);
+        // find research-paper
+        ResearchPaper paper = researchPaperRepository.findById(id).orElseThrow(
+                () -> new RuntimeException("Research Paper not found")
+        );
+        // find reviewer
+        Reviewer reviewer = reviewerRepository.findByEmail(request.getEmail()).orElse(null);
 
-                // modify paper
-                paper.setReviewer(newReviewer);
-                paper.setStatus("UNDER REVIEW");
-            }
-            researchPaperRepository.save(paper);
-
-            return "Reviewer Assigned";
+        if (reviewer != null) {
+            // modify paper
+            paper.setReviewer(reviewer);
+            paper.setStatus("UNDER REVIEW");
         }
-        catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
+        else {
+            // create new reviewer
+            Reviewer newReviewer = new Reviewer();
+            newReviewer.setFullName(request.getFullName());
+            newReviewer.setEmail(request.getEmail());
+            // save in db
+            reviewerRepository.save(newReviewer);
+
+            // modify paper
+            paper.setReviewer(newReviewer);
+            paper.setStatus("UNDER REVIEW");
         }
+        researchPaperRepository.save(paper);
+
+        return new MessageResponseDto("Reviewer assigned successfully");
+    }
+
+
+    /* Reviewer */
+
+    // get stats
+    public ReviewerStatsResponseDto getStats() {
+
+        // find reviewer
+        Long reviewerId = authService.getCurrentUserId();
+
+        // find pending and reviewed
+        int pending = researchPaperRepository.countByReviewer_IdAndStatus(reviewerId, "NOT_REVIEWED");
+        int reviewed = researchPaperRepository.countByReviewer_IdAndStatusIn(reviewerId, List.of("ACCEPTED", "REJECTED"));
+
+        ReviewerStatsResponseDto stats = new ReviewerStatsResponseDto();
+        stats.setPendingReviews(pending);
+        stats.setReviewed(reviewed);
+
+        return stats;
     }
 }

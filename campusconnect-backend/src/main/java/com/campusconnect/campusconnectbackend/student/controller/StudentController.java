@@ -3,6 +3,7 @@ package com.campusconnect.campusconnectbackend.student.controller;
 import com.campusconnect.campusconnectbackend.club.announcement.AnnouncementService;
 import com.campusconnect.campusconnectbackend.club.club_follower.ClubFollowerService;
 import com.campusconnect.campusconnectbackend.club.ClubService;
+import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.dto.req.JournalistRequestDto;
 import com.campusconnect.campusconnectbackend.journalist.service.JournalistRequestService;
 import com.campusconnect.campusconnectbackend.reseach_paper.ResearchPaperService;
@@ -66,7 +67,7 @@ public class StudentController {
 
     // request for a new club
     @PostMapping("/request-club")
-    public boolean requestForClub(@RequestBody ClubRequestDto request) {
+    public MessageResponseDto requestForClub(@RequestBody ClubRequestDto request) {
         return studentService.requestForClub(request);
     }
 
@@ -104,8 +105,8 @@ public class StudentController {
 
     // follow-unfollow
     @PostMapping("/clubs/{clubId}")
-    public void changeFollow(@PathVariable Long clubId, @RequestBody boolean follow) {
-        clubFollowerService.changeFollow(clubId, follow);
+    public MessageResponseDto changeFollow(@PathVariable Long clubId, @RequestBody boolean follow) {
+        return clubFollowerService.changeFollow(clubId, follow);
     }
 
 
@@ -137,13 +138,13 @@ public class StudentController {
 
     // register in event
     @PostMapping("/events/active/{eventId}/register")
-    public boolean registerEvent(@PathVariable Long eventId) {
+    public MessageResponseDto registerEvent(@PathVariable Long eventId) {
         return eventRegistrationService.registerStudent(eventId);
     }
 
     // unregister from event
     @PostMapping("/events/active/{eventId}/unregister")
-    public boolean unRegisterEvent(@PathVariable Long eventId) {
+    public MessageResponseDto unRegisterEvent(@PathVariable Long eventId) {
         return eventRegistrationService.unRegisterStudent(eventId);
     }
 
@@ -187,7 +188,7 @@ public class StudentController {
 
     // become a journalist
     @PostMapping("/news-papers/become")
-    public String becomeJournalistRequest(@RequestBody JournalistRequestDto request) {
+    public MessageResponseDto becomeJournalistRequest(@RequestBody JournalistRequestDto request) {
         return journalistRequestService.createJournalistRequest(request);
     }
 
@@ -213,7 +214,7 @@ public class StudentController {
 
     // submit research-paper
     @PostMapping("/researches")
-    public String submitResearchPaper(@RequestBody ResearchRequestDto request) {
+    public MessageResponseDto submitResearchPaper(@RequestBody ResearchRequestDto request) {
         return researchPaperService.submitPaper(request);
     }
 }

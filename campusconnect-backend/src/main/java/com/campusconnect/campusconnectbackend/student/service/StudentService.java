@@ -3,6 +3,7 @@ package com.campusconnect.campusconnectbackend.student.service;
 import com.campusconnect.campusconnectbackend.club.club_member.ClubMemberService;
 import com.campusconnect.campusconnectbackend.club.club_request.ClubRequestService;
 import com.campusconnect.campusconnectbackend.college_admin.service.CollegeAdminService;
+import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.student.dto.req.ClubRequestDto;
 import com.campusconnect.campusconnectbackend.student.dto.res.StudentDashboardStatsDto;
 import com.campusconnect.campusconnectbackend.club.event.service.EventService;
@@ -47,25 +48,22 @@ public class StudentService {
 
     // request for a new club
     @Transactional
-    public boolean requestForClub(ClubRequestDto request) {
-        try {
-            Student student = studentRepoService.getStudent(authService.getCurrentUserId());
-            // store club-request
-            clubRequestService.store(request, student, student.getCollege());
+    public MessageResponseDto requestForClub(ClubRequestDto request) {
+        Student student = studentRepoService.getStudent(authService.getCurrentUserId());
+        // store club-request
+        boolean reqSaved = clubRequestService.store(request, student, student.getCollege());
 
-            ClubVerificationDto dto = new ClubVerificationDto();
-            dto.setAdminEmail(collegeAdminService.getAdmin(student.getCollege()).getEmail());
-            dto.setStudentId(student.getStudentId());
-            dto.setClubName(request.getClubName());
-            dto.setAdminDashboardLink("/campusconnect/college-admin/dashboard");
+        ClubVerificationDto dto = new ClubVerificationDto();
+        dto.setAdminEmail(collegeAdminService.getAdmin(student.getCollege()).getEmail());
+        dto.setStudentId(student.getStudentId());
+        dto.setClubName(request.getClubName());
+        dto.setAdminDashboardLink("/campusconnect/college-admin/dashboard");
 
+        if (reqSaved) {
             emailDispatcherService.sendClubRequestToAdmin(dto);
+        }
 
-            return true;
-        }
-        catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
-        }
+        return new MessageResponseDto("Club Request sent successfully");
     }
 
     // get my club

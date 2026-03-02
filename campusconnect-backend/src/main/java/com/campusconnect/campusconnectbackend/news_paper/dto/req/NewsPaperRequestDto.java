@@ -1,4 +1,4 @@
-package com.campusconnect.campusconnectbackend.journalist.dto.req;
+package com.campusconnect.campusconnectbackend.news_paper.dto.req;
 
 import lombok.Getter;
 import lombok.Setter;

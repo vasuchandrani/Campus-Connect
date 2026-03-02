@@ -11,6 +11,7 @@ import com.campusconnect.campusconnectbackend.club.club_team.ClubTeamService;
 import com.campusconnect.campusconnectbackend.club.dto.req.AddMemberRequestDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.club_admin_member.ClubDashboardStatsDto;
 import com.campusconnect.campusconnectbackend.club.event.service.EventService;
+import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.student.Student;
 import com.campusconnect.campusconnectbackend.student.service.StudentRepoService;
 import jakarta.transaction.Transactional;
@@ -41,45 +42,39 @@ public class ClubAdminService {
 
     // add student as club-member
     @Transactional
-    public boolean addMember(Long clubId, AddMemberRequestDto request) {
-        try {
-            // get the student
-            Student student = studentRepoService.getStudentByEmail(request.getEmail());
-            Club club = clubService.getClubById(clubId);
+    public MessageResponseDto addMember(Long clubId, AddMemberRequestDto request) {
+        // find the student
+        Student student = studentRepoService.getStudentByEmail(request.getEmail());
+        Club club = clubService.getClubById(clubId);
 
-            // create embedded id
-            ClubMemberId clubMemberId = new ClubMemberId();
-            clubMemberId.setClubId(clubId);
-            clubMemberId.setStudentId(student.getId());
+        // create embedded id
+        ClubMemberId clubMemberId = new ClubMemberId();
+        clubMemberId.setClubId(clubId);
+        clubMemberId.setStudentId(student.getId());
 
-            // create club-member
-            ClubMember member = new ClubMember();
-            member.setId(clubMemberId);
-            member.setClub(club);
-            member.setStudent(student);
-            member.setRole(request.getRole());
+        // create club-member
+        ClubMember member = new ClubMember();
+        member.setId(clubMemberId);
+        member.setClub(club);
+        member.setStudent(student);
+        member.setRole(request.getRole());
 
-            // save in db
-            clubMemberRepository.save(member);
-            return true;
-        }
-        catch (DataIntegrityViolationException e) {
-            throw new IllegalStateException("Student is already a member");
-        }
+        // save in db
+        clubMemberRepository.save(member);
+        return new MessageResponseDto("Member added successfully");
     }
 
     // remove club-member
     @Transactional
-    public boolean removeMember(Long clubId, Long studentId) {
+    public MessageResponseDto removeMember(Long clubId, Long studentId) {
         // create club-member id
         ClubMemberId clubMemberId = new ClubMemberId();
         clubMemberId.setClubId(clubId);
         clubMemberId.setStudentId(studentId);
 
-        if (clubMemberRepository.existsById(clubMemberId)) {
-            clubMemberRepository.deleteById(clubMemberId);
-            return true;
+        if (!clubMemberRepository.existsById(clubMemberId)) {
+            throw new RuntimeException("Club member not found");
         }
-        return false;
+        return new MessageResponseDto("Member removed successfully");
     }
 }

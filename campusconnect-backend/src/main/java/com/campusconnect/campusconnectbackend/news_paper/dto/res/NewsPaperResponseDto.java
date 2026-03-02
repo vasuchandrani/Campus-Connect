@@ -28,4 +28,7 @@ public class NewsPaperResponseDto {
 
     @NotBlank
     private String journalistName;
+
+    @NotBlank
+    private String collegeName;
 }

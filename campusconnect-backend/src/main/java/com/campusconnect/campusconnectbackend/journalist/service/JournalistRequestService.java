@@ -1,6 +1,7 @@
 package com.campusconnect.campusconnectbackend.journalist.service;
 
 import com.campusconnect.campusconnectbackend.college.College;
+import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.dto.req.JournalistRequestDto;
 import com.campusconnect.campusconnectbackend.journalist.dto.res.JournalistReqResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.entity.Journalist;
@@ -68,30 +69,26 @@ public class JournalistRequestService {
     /* Student */
 
     // become a journalist request sent by student
-    public String createJournalistRequest(JournalistRequestDto requestDto) {
-        try {
-            // find student
-            Long studentId = authService.getCurrentUserId();
-            Student student = studentRepoService.getStudent(studentId);
+    @Transactional
+    public MessageResponseDto createJournalistRequest(JournalistRequestDto requestDto) {
+        // find student
+        Long studentId = authService.getCurrentUserId();
+        Student student = studentRepoService.getStudent(studentId);
 
-            // find college
-            College college =  student.getCollege();
+        // find college
+        College college =  student.getCollege();
 
-            // create
-            JournalistRequest request = new JournalistRequest();
-            request.setStudent(student);
-            request.setCollege(college);
-            request.setWhy(requestDto.getWhy());
-            request.setExperience(requestDto.getExperience());
-            request.setPortfolioLink(requestDto.getPortfolioLink());
-            // save in db
-            journalistRequestRepository.save(request);
+        // create
+        JournalistRequest request = new JournalistRequest();
+        request.setStudent(student);
+        request.setCollege(college);
+        request.setWhy(requestDto.getWhy());
+        request.setExperience(requestDto.getExperience());
+        request.setPortfolioLink(requestDto.getPortfolioLink());
+        // save in db
+        journalistRequestRepository.save(request);
 
-            return "Your Request sent successfully";
-        }
-        catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
-        }
+        return new MessageResponseDto("Your journalist has been sent successfully");
     }
 
     /* College-Admin */
@@ -117,57 +114,46 @@ public class JournalistRequestService {
 
     // accept journalist request
     @Transactional
-    public boolean acceptJournalistRequest(Long id) {
-        try {
-            // generate password
-            String password = generatePassword();
-            // find request
-            JournalistRequest request = journalistRequestRepository.findById(id).orElseThrow(
-                    () -> new RuntimeException("Journalist Request with id " + id + " not found")
-            );
+    public MessageResponseDto acceptJournalistRequest(Long id) {
+        // generate password
+        String password = generatePassword();
+        // find request
+        JournalistRequest request = journalistRequestRepository.findById(id).orElseThrow(
+                () -> new RuntimeException("Journalist Request with id " + id + " not found")
+        );
 
-            // create journalist
-            Journalist journalist = new Journalist();
-            journalist.setFullName(request.getStudent().getFullName());
-            journalist.setPasswordHash(passwordEncoder.encode(password));
-            journalist.setStudent(request.getStudent());
-            journalist.setCollege(request.getCollege());
-            // save in db
-            journalistRepository.save(journalist);
+        // create journalist
+        Journalist journalist = new Journalist();
+        journalist.setFullName(request.getStudent().getFullName());
+        journalist.setPasswordHash(passwordEncoder.encode(password));
+        journalist.setStudent(request.getStudent());
+        journalist.setCollege(request.getCollege());
+        // save in db
+        journalistRepository.save(journalist);
 
-            // delete journalist request
-            journalistRequestRepository.delete(request);
+        // delete journalist request
+        journalistRequestRepository.delete(request);
 
-            // send mail to student
-            JournalistAssignmentDto dto = new JournalistAssignmentDto();
-            dto.setEmail(request.getStudent().getEmail());
-            dto.setPassword(password);
-            dto.setDashboardLink("/campus-connect/journalist/dashboard");
-            emailDispatcherService.sendJournalistRequestAccepted(dto);
+        // send mail to student
+        JournalistAssignmentDto dto = new JournalistAssignmentDto();
+        dto.setEmail(request.getStudent().getEmail());
+        dto.setPassword(password);
+        dto.setDashboardLink("/campus-connect/journalist/dashboard");
+        emailDispatcherService.sendJournalistRequestAccepted(dto);
 
-            return true;
-        }
-        catch (Exception e) {
-            System.out.println(e.getMessage());
-            return false;
-        }
+        return new MessageResponseDto("Journalist Request accepted successfully");
     }
 
     // reject journalist request
     @Transactional
-    public boolean rejectJournalistRequest(Long id) {
-        try {
-            // find journalist request
-            JournalistRequest request = journalistRequestRepository.findById(id).orElseThrow(
-                    () -> new RuntimeException("Journalist Request with id " + id + " not found")
-            );
-            // delete
-            journalistRequestRepository.delete(request);
-            return true;
+    public MessageResponseDto rejectJournalistRequest(Long id) {
+        // check if exist
+        if (!journalistRequestRepository.existsById(id)) {
+            throw new RuntimeException("Journalist Request with id " + id + " not found");
         }
-        catch (Exception e) {
-            System.out.println(e.getMessage());
-            return false;
-        }
+        // delete
+        journalistRequestRepository.deleteById(id);
+
+        return new MessageResponseDto("Journalist Request rejected successfully");
     }
 }

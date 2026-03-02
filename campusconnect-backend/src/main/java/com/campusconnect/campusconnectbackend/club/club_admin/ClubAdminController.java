@@ -17,6 +17,7 @@ import com.campusconnect.campusconnectbackend.club.dto.res.club_admin_member.Tea
 import com.campusconnect.campusconnectbackend.club.event.dto.res.EventResponseDto;
 import com.campusconnect.campusconnectbackend.club.event.overview_generation.EventOverviewService;
 import com.campusconnect.campusconnectbackend.club.event.service.EventService;
+import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -73,19 +74,19 @@ public class ClubAdminController {
 
     // create new announcement
     @PostMapping("/announcements")
-    public boolean createAnnouncement(@PathVariable Long clubId, @RequestBody AnnouncementRequestDto request) {
+    public MessageResponseDto createAnnouncement(@PathVariable Long clubId, @RequestBody AnnouncementRequestDto request) {
         return announcementService.createAnnouncement(request, clubId);
     }
 
     // modify any announcement
     @PatchMapping("/announcements/{annId}")
-    public boolean updateAnnouncement(@PathVariable Long annId, @RequestBody AnnouncementPatchRequestDto request) {
+    public MessageResponseDto updateAnnouncement(@PathVariable Long annId, @RequestBody AnnouncementPatchRequestDto request) {
         return announcementService.updateAnnouncement(request, annId);
     }
 
     // delete any announcement
     @DeleteMapping("/announcements/{annId}")
-    public boolean deleteAnnouncement(@PathVariable Long annId) {
+    public MessageResponseDto deleteAnnouncement(@PathVariable Long annId) {
         return announcementService.deleteAnnouncement(annId);
     }
 
@@ -119,19 +120,19 @@ public class ClubAdminController {
 
     // create new event
     @PostMapping("/events/active")
-    public boolean createEvent(@PathVariable Long clubId, @RequestBody EventRequestDto request) {
+    public MessageResponseDto createEvent(@PathVariable Long clubId, @RequestBody EventRequestDto request) {
         return eventService.createEvent(request, clubId);
     }
 
     // modify any event
     @PatchMapping("/events/active/{eventId}")
-    public boolean updateEvent(@PathVariable Long eventId, @RequestBody EventRequestDto request) {
+    public MessageResponseDto updateEvent(@PathVariable Long eventId, @RequestBody EventRequestDto request) {
         return eventService.updateEvent(request, eventId);
     }
 
     // delete any event
     @DeleteMapping("/events/active/{eventId}")
-    public boolean deleteEvent(@PathVariable Long eventId) {
+    public MessageResponseDto deleteEvent(@PathVariable Long eventId) {
         return eventService.deleteEvent(eventId);
     }
 
@@ -146,7 +147,7 @@ public class ClubAdminController {
 
     // save overview
     @PatchMapping("/events/finished/{eventId}/save-overview")
-    public String saveOverview(@PathVariable Long eventId, @RequestBody SaveOverviewRequestDto request) {
+    public MessageResponseDto saveOverview(@PathVariable Long eventId, @RequestBody SaveOverviewRequestDto request) {
         return eventOverviewService.saveOverview(eventId, request);
     }
 
@@ -167,25 +168,25 @@ public class ClubAdminController {
 
     // create new team
     @PostMapping("/teams")
-    public boolean createTeam(@PathVariable Long clubId, @RequestBody TeamNameDto request) {
+    public MessageResponseDto createTeam(@PathVariable Long clubId, @RequestBody TeamNameDto request) {
         return clubTeamService.createTeam(clubId, request);
     }
 
     // delete ay team
     @DeleteMapping("/teams/{teamId}")
-    public boolean deleteTeam(@PathVariable Long teamId) {
+    public MessageResponseDto deleteTeam(@PathVariable Long teamId) {
         return clubTeamService.deleteTeam(teamId);
     }
 
     // add member in team
     @PostMapping("/teams/{teamId}/{studentId}")
-    public boolean addTeamMember(@PathVariable Long clubId, @PathVariable Long studentId, @PathVariable Long teamId) {
+    public MessageResponseDto addTeamMember(@PathVariable Long clubId, @PathVariable Long studentId, @PathVariable Long teamId) {
         return clubTeamService.addTeamMember(clubId, teamId, studentId);
     }
 
     // delete member from team
     @DeleteMapping("/teams/{teamId}/{studentId}")
-    public boolean deleteTeamMember(@PathVariable Long teamId, @PathVariable Long studentId) {
+    public MessageResponseDto deleteTeamMember(@PathVariable Long teamId, @PathVariable Long studentId) {
         return clubTeamService.deleteTeamMember(teamId, studentId);
     }
 
@@ -200,13 +201,13 @@ public class ClubAdminController {
 
     // add any member
     @PostMapping("/members/add")
-    public boolean addMember(@PathVariable Long clubId, @RequestBody AddMemberRequestDto request) {
+    public MessageResponseDto addMember(@PathVariable Long clubId, @RequestBody AddMemberRequestDto request) {
         return clubAdminService.addMember(clubId, request);
     }
 
     // remove any member
     @DeleteMapping("/members/remove/{studentId}")
-    public boolean removeMember(@PathVariable Long clubId, @PathVariable Long studentId) {
+    public MessageResponseDto removeMember(@PathVariable Long clubId, @PathVariable Long studentId) {
         return clubAdminService.removeMember(clubId, studentId);
     }
 }

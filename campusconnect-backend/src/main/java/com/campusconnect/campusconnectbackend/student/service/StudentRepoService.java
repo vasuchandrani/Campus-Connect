@@ -1,5 +1,6 @@
 package com.campusconnect.campusconnectbackend.student.service;
 
+import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.student.dto.req.StudentRegisterRequestDto;
 import com.campusconnect.campusconnectbackend.student.dto.req.StudentSignupRequestDto;
 import com.campusconnect.campusconnectbackend.student.dto.res.StudentResponseDto;
@@ -82,7 +83,7 @@ public class StudentRepoService {
     }
 
     // register multiple students
-    public String processExcel(MultipartFile file, Long collegeId) {
+    public MessageResponseDto processExcel(MultipartFile file, Long collegeId) {
 
         try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
 
@@ -117,45 +118,41 @@ public class StudentRepoService {
                 boolean mailSent = emailDispatcherService.sendStudentRegistrationMail(email, password);
 
                 if (!isSaved || !mailSent) {
-                    return "Error: Student "+ name +" with email: "+ email +" has not been saved";
+                    return new MessageResponseDto("Student registration failed for " + name);
                 }
             }
-            return "All Students registered successfully!";
+            return new MessageResponseDto("All Students registered successfully!");
         }
         catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(e.getMessage());
         }
     }
 
     // register single student
-    public String registerStudent(StudentRegisterRequestDto request, Long collegeId) {
-        try {
-            // generate password
-            String password = generatePassword();
+    public MessageResponseDto registerStudent(StudentRegisterRequestDto request, Long collegeId) {
 
-            StudentSignupRequestDto dto = new StudentSignupRequestDto();
-            dto.setId(request.getId());
-            dto.setEmail(request.getEmail());
-            dto.setFullName(request.getFullName());
-            dto.setPassword(password);
-            dto.setGender(request.getGender());
-            dto.setDepartment(request.getDepartment());
-            dto.setYear(request.getYear());
-            dto.setCollegeId(collegeId);
+        // generate password
+        String password = generatePassword();
 
-            // save in db
-            boolean isSaved = studentAuth.createStudentAccount(dto);
-            // send mail
-            boolean mailSent = emailDispatcherService.sendStudentRegistrationMail(request.getEmail(), password);
+        StudentSignupRequestDto dto = new StudentSignupRequestDto();
+        dto.setId(request.getId());
+        dto.setEmail(request.getEmail());
+        dto.setFullName(request.getFullName());
+        dto.setPassword(password);
+        dto.setGender(request.getGender());
+        dto.setDepartment(request.getDepartment());
+        dto.setYear(request.getYear());
+        dto.setCollegeId(collegeId);
 
-            if (!isSaved || !mailSent) {
-                return "Error: Student "+ request.getFullName() +" with email: "+ request.getEmail() +" has not been saved";
-            }
-            return "Student registered successfully!";
+        // save in db
+        boolean isSaved = studentAuth.createStudentAccount(dto);
+        // send mail
+        boolean mailSent = emailDispatcherService.sendStudentRegistrationMail(request.getEmail(), password);
+
+        if (!isSaved || !mailSent) {
+            return new MessageResponseDto("Student registration failed for " + request.getFullName());
         }
-        catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        return new MessageResponseDto("Student registered successfully!");
     }
 
     // get all students of college
