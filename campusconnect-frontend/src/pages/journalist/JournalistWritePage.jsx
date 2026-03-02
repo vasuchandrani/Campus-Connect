@@ -7,28 +7,27 @@ import { Textarea } from "../../components/ui/Textarea";
 import { Label } from "../../components/ui/Label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/Tabs";
 import {
-  LayoutDashboard,
-  PenSquare,
-  FileText,
-  BarChart3,
-  Settings,
   Save,
   Send,
-  Image,
+
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { journalistNavItems } from "../../config/Navigation";
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
 
+// ------------------------------Navigation Items------------------------------//
 const navItems = journalistNavItems;
 
-const tempArticles = [];
 
 const JournalistWritePage = () => {
+  // Check if we're editing an existing draft (passed via location state)
   const location = useLocation();
   const editArticle = location.state?.article;
 
+  // Base URL for API calls related to journalist
+  const baseUrl = "http://localhost:8080/campus-connect/journalist";
+
+  // Form state variables
   const [title, setTitle] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [content, setContent] = useState("");
@@ -43,32 +42,122 @@ const JournalistWritePage = () => {
     }
   }, [editArticle]);
 
-  const handleSaveDraft = () => {
-    const draft = {
-      id: editArticle?.id || Date.now(),
-      title,
-      imageUrl,
-      content,
-      status: "draft",
-    };
-
-    tempArticles.push(draft);
-    alert("Draft saved!");
+  // Handlers for saving draft  article
+  const clearForm = () => {
+    setTitle("");
+    setImageUrl("");
+    setContent("");
   };
-
-  const handleSubmit = () => {
+  const handleSaveDraft = async () => {
     const article = {
-      id: editArticle?.id || Date.now(),
       title,
       imageUrl,
       content,
-      status: "submitted",
     };
+    if(editArticle){
+      fetch(`${baseUrl}/newspaper/draft/${editArticle.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+        },
+        body: JSON.stringify(article),
+      })
+      .then(res=>{
+        if(res.ok){
+          alert("Draft updated successfully!");
+          clearForm();
+        }
+        else{
+          throw new Error("Failed to update draft.");
+        }
+      })
+      .catch(err => {
+        console.error("Error updating draft:", err);
+        alert("Failed to update draft.");
+      }); 
+    }
+    else{
+      fetch(`${baseUrl}/newspaper/draft`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+        },
+        body: JSON.stringify(article),
+      })
+      .then(res=>{
+        if(res.ok){
+          alert("Draft saved successfully!");
+          clearForm();
+        }
+        else{
+          throw new Error("Failed to save draft.");
+        }
+      })
+      .catch(err => {
+        console.error("Error saving draft:", err);
+        alert("Failed to save draft.");
+      });
+    }
 
-    tempArticles.push(article);
-    alert("Article submitted!");
   };
 
+  //save article and publish
+  const handleSubmit = async () => {
+    const article = {
+      title,
+      imageUrl,
+      content,
+    };
+    if(editArticle){
+      fetch(`${baseUrl}/newspaper/publish/draft/${editArticle.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+        },
+        body: JSON.stringify(article),
+      })
+      .then(res=>{
+        if(res.ok){
+          alert("Article updated and published successfully!");
+          clearForm();
+        }
+        else{
+          throw new Error("Failed to update and publish article.");
+        }
+      })
+      .catch(err => {
+        console.error("Error updating and publishing article:", err);
+        alert("Failed to update and publish article.");
+      }); 
+    }
+    else{
+    fetch(`${baseUrl}/newspaper/publish`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+      },
+      body: JSON.stringify(article),
+    })
+    .then(res=>{
+      if(res.ok){
+        alert("Article published successfully!");
+        clearForm();
+      }
+      else{
+        throw new Error("Failed to publish article.");
+      }
+    })
+    .catch(err => {
+      console.error("Error publishing article:", err);
+      alert("Failed to publish article.");
+    });
+  }
+}
+  // Word count for content
   const wordCount = content.split(" ").filter(Boolean).length;
 
   return (

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
 import { CheckCircle, FileText } from "lucide-react";
@@ -7,54 +7,90 @@ import { journalistNavItems } from "../../config/Navigation";
 /* ---------------- NAV ITEMS ---------------- */
 const navItems = journalistNavItems;
 
-/* ---------------- TEMP USER ---------------- */
-const tempUser = {
-  name: "Ronak",
-  college: "DDU University",
-};
-
-/* ---------------- TEMP ARTICLES ---------------- */
-const initialArticles = [
-  {
-    id: "1",
-    title: "Annual Tech Fest Highlights",
-    status: "published",
-    content:
-      "The annual tech fest was filled with innovation, coding competitions, robotics events, and exciting guest lectures from industry experts.",
-  },
-  {
-    id: "2",
-    title: "Sports Championship Results",
-    status: "published",
-    content:
-      "The inter-college sports championship concluded with thrilling finals and outstanding performances from all participating teams.",
-  },
-  {
-    id: "3",
-    title: "Interview with New Dean",
-    status: "published",
-    content:
-      "An exclusive interview with the newly appointed dean discussing future academic reforms and student engagement strategies.",
-  },
-  {
-    id: "4",
-    title: "Upcoming Science Fair Preview",
-    status: "draft",
-    content:
-      "The science fair will showcase creative and innovative projects from students across various departments.",
-  },
-];
-
 const JournalistDashboard = () => {
-  const [articles] = useState(initialArticles);
+  // State variables
+  const [stats,setStats] = useState({
+    published: 0,
+    draft: 0,
+  });
+  const [details,setDetails] = useState({
+    name: "",
+    college: "",
+  });
+  const [topArticles,setTopArticles] = useState([]);
 
-  /* ---------------- STATS ---------------- */
-  const published = articles.filter((a) => a.status === "published");
-  const drafts = articles.filter((a) => a.status === "draft");
+  // Base URL for API calls related to journalist
+  const baseUrl="http://localhost:8080/campus-connect/journalist";
 
-  /* ---------------- TOP 3 PUBLISHED ---------------- */
-  const topThree = published.slice(0, 3);
 
+  // Fetch dashboard stats
+  const fetchStats = async() => {
+    await fetch(`${baseUrl}/stats`,{
+      method:"GET",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    })
+    .then(res => res.json())
+    .then(data => {
+      setStats({
+        published: data.published,
+        draft: data.draft,
+      });
+    })
+    .catch(err => {
+      console.error("Error fetching stats:", err);
+    });
+  }
+
+  // Fetch journalist details
+  const fetchDetails = async() => {
+    await fetch(`${baseUrl}/journalist-detail`,{
+      method:"GET",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    })
+    .then(res => res.json())
+    .then(data => {
+      setDetails({
+        name: data.name,
+        college: data.CollageName,
+      });
+    })
+    .catch(err => {
+      console.error("Error fetching details:", err);
+    });
+  }
+
+  // Fetch top 3 articles
+  const fetchTopArticles = async() => {
+    await fetch(`${baseUrl}/newspaper/latest`,{
+      method:"GET",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    })
+    .then(res => res.json())
+    .then(data => {
+      setTopArticles(data);
+    })
+    .catch(err => {
+      console.error("Error fetching top articles:", err);
+    });
+  } 
+
+  //load data on component mount
+  useEffect(() => {
+    fetchStats();
+    fetchDetails();
+    fetchTopArticles();
+  }, []);
+
+  //-----------------------UI--------------------------//
   return (
     <DashboardLayout navItems={navItems} title="Journalist Dashboard">
       <div className="space-y-8">
@@ -62,10 +98,10 @@ const JournalistDashboard = () => {
         {/* HEADER */}
         <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-2xl p-6 border">
           <h2 className="text-2xl font-bold">
-            Welcome, {tempUser.name}!
+            Welcome, {details.name}!
           </h2>
           <p className="text-muted-foreground">
-            Dashboard overview for {tempUser.college}
+            Dashboard overview for {details.college}
           </p>
         </div>
 
@@ -74,13 +110,13 @@ const JournalistDashboard = () => {
           <StatCard
             icon={<CheckCircle className="text-green-600 w-5 h-5" />}
             label="Published"
-            value={published.length}
+            value={stats.published}
           />
 
           <StatCard
             icon={<FileText className="text-blue-600 w-5 h-5" />}
             label="Drafts"
-            value={drafts.length}
+            value={stats.draft}
           />
         </div>
 
@@ -91,14 +127,17 @@ const JournalistDashboard = () => {
           </h3>
 
           <div className="grid gap-4">
-            {topThree.map((article) => (
+            {topArticles.map((article) => (
               <Card key={article.id}>
                 <CardContent className="p-4">
                   <h4 className="font-semibold text-lg">
                     {article.title}
                   </h4>
                   <p className="text-sm text-muted-foreground mt-2">
-                    {article.content.substring(0,60)}...
+                    {article.content.substring(0,100)}...
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {article.createdAt.split("T")[0]}
                   </p>
                 </CardContent>
               </Card>

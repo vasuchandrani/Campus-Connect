@@ -38,7 +38,7 @@ function App() {
       <Route path="/auth" element={<Auth />} />
       <Route path="/" element={<Index />} />
 
-      <Route path="/campus-connect/journalist-dashboard" element={<JournalistDashboard />} />
+      <Route path="/campus-connect/journalist/dashboard" element={<JournalistDashboard />} />
       <Route path="/campus-connect/admin-dashboard" element={<div>Admin Dashboard</div>} />
       <Route path="/campus-connect/reviewer-dashboard" element={<div>Reviewer Dashboard</div>} />
 
@@ -72,8 +72,8 @@ function App() {
       <Route path="/campus-connect/club-member/:clubId/teams" element={<ClubMemberTeamsPage />} />
       <Route path="/campus-connect/club-member/:clubId/events/:id" element={<ClubMemberEventDetailPage />} />
 
-      <Route path="/campus-connect/journalist-articles" element={<JournalistArticlesPage />} />
-      <Route path="/campus-connect/journalist-write" element={<JournalistWritePage />} />
+      <Route path="/campus-connect/journalist/articles" element={<JournalistArticlesPage />} />
+      <Route path="/campus-connect/journalist/write" element={<JournalistWritePage />} />
           
       <Route path="*" element={<NotFound />} /> 
     </Routes>

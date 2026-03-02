@@ -1,4 +1,4 @@
-import { useState ,useMemo} from "react";
+import { useState ,useMemo,useEffect} from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
@@ -16,60 +16,66 @@ import { toast } from "../../hooks/use-toast";
 import { marked } from "marked";
 
 const AdminNewspaperPage = () => {
-  // Temporary Data
-  const tempArticles = [
-    {
-      id: "1",
-      title: "Tech Fest 2026 Highlights",
-      content: `
-# Tech Fest 2026 🚀
-
-## Highlights
-- Coding Competition
-- Robotics Workshop
-- AI Seminar
-
-**Winner:** CSE Department
-
-> It was one of the biggest technical events of the year.
-      `,
-      image:
-        "https://images.unsplash.com/photo-1505373877841-8d25f7d46678",
-      publisher: "Ronak Gondaliya",
-      date: "01 March 2026",
-    },
-    {
-      id: "2",
-      title: "Football Team Wins Championship",
-      content: `
-## 🏆 Championship Victory
-
-Our college football team secured victory after an intense final match.
-
-### Final Score
-**3 - 2**
-
-Amazing performance by all players!
-      `,
-      image:
-        "https://images.unsplash.com/photo-1517649763962-0c623066013b",
-      publisher: "Sports Committee",
-      date: "28 February 2026",
-    },
-  ];
-
-  const [publishedArticles, setPublishedArticles] =
-    useState(tempArticles);
+  // State variables
+  const [publishedArticles, setPublishedArticles] =useState([]);
   const [viewArticle, setViewArticle] = useState(null);
+  const [query, setQuery] = useState("");
 
+  // Base URL for API calls related to college admin
+  const baseUrl = "http://localhost:8080/campus-connect/college-admin";
+
+  // Fetch published articles
+  const fetchPublishedArticles = async () => {
+    await fetch(baseUrl+"/news-papers", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setPublishedArticles(data);
+      })
+      .catch((err) => {
+        console.error("Error fetching published articles:", err);
+      });
+  };
+
+  //load published articles on component mount
+  useEffect(() => {
+    fetchPublishedArticles();
+  }, []); 
+
+  // Handle Unpublish Article
   const handleUnpublish = (articleId) => {
-    setPublishedArticles(
-      publishedArticles.filter((a) => a.id !== articleId)
-    );
-    toast({
-      title: "Article Unpublished",
-      description: "The article has been removed from the newspaper.",
-    });
+    fetch(`${baseUrl}/news-papers/${articleId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    })
+      .then((res) => {
+        if (res.ok) {
+          toast({
+            title: "Success",
+            description: "Article unpublished successfully",
+          });
+          // Refresh the list of published articles
+          fetchPublishedArticles();
+        } else {
+          throw new Error("Failed to unpublish article");
+        }
+      })
+      .catch((err) => {
+        console.error("Error unpublishing article:", err);
+        toast({
+          title: "Error",
+          description: "Failed to unpublish article",
+          variant: "destructive",
+        });
+      }); 
   };
 
   //  Compile Markdown When Article Changes
@@ -78,6 +84,13 @@ Amazing performance by all players!
     return marked.parse(viewArticle.content.trim());
   }, [viewArticle?.content]);
 
+  //for search functionality
+  const filteredArticles = publishedArticles.filter((a) =>
+    a.title.toLowerCase().includes(query.toLowerCase())
+  );
+
+
+  //-------------UI------------------//
   return (
     <DashboardLayout
       navItems={collegeAdminNavItems}
@@ -99,6 +112,8 @@ Amazing performance by all players!
             <Input
               placeholder="Search articles..."
               className="pl-10"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
             />
           </div>
         </div>
@@ -109,13 +124,13 @@ Amazing performance by all players!
 
         {/* Articles Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {publishedArticles.map((article) => (
+          {filteredArticles.map((article) => (
             <Card
               key={article.id}
               className="border-border/50 overflow-hidden"
             >
               <img
-                src={article.image}
+                src={article.imageUrl}
                 alt={article.title}
                 className="w-full h-40 object-cover"
               />
@@ -126,7 +141,7 @@ Amazing performance by all players!
                 </h4>
 
                 <p className="text-sm text-muted-foreground mb-3">
-                  By {article.publisher} • {article.date}
+                  By {article.journalistName} • {article.createdAt.split("T")[0]}
                 </p>
 
                 <div className="flex gap-2">
@@ -170,15 +185,15 @@ Amazing performance by all players!
               {viewArticle?.title}
             </DialogTitle>
             <DialogDescription>
-              By {viewArticle?.publisher} •{" "}
-              {viewArticle?.date}
+              By {viewArticle?.journalistName} •{" "}
+              {viewArticle?.createdAt.split("T")[0]}
             </DialogDescription>
           </DialogHeader>
 
           {viewArticle && (
             <div className="space-y-4">
               <img
-                src={viewArticle.image}
+                src={viewArticle.imageUrl}
                 alt={viewArticle.title}
                 className="w-full h-56 object-cover rounded-lg"
               />

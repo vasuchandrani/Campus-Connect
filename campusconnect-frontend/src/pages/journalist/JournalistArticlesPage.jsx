@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
@@ -14,8 +14,10 @@ import { journalistNavItems } from "../../config/Navigation";
 import { useNavigate } from "react-router-dom";
 import { marked } from "marked";
 
+// ------------------------------Navigation Items------------------------------//
 const navItems = journalistNavItems;
 
+// Temporary initial articles data
 const initialArticles = [
   {
     id: "1",
@@ -66,26 +68,99 @@ Stay tuned for innovative student projects.
 ];
 
 const JournalistArticlesPage = () => {
+
   const navigate = useNavigate();
+  const baseUrl = "http://localhost:8080/campus-connect/journalist";
+
+  //stat variables
   const [articles, setArticles] = useState(initialArticles);
   const [viewArticle, setViewArticle] = useState(null);
 
-  const published = articles.filter((a) => a.status === "published");
-  const drafts = articles.filter((a) => a.status === "draft");
+  const[published,setPublished] = useState([]);
+  const[drafts,setDrafts] = useState([]);
 
+  const fetchPublishedArticles = async() => {
+    await fetch(`${baseUrl}/newspaper/published`,{
+      method:"GET",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    })
+    .then(res => res.json())
+    .then(data => {
+      setPublished(data);
+    })
+    .catch(err => {
+      console.error("Error fetching published articles:", err);
+    });
+  };
+
+  const fetchDraftArticles = async() => {
+    await fetch(`${baseUrl}/newspaper/draft`,{
+      method:"GET",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    })
+    .then(res => res.json())
+    .then(data => {
+      setDrafts(data);
+    })
+    .catch(err => {
+      console.error("Error fetching draft articles:", err);
+    });
+  };
+
+
+  useEffect(() => {
+    fetchPublishedArticles();
+    fetchDraftArticles();
+  }, []);
+  //  edit draft article
   const handleEdit = (article) => {
-    navigate("/campus-connect/journalist-write", {
+    navigate("/campus-connect/journalist/write", {
       state: { article },
     });
   };
 
-  // 🔥 Unpublish = Direct Delete
+  //  delete draft 
   const handleUnpublish = (id) => {
-    setArticles(articles.filter((a) => a.id !== id));
+    fetch(`${baseUrl}/newspaper/publish/${id}`,{
+      method:"DELETE",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    })
+    .then(res => {
+      if(res.ok){
+        fetchPublishedArticles();
+      }
+    })
+    .catch(err => {
+      console.error("Error unpublishing draft article:", err);
+    });
   };
 
+  //delete published article
   const handleDelete = (id) => {
-    setArticles(articles.filter((a) => a.id !== id));
+    fetch(`${baseUrl}/newspaper/draft/${id}`,{
+      method:"DELETE",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    })
+    .then(res => {
+      if(res.ok){
+        fetchDraftArticles();
+      }
+    })
+    .catch(err => {
+      console.error("Error deleting published article:", err);
+    });
   };
 
   // Compile markdown
@@ -117,8 +192,11 @@ const JournalistArticlesPage = () => {
                 <CardContent className="p-4 flex justify-between items-center">
                   <div>
                     <h4 className="font-semibold">{article.title}</h4>
+                    <p className="text-sm text-muted-foreground" >
+                      {article.content.substring(0, 100)}...
+                    </p>
                     <p className="text-sm text-muted-foreground">
-                      {article.date} · {article.views} views
+                      {article.createdAt.split("T")[0]} 
                     </p>
                   </div>
 
@@ -152,7 +230,7 @@ const JournalistArticlesPage = () => {
                   <div>
                     <h4 className="font-semibold">{article.title}</h4>
                     <p className="text-sm text-muted-foreground">
-                      Last edited: {article.date}
+                      Last edited: {article.createdAt.split("T")[0]} 
                     </p>
                   </div>
 
@@ -189,7 +267,7 @@ const JournalistArticlesPage = () => {
           <DialogHeader>
             <DialogTitle>{viewArticle?.title}</DialogTitle>
             <DialogDescription>
-              {viewArticle?.date} · {viewArticle?.views || 0} views
+              {viewArticle?.createdAt.substring(0, 10)} 
             </DialogDescription>
           </DialogHeader>
 
@@ -197,9 +275,9 @@ const JournalistArticlesPage = () => {
             <div className="space-y-4">
               
               {/* Show Image If Exists */}
-              {viewArticle.image && (
+              {viewArticle.imageUrl && (
                 <img
-                  src={viewArticle.image}
+                  src={viewArticle.imageUrl}
                   alt={viewArticle.title}
                   className="w-full h-64 object-cover rounded-lg"
                 />
@@ -207,7 +285,7 @@ const JournalistArticlesPage = () => {
 
               {/* Markdown Content */}
               <div
-                className="prose dark:prose-invert max-w-none"
+                className="prose max-w-none"
                 dangerouslySetInnerHTML={{
                   __html: renderedContent,
                 }}

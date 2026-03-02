@@ -44,10 +44,10 @@ export const clubMemberNavItems = [
 
 // Journalist Navigation
 export const journalistNavItems = [
-  { label: "Dashboard", href: "/campus-connect/journalist-dashboard", icon: LayoutDashboard },
-  { label: "My Articles", href: "/campus-connect/journalist-articles", icon: FileText },
-  { label: "Write", href: "/campus-connect/journalist-write", icon: PenSquare },
-  { label: "Settings", href: "/campus-connect/journalist-settings", icon: Settings },
+  { label: "Dashboard", href: "/campus-connect/journalist/dashboard", icon: LayoutDashboard },
+  { label: "My Articles", href: "/campus-connect/journalist/articles", icon: FileText },
+  { label: "Write", href: "/campus-connect/journalist/write", icon: PenSquare },
+  { label: "Settings", href: "/campus-connect/journalist/settings", icon: Settings },
 ];
 
 // College Admin Navigation

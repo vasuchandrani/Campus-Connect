@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
@@ -15,57 +15,48 @@ import { studentNavItems } from "../../config/Navigation";
 import { marked } from "marked";
 
 const StudentNewspaperPage = () => {
-  // 🔹 Temporary Data
-  const tempArticles = [
-    {
-      id: "1",
-      title: "Tech Fest 2026 Highlights",
-      content: `
-# Tech Fest 2026 🚀
 
-## Highlights
-- Coding Competition
-- Robotics Workshop
-- AI Seminar
-
-**Winner:** CSE Department
-
-> It was one of the biggest technical events of the year.
-      `,
-      image:
-        "https://images.unsplash.com/photo-1505373877841-8d25f7d46678",
-      publisher: "Ronak Gondaliya",
-      date: "01 March 2026",
-    },
-    {
-      id: "2",
-      title: "Football Team Wins Championship",
-      content: `
-## 🏆 Championship Victory
-
-Our college football team secured victory after an intense final match.
-
-### Final Score
-**3 - 2**
-
-Amazing performance by all players!
-      `,
-      image:
-        "https://images.unsplash.com/photo-1517649763962-0c623066013b",
-      publisher: "Sports Committee",
-      date: "28 February 2026",
-    },
-  ];
-
-  const [articles] = useState(tempArticles);
+  // State variables
+  const [newspaper, setNewspaper] = useState([]);
   const [viewArticle, setViewArticle] = useState(null);
+  const [query, setQuery] = useState("");
+  
+  // Base URL for API calls related to student
+  const baseUrl = "http://localhost:8080/campus-connect/student";
 
-  // 🔥 Compile Markdown
+  //  Compile Markdown
   const renderedContent = useMemo(() => {
     if (!viewArticle?.content) return "";
     return marked.parse(viewArticle.content.trim());
   }, [viewArticle?.content]);
 
+  // Fetch newspaper articles
+  const fetchArticles = async () => {
+    await fetch(baseUrl+"/news-papers", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setNewspaper(data);
+      })
+      .catch((err) => {
+        console.error("Error fetching newspaper:", err);
+      });
+  }
+  
+  // Filter articles based on search query
+  const articles=newspaper.filter((a)=>a.title.toLowerCase().includes(query.toLowerCase()) );
+
+  //load articles on component mount
+  useEffect(() => {
+    fetchArticles();
+  }, []);
+
+  //-----------------------UI--------------------------//
   return (
     <DashboardLayout
       navItems={studentNavItems}
@@ -87,6 +78,8 @@ Amazing performance by all players!
             <Input
               placeholder="Search articles..."
               className="pl-10"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
             />
           </div>
         </div>
@@ -103,18 +96,18 @@ Amazing performance by all players!
               className="border-border/50 overflow-hidden"
             >
               <img
-                src={article.image}
+                src={article.imageUrl}
                 alt={article.title}
                 className="w-full h-40 object-cover"
               />
 
-              <CardContent className="p-4">
+              <CardContent className="p-4 pt-4">
                 <h4 className="font-semibold line-clamp-2 mb-2">
                   {article.title}
                 </h4>
 
                 <p className="text-sm text-muted-foreground mb-3">
-                  By {article.publisher} • {article.date}
+                  By {article.journalistName} • {article.createdAt.split("T")[0]}
                 </p>
 
                 <Button
@@ -145,15 +138,15 @@ Amazing performance by all players!
               {viewArticle?.title}
             </DialogTitle>
             <DialogDescription>
-              By {viewArticle?.publisher} •{" "}
-              {viewArticle?.date}
+              By {viewArticle?.journalistName} •{" "}
+              {viewArticle?.createdAt.split("T")[0]}
             </DialogDescription>
           </DialogHeader>
 
           {viewArticle && (
             <div className="space-y-4">
               <img
-                src={viewArticle.image}
+                src={viewArticle.imageUrl}
                 alt={viewArticle.title}
                 className="w-full h-56 object-cover rounded-lg"
               />
