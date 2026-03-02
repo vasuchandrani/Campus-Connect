@@ -18,7 +18,7 @@ import com.campusconnect.campusconnectbackend.news_paper.dto.res.NewsPaperRespon
 import com.campusconnect.campusconnectbackend.student.dto.res.StudentDashboardStatsDto;
 import com.campusconnect.campusconnectbackend.club.event.service.EventRegistrationService;
 import com.campusconnect.campusconnectbackend.club.event.service.EventService;
-import com.campusconnect.campusconnectbackend.news_paper.NewsPaperService;
+import com.campusconnect.campusconnectbackend.news_paper.service.NewsPaperService;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import com.campusconnect.campusconnectbackend.student.service.StudentService;
 import lombok.RequiredArgsConstructor;

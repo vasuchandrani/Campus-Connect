@@ -4,7 +4,6 @@ import com.campusconnect.campusconnectbackend.club.announcement.AnnouncementServ
 import com.campusconnect.campusconnectbackend.club.club_request.ClubRequestService;
 import com.campusconnect.campusconnectbackend.club.ClubService;
 import com.campusconnect.campusconnectbackend.college_admin.service.CollegeAdminService;
-import com.campusconnect.campusconnectbackend.mail_service.dto.reviewer.ReviewerAssignmentDto;
 import com.campusconnect.campusconnectbackend.reseach_paper.ResearchPaperService;
 import com.campusconnect.campusconnectbackend.reseach_paper.dto.res.ResearchesResponseDto;
 import com.campusconnect.campusconnectbackend.reviewer.dto.req.AddReviewerRequestDto;
@@ -23,7 +22,7 @@ import com.campusconnect.campusconnectbackend.reviewer.dto.res.ReviewerResponseD
 import com.campusconnect.campusconnectbackend.student.dto.res.StudentResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.service.JournalistRequestService;
 import com.campusconnect.campusconnectbackend.journalist.service.JournalistService;
-import com.campusconnect.campusconnectbackend.news_paper.NewsPaperService;
+import com.campusconnect.campusconnectbackend.news_paper.service.NewsPaperService;
 import com.campusconnect.campusconnectbackend.reviewer.service.ReviewerService;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import com.campusconnect.campusconnectbackend.student.service.StudentRepoService;

@@ -71,12 +71,12 @@ const StudentSignup = ({ onBack }) => {
   const selectedCollege = colleges.find((c) => c.id === selectedCollegeId);
 
   // on college select
-  const handleCollegeSelect = (collegeId) => {
+  const handleCollegeSelect = async (collegeId) => {
     setSelectedCollegeId(collegeId);
 
       setFormData((prev) => ({
         ...prev,
-        collegeId: college.id,
+        collegeId: selectedCollegeId,
       }));
   };
 
@@ -89,7 +89,7 @@ const StudentSignup = ({ onBack }) => {
     // veryfy domain
     let domain = "";
     colleges.forEach((element) => {
-      if (formData.collegeName === element.name) {
+      if (selectedCollegeId === element.id) {
         domain = element.domain;
       }
     });
@@ -151,6 +151,7 @@ const StudentSignup = ({ onBack }) => {
   // final submission
   const handleFinalSubmit = async (e) => {
     e.preventDefault();
+    formData.collegeId = selectedCollegeId;
     const redirectUrl = await studentSignup(formData);
     navigate(redirectUrl);
   };
@@ -502,8 +503,8 @@ const StudentSignup = ({ onBack }) => {
               <Label>Gender</Label>
               <select
                 name="gender"
-                value={newStudent.gender}
-                onChange={(e)=>({...formData,gender:e.target.value})}
+                value={formData.gender}
+                onChange={(e)=>setFormData({...formData,gender:e.target.value})}
                 className="w-full border rounded-md p-2 bg-background"
               >
                 <option value="">Select Gender</option>

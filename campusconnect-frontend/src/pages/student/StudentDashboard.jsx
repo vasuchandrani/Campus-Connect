@@ -461,7 +461,7 @@ const StudentDashboard = () => {
                 size="sm"
                 className="text-primary"
                 onClick={() =>
-                  navigate("/campus-connect/student/announcements")
+                  navigate("/campus-connect/student/newspaper")
                 }
               >
                 Read More <ChevronRight className="w-4 h-4 ml-1" />
@@ -473,22 +473,20 @@ const StudentDashboard = () => {
                   key={article.id}
                   className="border-border/50 hover:shadow-soft transition-shadow cursor-pointer"
                 >
-                  <CardContent className="p-4">
-                    <div className="flex gap-4">
+                  <CardContent className="p-4 pt-4">
+                    <div className="flex gap-4 items-center">
                       <img
-                        src={article.image}
+                        src={article.imageUrl}
                         alt={article.title}
                         className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
                       />
                       <div className="flex-1 min-w-0">
-                        <Badge variant="outline" className="text-xs mb-1">
-                          {article.category}
-                        </Badge>
+
                         <h4 className="font-medium line-clamp-2 mb-1">
                           {article.title}
                         </h4>
                         <p className="text-xs text-muted-foreground">
-                          {article.date}
+                          {article.createdAt.split("T")[0]} by {article.journalistName}
                         </p>
                       </div>
                     </div>

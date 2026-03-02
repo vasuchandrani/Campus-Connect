@@ -4,22 +4,21 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 import { Badge } from "../../components/ui/Badge";
-import { Building2, Users, BookOpen, Newspaper, Clock } from "lucide-react";
-import { collegeAdminNavItems } from "../../config/Navigation";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "../../components/ui/Dialog";
+  Building2,
+  Users,
+  BookOpen,
+  Newspaper,
+  Clock,
+  User,
+} from "lucide-react";
+import { collegeAdminNavItems } from "../../config/Navigation";
 import { toast } from "../../hooks/use-toast";
 
 export default function CollegeAdminDashboard() {
   const navigate = useNavigate();
   // State variables
   const [stats, setStats] = useState({});
-  const [viewNews, setViewNews] = useState(null);
   const [latestNews, setLatestNews] = useState(null);
   const [collegeName, setCollegeName] = useState("");
 
@@ -205,30 +204,32 @@ export default function CollegeAdminDashboard() {
           {latestNews && (
             <div className="space-y-4">
               <Card
-                className="border-border/50 overflow-hidden hover:shadow-soft transition-shadow cursor-pointer"
-                onClick={() => setViewNews(latestNews)}
-              >
-                <div className="md:flex">
-                  <img
-                    src={latestNews.image}
-                    alt={latestNews.title}
-                    className="w-full md:w-1/3 h-48 md:h-auto object-cover"
-                  />
-                  <CardContent className="p-6 flex-1">
-                    <h2 className="text-xl font-bold mb-2">
+                className="w-full mx-auto border-border/50 overflow-hidden hover:shadow-md transition-shadow cursor-pointer h-32">
+                <div className="flex h-full">
+                  {/* Image */}
+                  <div className="w-1/3 h-full overflow-hidden">
+                    <img
+                      src={latestNews.imageUrl}
+                      alt={latestNews.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+
+                  {/* Content */}
+                  <CardContent className="p-3  flex flex-col justify-evenly w-2/3">
+                    <h2 className="text-lg font-bold line-clamp-1">
                       {latestNews.title}
                     </h2>
-                    <p className="text-muted-foreground mb-4">
-                      {latestNews.excerpt}
-                    </p>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
-                        <User className="w-4 h-4" />
-                        <span>{latestNews.author}</span>
+                        <User className="w-3 h-3" />
+                        <span>{latestNews.journalistName}</span>
                       </div>
+
                       <div className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
-                        <span>{latestNews.date}</span>
+                        <Clock className="w-3 h-3" />
+                        <span>{latestNews?.createdAt?.split("T")[0]}</span>
                       </div>
                     </div>
                   </CardContent>
@@ -237,32 +238,6 @@ export default function CollegeAdminDashboard() {
             </div>
           )}
 
-          {/* View News Dialog */}
-          <Dialog
-            open={!!viewNews}
-            onOpenChange={(open) => !open && setViewNews(null)}
-          >
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>{viewNews?.title}</DialogTitle>
-                <DialogDescription>
-                  By {viewNews?.author} • {viewNews?.date}
-                </DialogDescription>
-              </DialogHeader>
-
-              {viewNews && (
-                <div className="space-y-4">
-                  <img
-                    src={viewNews.image}
-                    alt={viewNews.title}
-                    className="w-full h-48 object-cover rounded-lg"
-                  />
-                  <Badge variant="outline">{viewNews.category}</Badge>
-                  <p className="text-muted-foreground">{viewNews.content}</p>
-                </div>
-              )}
-            </DialogContent>
-          </Dialog>
         </div>
       </div>
     </DashboardLayout>

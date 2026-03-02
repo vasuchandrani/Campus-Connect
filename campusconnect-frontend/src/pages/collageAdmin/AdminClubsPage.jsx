@@ -728,7 +728,8 @@ const AdminClubsPage = () => {
 
                     <h4 className="font-semibold mb-2">{event.title}</h4>
                     <p className="text-sm text-muted-foreground mb-3">
-                      {event.description}
+                      {event.description.substring(0, 40) +
+                        (event.description.length > 40 ? "..." : "")}
                     </p>
 
                     <Button
