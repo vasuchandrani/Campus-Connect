@@ -8,6 +8,7 @@ import com.campusconnect.campusconnectbackend.club.event.dto.req.EventSponsorReq
 import com.campusconnect.campusconnectbackend.club.event.dto.res.*;
 import com.campusconnect.campusconnectbackend.club.event.entity.*;
 import com.campusconnect.campusconnectbackend.club.event.repository.*;
+import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -144,40 +145,30 @@ public class EventService {
 
     // save sponsors
     private boolean saveSponsors(List<EventSponsorRequestDto> sponsors, Event event) {
-        try {
-            for (EventSponsorRequestDto s : sponsors) {
-                // create sponsor
-                EventSponsor sponsor = new EventSponsor();
-                sponsor.setName(s.getName());
-                sponsor.setTagline(s.getTagline());
-                sponsor.setEvent(event);
-                // save in db
-                eventSponsorRepository.save(sponsor);
-            }
-            return true;
+        for (EventSponsorRequestDto s : sponsors) {
+            // create sponsor
+            EventSponsor sponsor = new EventSponsor();
+            sponsor.setName(s.getName());
+            sponsor.setTagline(s.getTagline());
+            sponsor.setEvent(event);
+            // save in db
+            eventSponsorRepository.save(sponsor);
         }
-        catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
-        }
+        return true;
     }
 
     // save speakers
     private boolean saveSpeakers(List<EventSpeakerRequestDto> speakers, Event event) {
-        try {
-            for (EventSpeakerRequestDto s : speakers) {
-                // create speaker
-                EventSpeaker speaker = new EventSpeaker();
-                speaker.setName(s.getName());
-                speaker.setTagline(s.getTagline());
-                speaker.setEvent(event);
-                // save in db
-                eventSpeakerRepository.save(speaker);
-            }
-            return true;
+        for (EventSpeakerRequestDto s : speakers) {
+            // create speaker
+            EventSpeaker speaker = new EventSpeaker();
+            speaker.setName(s.getName());
+            speaker.setTagline(s.getTagline());
+            speaker.setEvent(event);
+            // save in db
+            eventSpeakerRepository.save(speaker);
         }
-        catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
-        }
+        return true;
     }
 
     // get all active events of college (live & upcoming)
@@ -285,46 +276,48 @@ public class EventService {
 
     // create new events
     @Transactional
-    public boolean createEvent(EventRequestDto request, Long clubId) {
-        try {
-            // create event
-            Event event = new Event();
-            event.setTitle(request.getTitle());
-            event.setDescription(request.getDescription());
-            event.setRegistrationEnd(request.getRegistrationEnd());
-            event.setImage(request.getImageUrl());
-            event.setStartTime(request.getStartTime());
-            event.setEndTime(request.getEndTime());
-            event.setLocation(request.getLocation());
-            event.setClub(clubService.getClubById(clubId));
+    public MessageResponseDto createEvent(EventRequestDto request, Long clubId) {
+        // create event
+        Event event = new Event();
+        event.setTitle(request.getTitle());
+        event.setDescription(request.getDescription());
+        event.setRegistrationEnd(request.getRegistrationEnd());
+        event.setImage(request.getImageUrl());
+        event.setStartTime(request.getStartTime());
+        event.setEndTime(request.getEndTime());
+        event.setLocation(request.getLocation());
+        event.setClub(clubService.getClubById(clubId));
 
-            // save in db
-            eventRepository.save(event);
+        // save in db
+        eventRepository.save(event);
 
-            // save sponsors
-            boolean sponsorsSaved = saveSponsors(request.getSponsors(), event);
+        // save sponsors
+        boolean sponsorsSaved = saveSponsors(request.getSponsors(), event);
 
-            // save speakers
-            boolean speakersSaved = saveSpeakers(request.getSpeakers(), event);
+        // save speakers
+        boolean speakersSaved = saveSpeakers(request.getSpeakers(), event);
 
-            return sponsorsSaved && speakersSaved;
+        if (!sponsorsSaved || !speakersSaved) {
+            throw new RuntimeException("Sponsors and speakers are not saved");
         }
-        catch (Exception e) {
-            System.out.println(e.getMessage());
-            return false;
-        }
+
+        return new  MessageResponseDto("Event created successfully");
     }
 
     // modify the event
     @Transactional
-    public boolean updateEvent(EventRequestDto request, Long eventId) {
+    public MessageResponseDto updateEvent(EventRequestDto request, Long eventId) {
 
         // get event
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new RuntimeException("Event not found"));
 
-        eventSponsorRepository.deleteAllByEvent_Id(eventId);
-        eventSpeakerRepository.deleteAllByEvent_Id(eventId);
+        if (eventSponsorRepository.existsById(eventId)) {
+            eventSponsorRepository.deleteAllByEvent_Id(eventId);
+        }
+        if (eventSpeakerRepository.existsById(eventId)) {
+            eventSpeakerRepository.deleteAllByEvent_Id(eventId);
+        }
         // update
         if(request.getTitle() != null) {
             event.setTitle(request.getTitle());
@@ -356,12 +349,12 @@ public class EventService {
 
         // save in db
         eventRepository.save(event);
-        return true;
+        return new MessageResponseDto("Event updated successfully");
     }
 
     // delete the event
     @Transactional
-    public boolean deleteEvent(Long eventId) {
+    public MessageResponseDto deleteEvent(Long eventId) {
 
         // find if exist
         if (!eventRepository.existsById(eventId)) {
@@ -370,7 +363,7 @@ public class EventService {
 
         // delete
         eventRepository.deleteById(eventId);
-        return true;
+        return new MessageResponseDto("Event deleted successfully");
     }
 
     // get all active events of club (live & upcoming)

@@ -4,6 +4,7 @@ import com.campusconnect.campusconnectbackend.club.announcement.AnnouncementServ
 import com.campusconnect.campusconnectbackend.club.club_request.ClubRequestService;
 import com.campusconnect.campusconnectbackend.club.ClubService;
 import com.campusconnect.campusconnectbackend.college_admin.service.CollegeAdminService;
+import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.reseach_paper.ResearchPaperService;
 import com.campusconnect.campusconnectbackend.reseach_paper.dto.res.ResearchesResponseDto;
 import com.campusconnect.campusconnectbackend.reviewer.dto.req.AddReviewerRequestDto;
@@ -93,12 +94,12 @@ public class CollegeAdminController {
     }
     // accept the club-request
     @PostMapping("/club-request/{clubReqId}")
-    public boolean acceptClubRequest(@PathVariable Long clubReqId) {
+    public MessageResponseDto acceptClubRequest(@PathVariable Long clubReqId) {
         return clubRequestService.acceptRequest(clubReqId);
     }
     // reject the club-request
     @DeleteMapping("/club-request/{clubReqId}")
-    public boolean rejectClubRequest(@PathVariable Long clubReqId) {
+    public MessageResponseDto rejectClubRequest(@PathVariable Long clubReqId) {
         return clubRequestService.rejectClubRequest(clubReqId);
     }
 
@@ -107,6 +108,7 @@ public class CollegeAdminController {
     public List<AnnouncementResponseDto> getAnnouncements() {
         return announcementService.getAnnouncementsByCollege();
     }
+
     // get particular announcement
     @GetMapping("/announcements/{id}")
     public AnnouncementResponseDto getAnnouncement(@PathVariable Long id) {
@@ -155,13 +157,13 @@ public class CollegeAdminController {
 
     // accept journalist request
     @PostMapping("/users/journalist-req/{id}")
-    public boolean acceptJournalistRequest(@PathVariable Long id) {
+    public MessageResponseDto acceptJournalistRequest(@PathVariable Long id) {
         return journalistRequestService.acceptJournalistRequest(id);
     }
 
     // reject journalist request
     @DeleteMapping("/users/journalist-req/{id}")
-    public boolean rejectJournalistRequest(@PathVariable Long id) {
+    public MessageResponseDto rejectJournalistRequest(@PathVariable Long id) {
         return journalistRequestService.rejectJournalistRequest(id);
     }
 
@@ -174,7 +176,7 @@ public class CollegeAdminController {
     }
     // remove journalist
     @DeleteMapping("/users/journalist/{journalistId}")
-    public boolean removeJournalist(@PathVariable Long journalistId) {
+    public MessageResponseDto removeJournalist(@PathVariable Long journalistId) {
         return journalistService.removeJournalist(journalistId);
     }
 
@@ -188,12 +190,12 @@ public class CollegeAdminController {
 
     // add new reviewer
     @PostMapping("/users/reviewer")
-    public boolean addReviewer(@RequestBody AddReviewerRequestDto request) {
+    public MessageResponseDto addReviewer(@RequestBody AddReviewerRequestDto request) {
         return reviewerService.store(request);
     }
     // remove reviewer
     @DeleteMapping("/users/reviewer/{reviewerId}")
-    public boolean removeReviewer(@PathVariable Long reviewerId) {
+    public MessageResponseDto removeReviewer(@PathVariable Long reviewerId) {
         return reviewerService.removeReviewer(reviewerId);
     }
 
@@ -208,7 +210,7 @@ public class CollegeAdminController {
 
     // add multiple students
     @PostMapping("/users/student/add-multiple")
-    public String uploadStudents(@RequestParam("file") MultipartFile file) {
+    public MessageResponseDto uploadStudents(@RequestParam("file") MultipartFile file) {
 
         Long collegeId = authService.getCurrentCollegeId();
         return studentRepoService.processExcel(file, collegeId);
@@ -216,7 +218,7 @@ public class CollegeAdminController {
 
     // add one student
     @PostMapping("/users/student/add-one")
-    public String uploadStudent(@RequestBody StudentRegisterRequestDto request) {
+    public MessageResponseDto uploadStudent(@RequestBody StudentRegisterRequestDto request) {
 
         Long collegeId = authService.getCurrentCollegeId();
         return studentRepoService.registerStudent(request, collegeId);
@@ -232,7 +234,7 @@ public class CollegeAdminController {
 
     // unpublish newspaper
     @DeleteMapping("/news-papers/{newsId}")
-    public String unpublishNewsPaper(@PathVariable Long newsId) {
+    public MessageResponseDto unpublishNewsPaper(@PathVariable Long newsId) {
         return newsPaperService.unpublishNewsPaper(newsId);
     }
 
@@ -258,7 +260,7 @@ public class CollegeAdminController {
     }
 
     @PostMapping("/researches/review/{id}")
-    public String assignReviewer(@PathVariable Long id, @RequestBody AddReviewerRequestDto request) {
+    public MessageResponseDto assignReviewer(@PathVariable Long id, @RequestBody AddReviewerRequestDto request) {
         return reviewerService.assignReviewer(id, request);
     }
 

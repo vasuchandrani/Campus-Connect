@@ -3,6 +3,7 @@ package com.campusconnect.campusconnectbackend.club.club_follower;
 import com.campusconnect.campusconnectbackend.club.Club;
 import com.campusconnect.campusconnectbackend.club.ClubRepository;
 import com.campusconnect.campusconnectbackend.club.club_follower.id.ClubFollowerId;
+import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import com.campusconnect.campusconnectbackend.student.service.StudentRepoService;
 import jakarta.transaction.Transactional;
@@ -34,7 +35,7 @@ public class ClubFollowerService {
 
     // follow-unfollow
     @Transactional
-    public void changeFollow(Long clubId, boolean follow) {
+    public MessageResponseDto changeFollow(Long clubId, boolean follow) {
         // find student
         Long studentId = authService.getCurrentUserId();
 
@@ -53,10 +54,15 @@ public class ClubFollowerService {
         else {
 
             if (!clubFollowerRepository.existsByClub_IdAndStudent_Id(clubId, studentId)) {
-                return;
+                throw new RuntimeException("Something went wrong, Reload the page");
             }
 
             clubFollowerRepository.deleteByClubAndStudent(clubId, studentId);
         }
+
+        if (follow) {
+            return new MessageResponseDto("Club Followed Successfully");
+        }
+        return new MessageResponseDto("Club Unfollowed Successfully");
     }
 }

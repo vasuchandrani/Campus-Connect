@@ -1,5 +1,6 @@
 package com.campusconnect.campusconnectbackend.journalist.service;
 
+import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.dto.res.JournalistDetailResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.dto.res.JournalistResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.dto.res.JournalistStatResponseDto;
@@ -77,32 +78,39 @@ public class JournalistService {
 
     // remove journalist
     @Transactional
-    public boolean removeJournalist(Long journalistId) {
-        try {
-            journalistRepository.deleteById(journalistId);
-            return true;
+    public MessageResponseDto removeJournalist(Long journalistId) {
+        // check if exist
+        if (!journalistRepository.existsById(journalistId)) {
+            throw new RuntimeException("Journalist not found!");
         }
-        catch (Exception e) {
-            throw new RuntimeException("Remove Journalist Failed!", e);
-        }
+        // delete
+        journalistRepository.deleteById(journalistId);
+
+        return new MessageResponseDto("Journalist has been removed successfully!");
     }
 
-    //count of draft and publish newspaper
-    public JournalistStatResponseDto getState(Long journalistId){
-        List<NewsPaper> list = newsPaperRepository.findByJournalist_Id(journalistId);
-        List<DraftNewsPaper> list1=draftNewsPaperRepository.findByJournalist_Id(journalistId);
+    // get stats
+    public JournalistStatResponseDto getStat(Long journalistId){
 
+        // find stats
+        int newsPaperCnt = newsPaperRepository.countByJournalist_Id(journalistId);
+        int draftCnt = draftNewsPaperRepository.countByJournalist_Id(journalistId);
+
+        // create response
         JournalistStatResponseDto dto = new JournalistStatResponseDto();
-        dto.setDraft(list1.size());
-        dto.setPublished(list.size());
+        dto.setDraft(draftCnt);
+        dto.setPublished(newsPaperCnt);
 
         return dto;
-
     }
 
-    //get journalist details
+    // get journalist details
     public JournalistDetailResponseDto getDetails(Long currentUserId) {
-        Journalist j=journalistRepository.findById(currentUserId).orElseThrow(()->new RuntimeException("Journalist not found"));
+
+        Journalist j = journalistRepository.findById(currentUserId).orElseThrow(
+                () -> new RuntimeException("Journalist not found")
+        );
+
         JournalistDetailResponseDto dto = new JournalistDetailResponseDto();
         dto.setName(j.getFullName());
         dto.setCollageName(j.getCollege().getName());

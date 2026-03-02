@@ -6,6 +6,7 @@ import com.campusconnect.campusconnectbackend.club.ClubService;
 import com.campusconnect.campusconnectbackend.club.announcement.dto.req.AnnouncementPatchRequestDto;
 import com.campusconnect.campusconnectbackend.club.announcement.dto.req.AnnouncementRequestDto;
 import com.campusconnect.campusconnectbackend.club.announcement.dto.res.AnnouncementResponseDto;
+import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -112,27 +113,21 @@ public class AnnouncementService {
 
     // create new announcement
     @Transactional
-    public boolean createAnnouncement(AnnouncementRequestDto request, Long clubId) {
-        try {
-            // create
-            Announcement announcement = new Announcement();
-            announcement.setTitle(request.getTitle());
-            announcement.setContent(request.getContent());
-            announcement.setClub(clubService.getClubById(clubId));
+    public MessageResponseDto createAnnouncement(AnnouncementRequestDto request, Long clubId) {
+        // create
+        Announcement announcement = new Announcement();
+        announcement.setTitle(request.getTitle());
+        announcement.setContent(request.getContent());
+        announcement.setClub(clubService.getClubById(clubId));
 
-            // save in db
-            announcementRepository.save(announcement);
-            return true;
-        }
-        catch (Exception e) {
-            System.out.println(e.getMessage());
-            return false;
-        }
+        // save in db
+        announcementRepository.save(announcement);
+        return new MessageResponseDto("Announcement created successfully");
     }
 
     // modify the announcement
     @Transactional
-    public boolean updateAnnouncement(AnnouncementPatchRequestDto request, Long annId) {
+    public MessageResponseDto updateAnnouncement(AnnouncementPatchRequestDto request, Long annId) {
 
         // get announcement
         Announcement ann = announcementRepository.findById(annId).orElseThrow(
@@ -149,12 +144,12 @@ public class AnnouncementService {
 
         // save
         announcementRepository.save(ann);
-        return true;
+        return new MessageResponseDto("Announcement updated successfully");
     }
 
     // delete the announcement
     @Transactional
-    public boolean deleteAnnouncement(Long annId) {
+    public MessageResponseDto deleteAnnouncement(Long annId) {
 
         // find if exist
         if (!announcementRepository.existsById(annId)) {
@@ -163,6 +158,6 @@ public class AnnouncementService {
 
         // delete
         announcementRepository.deleteById(annId);
-        return true;
+        return new MessageResponseDto("Announcement deleted successfully");
     }
 }

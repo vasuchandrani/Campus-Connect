@@ -5,6 +5,7 @@ import com.campusconnect.campusconnectbackend.club.dto.req.SaveOverviewRequestDt
 import com.campusconnect.campusconnectbackend.club.event.dto.req.EventWinnerRequestDto;
 import com.campusconnect.campusconnectbackend.club.event.entity.*;
 import com.campusconnect.campusconnectbackend.club.event.repository.*;
+import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -92,45 +93,45 @@ public class EventOverviewService {
 
     // save overview
     @Transactional
-    public String saveOverview(Long eventId, SaveOverviewRequestDto request) {
-        try {
-            // first delete existing
+    public MessageResponseDto saveOverview(Long eventId, SaveOverviewRequestDto request) {
+
+        // first delete existing
+        if (eventWinnerRepository.existsById(eventId)) {
             eventWinnerRepository.deleteAllByEvent_Id(eventId);
+        }
+        if (eventImagesRepository.existsById(eventId)) {
             eventImagesRepository.deleteAllByEvent_Id(eventId);
-
-            String overview = generateOverview(eventId);
-            List<String> imageUrls = request.getImageUrls();
-            List<EventWinnerRequestDto> winners = request.getWinners();
-
-            // find event
-            Event event = eventRepository.findEventById(eventId).orElseThrow(
-                    () -> new IllegalArgumentException("Event not found with id: " + eventId)
-            );
-            // save overview in db
-            event.setOverview(overview);
-            eventRepository.save(event);
-
-            // save images in db
-            for(String imageUrl : imageUrls) {
-                EventImages image = new EventImages();
-                image.setImageUrl(imageUrl);
-                image.setEvent(event);
-                eventImagesRepository.save(image);
-            }
-
-            // save winners in db
-            for (EventWinnerRequestDto winner : winners) {
-                EventWinner eventWinner = new EventWinner();
-                eventWinner.setName(winner.getName());
-                eventWinner.setEmail(winner.getEmail());
-                eventWinner.setEvent(event);
-                eventWinnerRepository.save(eventWinner);
-            }
-
-            return "Event Overview saved successfully";
         }
-        catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
+
+        String overview = generateOverview(eventId);
+        List<String> imageUrls = request.getImageUrls();
+        List<EventWinnerRequestDto> winners = request.getWinners();
+
+        // find event
+        Event event = eventRepository.findEventById(eventId).orElseThrow(
+                () -> new IllegalArgumentException("Event not found with id: " + eventId)
+        );
+        // save overview in db
+        event.setOverview(overview);
+        eventRepository.save(event);
+
+        // save images in db
+        for(String imageUrl : imageUrls) {
+            EventImages image = new EventImages();
+            image.setImageUrl(imageUrl);
+            image.setEvent(event);
+            eventImagesRepository.save(image);
         }
+
+        // save winners in db
+        for (EventWinnerRequestDto winner : winners) {
+            EventWinner eventWinner = new EventWinner();
+            eventWinner.setName(winner.getName());
+            eventWinner.setEmail(winner.getEmail());
+            eventWinner.setEvent(event);
+            eventWinnerRepository.save(eventWinner);
+        }
+
+        return new MessageResponseDto("Event Overview saved successfully");
     }
 }

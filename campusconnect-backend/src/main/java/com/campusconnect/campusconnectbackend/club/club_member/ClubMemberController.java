@@ -15,6 +15,7 @@ import com.campusconnect.campusconnectbackend.club.dto.res.club_card.ClubMemberD
 import com.campusconnect.campusconnectbackend.club.event.dto.res.EventResponseDto;
 import com.campusconnect.campusconnectbackend.club.event.overview_generation.EventOverviewService;
 import com.campusconnect.campusconnectbackend.club.event.service.EventService;
+import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -90,19 +91,19 @@ public class ClubMemberController {
 
     // create new event
     @PostMapping("/events")
-    public boolean createEvent(@PathVariable Long clubId, @RequestBody EventRequestDto request) {
+    public MessageResponseDto createEvent(@PathVariable Long clubId, @RequestBody EventRequestDto request) {
         return eventService.createEvent(request, clubId);
     }
 
     // modify any event
     @PatchMapping("/events/active/{eventId}")
-    public boolean updateEvent(@PathVariable Long eventId, @RequestBody EventRequestDto request) {
+    public MessageResponseDto updateEvent(@PathVariable Long eventId, @RequestBody EventRequestDto request) {
         return eventService.updateEvent(request, eventId);
     }
 
     // delete any event
     @DeleteMapping("/events/active/{eventId}")
-    public boolean deleteEvent(@PathVariable Long eventId) {
+    public MessageResponseDto deleteEvent(@PathVariable Long eventId) {
         return eventService.deleteEvent(eventId);
     }
 
@@ -117,7 +118,7 @@ public class ClubMemberController {
 
     // save overview
     @PatchMapping("/events/finished/{eventId}/save-overview")
-    public String saveOverview(@PathVariable Long eventId, @RequestBody SaveOverviewRequestDto request) {
+    public MessageResponseDto saveOverview(@PathVariable Long eventId, @RequestBody SaveOverviewRequestDto request) {
         return eventOverviewService.saveOverview(eventId, request);
     }
 
@@ -132,19 +133,19 @@ public class ClubMemberController {
 
     // create new announcement
     @PostMapping("/announcements")
-    public boolean createAnnouncement(@PathVariable Long clubId, @RequestBody AnnouncementRequestDto request) {
+    public MessageResponseDto createAnnouncement(@PathVariable Long clubId, @RequestBody AnnouncementRequestDto request) {
         return announcementService.createAnnouncement(request, clubId);
     }
 
     // modify any announcement
     @PatchMapping("/announcements/{annId}")
-    public boolean updateAnnouncement(@PathVariable Long annId, @RequestBody AnnouncementPatchRequestDto request) {
+    public MessageResponseDto updateAnnouncement(@PathVariable Long annId, @RequestBody AnnouncementPatchRequestDto request) {
         return announcementService.updateAnnouncement(request, annId);
     }
 
     // delete any announcement
     @DeleteMapping("/announcements/{annId}")
-    public boolean deleteAnnouncement(@PathVariable Long annId) {
+    public MessageResponseDto deleteAnnouncement(@PathVariable Long annId) {
         return announcementService.deleteAnnouncement(annId);
     }
 

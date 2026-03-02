@@ -6,11 +6,13 @@ import com.campusconnect.campusconnectbackend.club.club_member.id.ClubMemberId;
 import com.campusconnect.campusconnectbackend.club.Club;
 import com.campusconnect.campusconnectbackend.club.ClubRepository;
 import com.campusconnect.campusconnectbackend.college.College;
+import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.student.dto.req.ClubRequestDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.ClubRequestResponseDto;
 import com.campusconnect.campusconnectbackend.mail_service.dto.club_verification.ClubVerifiedDto;
 import com.campusconnect.campusconnectbackend.mail_service.service.EmailDispatcherService;
 import com.campusconnect.campusconnectbackend.student.Student;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -27,7 +29,7 @@ public class ClubRequestService {
     private final EmailDispatcherService emailDispatcherService;
 
     // store the club-request
-    public void store(ClubRequestDto request, Student student, College college) {
+    public boolean store(ClubRequestDto request, Student student, College college) {
         try {
             // create
             ClubRequest clubRequest = new ClubRequest();
@@ -39,9 +41,11 @@ public class ClubRequestService {
 
             // save in db
             clubRequestRepository.save(clubRequest);
+
+            return true;
         }
         catch (Exception e) {
-            System.out.println(e.getMessage());
+            throw new RuntimeException(e.getMessage());
         }
     }
 
@@ -66,72 +70,67 @@ public class ClubRequestService {
     }
 
     // accept the club request
-    public boolean acceptRequest(Long clubReqId) {
-        try {
-            // find club-request
-            ClubRequest clubRequest = clubRequestRepository.findClubRequestById(clubReqId);
-            // create club
-            Club club = new Club();
-            club.setName(clubRequest.getClubName());
-            club.setDescription(clubRequest.getClubDescription());
-            club.setCollege(clubRequest.getCollege());
-            // set default image/logo of club
-            club.setLogoUrl("http://localhost:8080/images/default-club.png");
-            // save club in db
-            clubRepository.save(club);
+    @Transactional
+    public MessageResponseDto acceptRequest(Long clubReqId) {
+        // find club-request
+        ClubRequest clubRequest = clubRequestRepository.findClubRequestById(clubReqId);
+        // create club
+        Club club = new Club();
+        club.setName(clubRequest.getClubName());
+        club.setDescription(clubRequest.getClubDescription());
+        club.setCollege(clubRequest.getCollege());
+        // set default image/logo of club
+        club.setLogoUrl("http://localhost:8080/images/default-club.png");
+        // save club in db
+        clubRepository.save(club);
 
-            // create club-admin
-            // add club-member with role "ADMIN"
+        // create club-admin
+        // add club-member with role "ADMIN"
 
-            ClubMemberId id = new ClubMemberId();
-            id.setClubId(club.getId());
-            id.setStudentId(clubRequest.getStudent().getId());
+        ClubMemberId id = new ClubMemberId();
+        id.setClubId(club.getId());
+        id.setStudentId(clubRequest.getStudent().getId());
 
-            ClubMember member = new ClubMember();
-            member.setId(id);
-            member.setClub(club);
-            member.setStudent(clubRequest.getStudent());
-            member.setRole("ADMIN");
-            // set default image of member
+        ClubMember member = new ClubMember();
+        member.setId(id);
+        member.setClub(club);
+        member.setStudent(clubRequest.getStudent());
+        member.setRole("ADMIN");
+        // set default image of member
 //            if (clubRequest.getStudent().getGender() == "male") {
 //                member.setImage("http://localhost:8080/images/default-male-member.png");
 //            }
 //            else {
 //                member.setImage("http://localhost:8080/images/default-female.png");
 //            }
-            // save member(admin) in db
-            clubMemberRepository.save(member);
-            // delete club-request
-            clubRequestRepository.deleteById(clubReqId);
+        // save member(admin) in db
+        clubMemberRepository.save(member);
+        // delete club-request
+        clubRequestRepository.deleteById(clubReqId);
 
-            // send mail to student
-            // create dto
-            ClubVerifiedDto dto = new ClubVerifiedDto();
-            dto.setClubName(clubRequest.getClubName());
-            dto.setStudentEmail(clubRequest.getStudent().getEmail());
-            Long clubId = club.getId();
-            dto.setClubDashboardLink("/campusconnect/clubs/" + clubId + "/admin");
-            // send
-            emailDispatcherService.sendClubApprovedToStudent(dto);
-            return true;
-        }
-        catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
-        }
+        // send mail to student
+        // create dto
+        ClubVerifiedDto dto = new ClubVerifiedDto();
+        dto.setClubName(clubRequest.getClubName());
+        dto.setStudentEmail(clubRequest.getStudent().getEmail());
+        Long clubId = club.getId();
+        dto.setClubDashboardLink("/campusconnect/clubs/" + clubId + "/admin");
+        // send
+        emailDispatcherService.sendClubApprovedToStudent(dto);
+
+        return new MessageResponseDto("Club-request approved successfully");
     }
 
     // reject the club request
-    public boolean rejectClubRequest(Long clubReqId) {
-        try {
+    @Transactional
+    public MessageResponseDto rejectClubRequest(Long clubReqId) {
 
-            if (!clubRequestRepository.existsById(clubReqId)) {
-                throw new RuntimeException("Club with id: " + clubReqId + " not found");
-            }
-            clubRequestRepository.deleteById(clubReqId);
-            return true;
+        // check if exist
+        if (!clubRequestRepository.existsById(clubReqId)) {
+            throw new RuntimeException("Club with id: " + clubReqId + " not found");
         }
-        catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
-        }
+
+        clubRequestRepository.deleteById(clubReqId);
+        return new MessageResponseDto("Club-request rejected successfully");
     }
 }
