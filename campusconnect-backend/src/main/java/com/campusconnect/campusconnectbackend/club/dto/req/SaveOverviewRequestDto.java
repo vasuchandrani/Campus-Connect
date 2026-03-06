@@ -12,7 +12,5 @@ public class SaveOverviewRequestDto {
 
     private String overview;
 
-    private List<String> imageUrls;
-
     private List<EventWinnerRequestDto> winners;
 }

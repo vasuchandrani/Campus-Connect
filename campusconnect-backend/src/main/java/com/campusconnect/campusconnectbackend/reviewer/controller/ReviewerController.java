@@ -1,8 +1,8 @@
 package com.campusconnect.campusconnectbackend.reviewer.controller;
 
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
-import com.campusconnect.campusconnectbackend.reseach_paper.ResearchPaperService;
-import com.campusconnect.campusconnectbackend.reseach_paper.dto.res.ResearchesResponseDto;
+import com.campusconnect.campusconnectbackend.research_paper.ResearchPaperService;
+import com.campusconnect.campusconnectbackend.research_paper.dto.res.ResearchesResponseDto;
 import com.campusconnect.campusconnectbackend.reviewer.dto.req.ReviewRequestDto;
 import com.campusconnect.campusconnectbackend.reviewer.dto.res.ReviewerStatsResponseDto;
 import com.campusconnect.campusconnectbackend.reviewer.service.ReviewerService;

@@ -5,8 +5,8 @@ import com.campusconnect.campusconnectbackend.club.club_request.ClubRequestServi
 import com.campusconnect.campusconnectbackend.club.ClubService;
 import com.campusconnect.campusconnectbackend.college_admin.service.CollegeAdminService;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
-import com.campusconnect.campusconnectbackend.reseach_paper.ResearchPaperService;
-import com.campusconnect.campusconnectbackend.reseach_paper.dto.res.ResearchesResponseDto;
+import com.campusconnect.campusconnectbackend.research_paper.ResearchPaperService;
+import com.campusconnect.campusconnectbackend.research_paper.dto.res.ResearchesResponseDto;
 import com.campusconnect.campusconnectbackend.reviewer.dto.req.AddReviewerRequestDto;
 import com.campusconnect.campusconnectbackend.student.dto.req.StudentRegisterRequestDto;
 import com.campusconnect.campusconnectbackend.club.announcement.dto.res.AnnouncementResponseDto;
@@ -17,13 +17,13 @@ import com.campusconnect.campusconnectbackend.college_admin.dto.res.CollegeAdmin
 import com.campusconnect.campusconnectbackend.club.event.dto.res.EventResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.dto.res.JournalistReqResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.dto.res.JournalistResponseDto;
-import com.campusconnect.campusconnectbackend.news_paper.dto.res.NewsPaperResponseDto;
+import com.campusconnect.campusconnectbackend.newspaper.dto.res.NewsPaperResponseDto;
 import com.campusconnect.campusconnectbackend.club.event.service.EventService;
 import com.campusconnect.campusconnectbackend.reviewer.dto.res.ReviewerResponseDto;
 import com.campusconnect.campusconnectbackend.student.dto.res.StudentResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.service.JournalistRequestService;
 import com.campusconnect.campusconnectbackend.journalist.service.JournalistService;
-import com.campusconnect.campusconnectbackend.news_paper.service.NewsPaperService;
+import com.campusconnect.campusconnectbackend.newspaper.service.NewsPaperService;
 import com.campusconnect.campusconnectbackend.reviewer.service.ReviewerService;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import com.campusconnect.campusconnectbackend.student.service.StudentRepoService;

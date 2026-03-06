@@ -1,6 +1,7 @@
 package com.campusconnect.campusconnectbackend.club.event.overview_generation;
 
-import com.campusconnect.campusconnectbackend.ai.service.AiService;
+import com.campusconnect.campusconnectbackend.integrations.ai.service.AiService;
+import com.campusconnect.campusconnectbackend.integrations.cloudinary.service.CloudinaryService;
 import com.campusconnect.campusconnectbackend.club.dto.req.SaveOverviewRequestDto;
 import com.campusconnect.campusconnectbackend.club.event.dto.req.EventWinnerRequestDto;
 import com.campusconnect.campusconnectbackend.club.event.entity.*;
@@ -9,6 +10,7 @@ import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +26,7 @@ public class EventOverviewService {
     private final EventSponsorRepository eventSponsorRepository;
     private final EventSpeakerRepository eventSpeakerRepository;
     private final EventWinnerRepository eventWinnerRepository;
+    private final CloudinaryService cloudinaryService;
 
     // get event sponsors-name list
     private List<String> getSponsors(Long eventId) {
@@ -93,28 +96,25 @@ public class EventOverviewService {
 
     // save overview
     @Transactional
-    public MessageResponseDto saveOverview(Long eventId, SaveOverviewRequestDto request) {
-
-        // first delete existing
-        if (eventWinnerRepository.existsById(eventId)) {
-            eventWinnerRepository.deleteAllByEvent_Id(eventId);
-        }
-        if (eventImagesRepository.existsById(eventId)) {
-            eventImagesRepository.deleteAllByEvent_Id(eventId);
-        }
-
-        String overview = generateOverview(eventId);
-        List<String> imageUrls = request.getImageUrls();
-        List<EventWinnerRequestDto> winners = request.getWinners();
+    public MessageResponseDto saveOverview(Long eventId, SaveOverviewRequestDto request, List<MultipartFile> images) {
 
         // find event
         Event event = eventRepository.findEventById(eventId).orElseThrow(
                 () -> new IllegalArgumentException("Event not found with id: " + eventId)
         );
+
         // save overview in db
-        event.setOverview(overview);
+        event.setOverview(request.getOverview());
         eventRepository.save(event);
 
+        // store images on cloudinary
+        List<String> imageUrls = new ArrayList<>();
+        for (MultipartFile file : images) {
+
+            String url = cloudinaryService.uploadImage(file, eventId);
+
+            imageUrls.add(url);
+        }
         // save images in db
         for(String imageUrl : imageUrls) {
             EventImages image = new EventImages();
@@ -124,6 +124,7 @@ public class EventOverviewService {
         }
 
         // save winners in db
+        List<EventWinnerRequestDto> winners = request.getWinners();
         for (EventWinnerRequestDto winner : winners) {
             EventWinner eventWinner = new EventWinner();
             eventWinner.setName(winner.getName());
