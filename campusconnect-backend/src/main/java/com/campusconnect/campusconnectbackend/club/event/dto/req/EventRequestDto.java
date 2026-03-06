@@ -16,8 +16,6 @@ public class EventRequestDto {
 
     private String description;
 
-    private String imageUrl;
-
     private LocalDateTime registrationEnd;
 
     private LocalDateTime startTime;

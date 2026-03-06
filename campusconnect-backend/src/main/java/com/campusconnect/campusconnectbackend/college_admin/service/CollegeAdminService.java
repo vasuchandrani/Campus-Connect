@@ -7,7 +7,7 @@ import com.campusconnect.campusconnectbackend.college_admin.CollegeAdmin;
 import com.campusconnect.campusconnectbackend.college_admin.CollegeAdminRepository;
 import com.campusconnect.campusconnectbackend.college_admin.dto.res.CollegeAdminDashboardStatsDto;
 import com.campusconnect.campusconnectbackend.journalist.service.JournalistService;
-import com.campusconnect.campusconnectbackend.news_paper.service.NewsPaperService;
+import com.campusconnect.campusconnectbackend.newspaper.service.NewsPaperService;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import com.campusconnect.campusconnectbackend.student.service.StudentRepoService;
 import lombok.RequiredArgsConstructor;

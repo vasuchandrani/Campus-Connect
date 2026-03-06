@@ -127,6 +127,13 @@
             <artifactId>jakarta.validation-api</artifactId>
             <version>3.1.1</version>
         </dependency>
+
+        <!--  cloudinary  -->
+        <dependency>
+            <groupId>com.cloudinary</groupId>
+            <artifactId>cloudinary-http44</artifactId>
+            <version>1.36.0</version>
+        </dependency>
     </dependencies>
 
     <build>

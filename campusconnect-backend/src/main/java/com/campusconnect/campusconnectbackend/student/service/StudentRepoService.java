@@ -4,7 +4,7 @@ import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.student.dto.req.StudentRegisterRequestDto;
 import com.campusconnect.campusconnectbackend.student.dto.req.StudentSignupRequestDto;
 import com.campusconnect.campusconnectbackend.student.dto.res.StudentResponseDto;
-import com.campusconnect.campusconnectbackend.mail_service.service.EmailDispatcherService;
+import com.campusconnect.campusconnectbackend.integrations.mail_service.service.EmailDispatcherService;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import com.campusconnect.campusconnectbackend.student.Student;
 import com.campusconnect.campusconnectbackend.student.StudentRepository;

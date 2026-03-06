@@ -8,7 +8,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class AddReviewerRequestDto implements SignupRequestDto {
+public class    AddReviewerRequestDto implements SignupRequestDto {
 
     @Override
     public String getRole() {

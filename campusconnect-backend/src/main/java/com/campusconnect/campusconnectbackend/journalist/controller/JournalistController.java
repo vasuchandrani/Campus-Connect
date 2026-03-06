@@ -1,13 +1,13 @@
 package com.campusconnect.campusconnectbackend.journalist.controller;
 
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
-import com.campusconnect.campusconnectbackend.news_paper.dto.req.NewsPaperRequestDto;
+import com.campusconnect.campusconnectbackend.newspaper.dto.req.NewsPaperRequestDto;
 import com.campusconnect.campusconnectbackend.journalist.dto.res.JournalistDetailResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.dto.res.JournalistStatResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.service.JournalistService;
-import com.campusconnect.campusconnectbackend.news_paper.service.DraftNewsPaperService;
-import com.campusconnect.campusconnectbackend.news_paper.service.NewsPaperService;
-import com.campusconnect.campusconnectbackend.news_paper.dto.res.NewsPaperResponseDto;
+import com.campusconnect.campusconnectbackend.newspaper.service.DraftNewsPaperService;
+import com.campusconnect.campusconnectbackend.newspaper.service.NewsPaperService;
+import com.campusconnect.campusconnectbackend.newspaper.dto.res.NewsPaperResponseDto;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;

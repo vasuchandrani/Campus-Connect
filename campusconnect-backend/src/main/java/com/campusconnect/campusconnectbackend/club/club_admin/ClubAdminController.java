@@ -20,6 +20,7 @@ import com.campusconnect.campusconnectbackend.club.event.service.EventService;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -119,15 +120,23 @@ public class ClubAdminController {
     }
 
     // create new event
-    @PostMapping("/events/active")
-    public MessageResponseDto createEvent(@PathVariable Long clubId, @RequestBody EventRequestDto request) {
-        return eventService.createEvent(request, clubId);
+    @PostMapping(value = "/events/active", consumes = "multipart/form-data")
+    public MessageResponseDto createEvent(
+            @PathVariable Long clubId,
+            @ModelAttribute EventRequestDto request,
+            @RequestParam("image") MultipartFile image
+    ) {
+        return eventService.createEvent(request, clubId, image);
     }
 
     // modify any event
-    @PatchMapping("/events/active/{eventId}")
-    public MessageResponseDto updateEvent(@PathVariable Long eventId, @RequestBody EventRequestDto request) {
-        return eventService.updateEvent(request, eventId);
+    @PatchMapping(value = "/events/active/{eventId}", consumes = "multipart/form-data")
+    public MessageResponseDto updateEvent(
+            @PathVariable Long eventId,
+            @ModelAttribute EventRequestDto request,
+            @RequestParam("image") MultipartFile image
+    ) {
+        return eventService.updateEvent(request, eventId, image);
     }
 
     // delete any event
@@ -146,9 +155,13 @@ public class ClubAdminController {
     }
 
     // save overview
-    @PatchMapping("/events/finished/{eventId}/save-overview")
-    public MessageResponseDto saveOverview(@PathVariable Long eventId, @RequestBody SaveOverviewRequestDto request) {
-        return eventOverviewService.saveOverview(eventId, request);
+    @PatchMapping(value = "/events/finished/{eventId}/save-overview", consumes = "multipart/form-data")
+    public MessageResponseDto saveOverview(
+            @PathVariable Long eventId,
+            @ModelAttribute SaveOverviewRequestDto request,
+            @RequestParam("images") List<MultipartFile> images
+    ) {
+        return eventOverviewService.saveOverview(eventId, request, images);
     }
 
 

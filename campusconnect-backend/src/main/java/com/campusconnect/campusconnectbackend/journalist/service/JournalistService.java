@@ -6,10 +6,8 @@ import com.campusconnect.campusconnectbackend.journalist.dto.res.JournalistRespo
 import com.campusconnect.campusconnectbackend.journalist.dto.res.JournalistStatResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.entity.Journalist;
 import com.campusconnect.campusconnectbackend.journalist.repository.JournalistRepository;
-import com.campusconnect.campusconnectbackend.news_paper.entity.DraftNewsPaper;
-import com.campusconnect.campusconnectbackend.news_paper.repository.DraftNewsPaperRepository;
-import com.campusconnect.campusconnectbackend.news_paper.entity.NewsPaper;
-import com.campusconnect.campusconnectbackend.news_paper.repository.NewsPaperRepository;
+import com.campusconnect.campusconnectbackend.newspaper.repository.DraftNewsPaperRepository;
+import com.campusconnect.campusconnectbackend.newspaper.repository.NewsPaperRepository;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;

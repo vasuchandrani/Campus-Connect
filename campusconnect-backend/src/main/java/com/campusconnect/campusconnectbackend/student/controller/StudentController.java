@@ -6,24 +6,25 @@ import com.campusconnect.campusconnectbackend.club.ClubService;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.dto.req.JournalistRequestDto;
 import com.campusconnect.campusconnectbackend.journalist.service.JournalistRequestService;
-import com.campusconnect.campusconnectbackend.reseach_paper.ResearchPaperService;
-import com.campusconnect.campusconnectbackend.reseach_paper.dto.req.ResearchRequestDto;
-import com.campusconnect.campusconnectbackend.reseach_paper.dto.res.ResearchesResponseDto;
+import com.campusconnect.campusconnectbackend.research_paper.ResearchPaperService;
+import com.campusconnect.campusconnectbackend.research_paper.dto.req.ResearchRequestDto;
+import com.campusconnect.campusconnectbackend.research_paper.dto.res.ResearchesResponseDto;
 import com.campusconnect.campusconnectbackend.student.dto.req.ClubRequestDto;
 import com.campusconnect.campusconnectbackend.club.announcement.dto.res.AnnouncementResponseDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.YourClubListDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.club_card.ClubDetailsResponseDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.ClubListDto;
 import com.campusconnect.campusconnectbackend.club.event.dto.res.EventResponseDto;
-import com.campusconnect.campusconnectbackend.news_paper.dto.res.NewsPaperResponseDto;
+import com.campusconnect.campusconnectbackend.newspaper.dto.res.NewsPaperResponseDto;
 import com.campusconnect.campusconnectbackend.student.dto.res.StudentDashboardStatsDto;
 import com.campusconnect.campusconnectbackend.club.event.service.EventRegistrationService;
 import com.campusconnect.campusconnectbackend.club.event.service.EventService;
-import com.campusconnect.campusconnectbackend.news_paper.service.NewsPaperService;
+import com.campusconnect.campusconnectbackend.newspaper.service.NewsPaperService;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import com.campusconnect.campusconnectbackend.student.service.StudentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 
@@ -213,8 +214,14 @@ public class StudentController {
     }
 
     // submit research-paper
-    @PostMapping("/researches")
-    public MessageResponseDto submitResearchPaper(@RequestBody ResearchRequestDto request) {
-        return researchPaperService.submitPaper(request);
+    @PostMapping(value = "/researches", consumes = "multipart/form-data")
+    public MessageResponseDto submitResearchPaper(
+            @ModelAttribute ResearchRequestDto request,
+            @RequestParam("pdf") MultipartFile pdf
+    ) {
+        if (pdf.getSize() > 5 * 1024 * 1024) {
+            throw new RuntimeException("PDF must be less than 5MB");
+        }
+        return researchPaperService.submitPaper(request, pdf);
     }
 }

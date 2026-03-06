@@ -1,5 +1,6 @@
 package com.campusconnect.campusconnectbackend.club.event.service;
 
+import com.campusconnect.campusconnectbackend.integrations.cloudinary.service.CloudinaryService;
 import com.campusconnect.campusconnectbackend.club.Club;
 import com.campusconnect.campusconnectbackend.club.ClubService;
 import com.campusconnect.campusconnectbackend.club.event.dto.req.EventRequestDto;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -30,6 +32,7 @@ public class EventService {
     private final EventSponsorRepository eventSponsorRepository;
     private final EventSpeakerRepository eventSpeakerRepository;
     private final EventWinnerRepository eventWinnerRepository;
+    private final CloudinaryService cloudinaryService;
 
     // check is student registered?
     private boolean isRegistered(Long eventId){
@@ -276,20 +279,26 @@ public class EventService {
 
     // create new events
     @Transactional
-    public MessageResponseDto createEvent(EventRequestDto request, Long clubId) {
+    public MessageResponseDto createEvent(EventRequestDto request, Long clubId, MultipartFile image) {
+
         // create event
         Event event = new Event();
         event.setTitle(request.getTitle());
         event.setDescription(request.getDescription());
         event.setRegistrationEnd(request.getRegistrationEnd());
-        event.setImage(request.getImageUrl());
         event.setStartTime(request.getStartTime());
         event.setEndTime(request.getEndTime());
         event.setLocation(request.getLocation());
         event.setClub(clubService.getClubById(clubId));
 
         // save in db
-        eventRepository.save(event);
+        Event savedEvent = eventRepository.save(event);
+
+        // upload image to cloudinary
+        String imageUrl = cloudinaryService.uploadImage(image, savedEvent.getId());
+        // save in db
+        savedEvent.setImage(imageUrl);
+        eventRepository.save(savedEvent);
 
         // save sponsors
         boolean sponsorsSaved = saveSponsors(request.getSponsors(), event);
@@ -306,7 +315,7 @@ public class EventService {
 
     // modify the event
     @Transactional
-    public MessageResponseDto updateEvent(EventRequestDto request, Long eventId) {
+    public MessageResponseDto updateEvent(EventRequestDto request, Long eventId, MultipartFile image) {
 
         // get event
         Event event = eventRepository.findById(eventId)
@@ -318,6 +327,10 @@ public class EventService {
         if (eventSpeakerRepository.existsById(eventId)) {
             eventSpeakerRepository.deleteAllByEvent_Id(eventId);
         }
+
+        // update new image
+        event.setImage(cloudinaryService.uploadImage(image, eventId));
+
         // update
         if(request.getTitle() != null) {
             event.setTitle(request.getTitle());
@@ -336,9 +349,6 @@ public class EventService {
         }
         if (request.getLocation() != null) {
             event.setLocation(request.getLocation());
-        }
-        if (request.getImageUrl() != null) {
-            event.setImage(request.getImageUrl());
         }
         if (request.getSponsors() != null) {
             saveSponsors(request.getSponsors(), event);
