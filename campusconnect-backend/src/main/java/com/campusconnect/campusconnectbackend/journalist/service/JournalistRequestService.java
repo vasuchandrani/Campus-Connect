@@ -13,10 +13,12 @@ import com.campusconnect.campusconnectbackend.integrations.mail_service.service.
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import com.campusconnect.campusconnectbackend.student.Student;
 import com.campusconnect.campusconnectbackend.student.service.StudentRepoService;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,12 +40,14 @@ public class JournalistRequestService {
     private JournalistReqResponseDto getDto(JournalistRequest journalistRequest) {
         // create dto
         JournalistReqResponseDto dto =  new JournalistReqResponseDto();
+        if (journalistRequest == null) return dto;
+
         // map the data
-        dto.setId(journalistRequest.getStudent().getStudentId());
+        dto.setId(journalistRequest.getId());
         dto.setWhy(journalistRequest.getWhy());
         dto.setExperience(journalistRequest.getExperience());
         dto.setCollegeId(journalistRequest.getCollege().getId());
-        dto.setStudentId(journalistRequest.getStudent().getId());
+        dto.setStudentId(journalistRequest.getStudent().getStudentId());
         dto.setPortfolioLink(journalistRequest.getPortfolioLink());
         dto.setJournalistName(journalistRequest.getStudent().getFullName());
 
@@ -74,6 +78,18 @@ public class JournalistRequestService {
         // find student
         Long studentId = authService.getCurrentUserId();
         Student student = studentRepoService.getStudent(studentId);
+        if (student == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "You are not logged in");
+        }
+
+        // check if student is already a journalist
+        if (journalistRepository.existsById(studentId)) {
+            return new MessageResponseDto("You are already Journalist");
+        }
+        // check if student is already requested for journalist
+        if (journalistRequestRepository.existsById(studentId)) {
+            return new MessageResponseDto("You have been already submitted journalist request");
+        }
 
         // find college
         College college =  student.getCollege();
@@ -121,6 +137,11 @@ public class JournalistRequestService {
         JournalistRequest request = journalistRequestRepository.findById(id).orElseThrow(
                 () -> new RuntimeException("Journalist Request with id " + id + " not found")
         );
+
+        // check if student is already a journalist
+        if (journalistRepository.existsById(request.getStudent().getId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You are already Journalist");
+        }
 
         // create journalist
         Journalist journalist = new Journalist();

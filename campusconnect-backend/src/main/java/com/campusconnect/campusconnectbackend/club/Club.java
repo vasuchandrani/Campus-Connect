@@ -31,6 +31,9 @@ public class Club {
     @Column(name = "logo_url")
     private String logoUrl;
 
+    @Column(name = "website")
+    private String website;
+
     @CreationTimestamp
     @Column(name = "created_at")
     private LocalDateTime createdAt;

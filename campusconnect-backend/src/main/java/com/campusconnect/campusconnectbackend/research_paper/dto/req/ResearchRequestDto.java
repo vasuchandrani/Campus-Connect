@@ -13,4 +13,6 @@ public class ResearchRequestDto {
     private String overview;
 
     private String subject;
+
+    private String dept;
 }

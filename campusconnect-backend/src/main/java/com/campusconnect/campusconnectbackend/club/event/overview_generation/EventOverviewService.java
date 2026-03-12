@@ -7,7 +7,7 @@ import com.campusconnect.campusconnectbackend.club.event.dto.req.EventWinnerRequ
 import com.campusconnect.campusconnectbackend.club.event.entity.*;
 import com.campusconnect.campusconnectbackend.club.event.repository.*;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -96,7 +96,7 @@ public class EventOverviewService {
 
     // save overview
     @Transactional
-    public MessageResponseDto saveOverview(Long eventId, SaveOverviewRequestDto request, List<MultipartFile> images) {
+    public MessageResponseDto saveOverview(Long clubId, Long eventId, SaveOverviewRequestDto request, List<MultipartFile> images) {
 
         // find event
         Event event = eventRepository.findEventById(eventId).orElseThrow(
@@ -108,12 +108,14 @@ public class EventOverviewService {
         eventRepository.save(event);
 
         // store images on cloudinary
-        List<String> imageUrls = new ArrayList<>();
-        for (MultipartFile file : images) {
+        List<String> imageUrls = new ArrayList<>(request.getOldImages());
+        if (images != null && !images.isEmpty()) {
+            for (MultipartFile file : images) {
+                String path = "clubs/" + clubId + "/events/" + eventId;
+                String url = cloudinaryService.uploadImage(file, path);
 
-            String url = cloudinaryService.uploadImage(file, eventId);
-
-            imageUrls.add(url);
+                imageUrls.add(url);
+            }
         }
         // save images in db
         for(String imageUrl : imageUrls) {

@@ -35,6 +35,9 @@ public class ResearchPaper {
     @Column(name = "status", nullable = false)
     private String status = "NOT REVIEWED";
 
+    @Column(name = "department", nullable = false)
+    private String department;
+
     @Column(name = "reviewer_feedback")
     private String reviewerFeedback;
 

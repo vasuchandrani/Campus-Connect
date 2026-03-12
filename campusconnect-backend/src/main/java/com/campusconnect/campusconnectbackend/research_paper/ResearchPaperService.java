@@ -32,20 +32,28 @@ public class ResearchPaperService {
     private ResearchesResponseDto getDto(ResearchPaper paper) {
         // create
         ResearchesResponseDto dto = new ResearchesResponseDto();
+        if (paper == null) return dto;
+
         // map the data
         dto.setId(paper.getId());
         dto.setTitle(paper.getTitle());
         dto.setOverview(paper.getOverview());
         dto.setPdfUrl(paper.getPdfUrl());
         dto.setStatus(paper.getStatus());
+        dto.setSubject(paper.getSubject());
+        dto.setDepartment(paper.getDepartment());
         dto.setCreatedAt(paper.getCreatedAt());
 
         if (paper.getReviewer() != null) {
             dto.setReviewerId(paper.getReviewer().getId());
+            dto.setReviewerName(paper.getReviewer().getFullName());
+            dto.setReviewerEmail(paper.getReviewer().getEmail());
         }
         if (paper.getReviewerFeedback() != null) {
             dto.setReviewerFeedback(paper.getReviewerFeedback());
         }
+        dto.setStudentId(paper.getStudent().getStudentId());
+        dto.setStudentName(paper.getStudent().getFullName());
         return dto;
     }
 
@@ -75,7 +83,7 @@ public class ResearchPaperService {
     public List<ResearchesResponseDto> getAllResearchPapers() {
 
         // find college
-        Long collegeId = authService.getCurrentUserId();
+        Long collegeId = authService.getCurrentCollegeId();
         // find research-papers
         List<ResearchPaper> papers = researchPaperRepository.findAllByCollege_IdAndStatus(collegeId, "ACCEPTED");
 
@@ -101,6 +109,7 @@ public class ResearchPaperService {
         paper.setTitle(request.getTitle());
         paper.setOverview(request.getOverview());
         paper.setSubject(request.getSubject());
+        paper.setDepartment(request.getDept());
         paper.setPdfUrl(pdfUrl);
         paper.setStudent(student);
         paper.setCollege(college);
@@ -115,12 +124,32 @@ public class ResearchPaperService {
 
     // get all not-reviewed researches
     public List<ResearchesResponseDto> getNotReviewedResearches() {
-            // find college-id
-            Long collegeId = authService.getCurrentCollegeId();
-            // find researches (not-reviewed)
-            List<ResearchPaper> papers = researchPaperRepository.findAllByCollege_IdAndStatus(collegeId, "NOT REVIEWED");
+        // find college-id
+        Long collegeId = authService.getCurrentCollegeId();
+        // find researches (not-reviewed)
+        List<ResearchPaper> papers = researchPaperRepository.findAllByCollege_IdAndStatus(collegeId, "NOT REVIEWED");
 
-            return getDtoList(papers);
+        return getDtoList(papers);
+    }
+
+    // get all under-reviewed researches
+    public List<ResearchesResponseDto> getUnderReviewedResearches() {
+        // find college-id
+        Long collegeId = authService.getCurrentCollegeId();
+        // find researches (not-reviewed)
+        List<ResearchPaper> papers = researchPaperRepository.findAllByCollege_IdAndStatus(collegeId, "UNDER REVIEW");
+
+        return getDtoList(papers);
+    }
+
+    // get all reviewed researches
+    public List<ResearchesResponseDto> getReviewedResearches() {
+        // find college-id
+        Long collegeId = authService.getCurrentCollegeId();
+        // find researches (not-reviewed)
+        List<ResearchPaper> papers = researchPaperRepository.findAllByCollege_IdAndStatusIn(collegeId, List.of("ACCEPTED", "REJECTED"));
+
+        return getDtoList(papers);
     }
 
     // view particular research
@@ -141,8 +170,8 @@ public class ResearchPaperService {
 
         // find reviewer
         Long reviewerId = authService.getCurrentUserId();
-        // find reseach-papers
-        List<ResearchPaper> researches = researchPaperRepository.findAllByReviewer_IdAndStatus(reviewerId, "NOT_REVIEWED");
+        // find research-papers
+        List<ResearchPaper> researches = researchPaperRepository.findAllByReviewer_IdAndStatus(reviewerId, "UNDER REVIEW");
 
         return getDtoList(researches);
     }
@@ -152,13 +181,14 @@ public class ResearchPaperService {
 
         // find reviewer
         Long reviewerId = authService.getCurrentUserId();
-        // find reseach-papers
+        // find research-papers
         List<ResearchPaper> researches = researchPaperRepository.findAllByReviewer_IdAndStatusIn(reviewerId, List.of("ACCEPTED", "REJECTED"));
 
         return getDtoList(researches);
     }
 
     // research paper accepted
+    @Transactional
     public MessageResponseDto acceptResearch(Long researchId, ReviewRequestDto request, Long reviewerId) {
 
         // find reviewer
@@ -180,6 +210,7 @@ public class ResearchPaperService {
     }
 
     // research paper rejected
+    @Transactional
     public MessageResponseDto rejectResearch(Long researchId, ReviewRequestDto request, Long reviewerId) {
 
         // find reviewer

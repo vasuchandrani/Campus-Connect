@@ -12,7 +12,8 @@ import com.campusconnect.campusconnectbackend.club.dto.res.ClubRequestResponseDt
 import com.campusconnect.campusconnectbackend.integrations.mail_service.dto.club_verification.ClubVerifiedDto;
 import com.campusconnect.campusconnectbackend.integrations.mail_service.service.EmailDispatcherService;
 import com.campusconnect.campusconnectbackend.student.Student;
-import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -27,6 +28,9 @@ public class ClubRequestService {
     private final ClubRepository clubRepository;
     private final ClubMemberRepository clubMemberRepository;
     private final EmailDispatcherService emailDispatcherService;
+
+    @Value("${CLUB_DEFAULT_IMAGE}")
+    private String clubDefaultImage;
 
     // store the club-request
     public boolean store(ClubRequestDto request, Student student, College college) {
@@ -80,7 +84,7 @@ public class ClubRequestService {
         club.setDescription(clubRequest.getClubDescription());
         club.setCollege(clubRequest.getCollege());
         // set default image/logo of club
-        club.setLogoUrl("http://localhost:8080/images/default-club.png");
+        club.setLogoUrl(clubDefaultImage);
         // save club in db
         clubRepository.save(club);
 

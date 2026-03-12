@@ -1,5 +1,6 @@
-package com.campusconnect.campusconnectbackend.integrations.mail_service.verification_code;
+package com.campusconnect.campusconnectbackend.security.verification_code.repository;
 
+import com.campusconnect.campusconnectbackend.security.verification_code.entity.VerificationCode;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.data.jpa.repository.JpaRepository;
 

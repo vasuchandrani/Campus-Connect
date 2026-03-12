@@ -9,4 +9,6 @@ public interface EventSpeakerRepository extends JpaRepository<EventSpeaker, Long
     List<EventSpeaker> findAllByEvent_Id(Long eventId);
 
     void deleteAllByEvent_Id(Long eventId);
+
+    boolean existsByEvent_Id(Long eventId);
 }

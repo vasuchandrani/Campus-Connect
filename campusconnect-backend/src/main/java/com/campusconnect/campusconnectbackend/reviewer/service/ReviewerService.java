@@ -6,6 +6,7 @@ import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.research_paper.ResearchPaper;
 import com.campusconnect.campusconnectbackend.research_paper.ResearchPaperRepository;
 import com.campusconnect.campusconnectbackend.reviewer.dto.req.AddReviewerRequestDto;
+import com.campusconnect.campusconnectbackend.reviewer.dto.res.ReviewerDetailResponseDto;
 import com.campusconnect.campusconnectbackend.reviewer.dto.res.ReviewerResponseDto;
 import com.campusconnect.campusconnectbackend.integrations.mail_service.dto.reviewer.ReviewerAssignmentDto;
 import com.campusconnect.campusconnectbackend.integrations.mail_service.service.EmailDispatcherService;
@@ -13,7 +14,7 @@ import com.campusconnect.campusconnectbackend.reviewer.Reviewer;
 import com.campusconnect.campusconnectbackend.reviewer.ReviewerRepository;
 import com.campusconnect.campusconnectbackend.reviewer.dto.res.ReviewerStatsResponseDto;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -36,6 +37,8 @@ public class ReviewerService {
     public ReviewerResponseDto getDto(Reviewer reviewer) {
         // create dto
         ReviewerResponseDto dto = new ReviewerResponseDto();
+        if (reviewer == null) return dto;
+
         // map the data
         dto.setId(reviewer.getId());
         dto.setFullName(reviewer.getFullName());
@@ -128,32 +131,19 @@ public class ReviewerService {
 
     // assign-reviewer
     @Transactional
-    public MessageResponseDto assignReviewer(Long id, AddReviewerRequestDto request) {
+    public MessageResponseDto assignReviewer(Long id, Long reviewerId) {
 
         // find research-paper
         ResearchPaper paper = researchPaperRepository.findById(id).orElseThrow(
                 () -> new RuntimeException("Research Paper not found")
         );
         // find reviewer
-        Reviewer reviewer = reviewerRepository.findByEmail(request.getEmail()).orElse(null);
+        Reviewer reviewer = reviewerRepository.findById(reviewerId).orElseThrow(
+                () -> new RuntimeException("Reviewer not found")
+        );
 
-        if (reviewer != null) {
-            // modify paper
-            paper.setReviewer(reviewer);
-            paper.setStatus("UNDER REVIEW");
-        }
-        else {
-            // create new reviewer
-            Reviewer newReviewer = new Reviewer();
-            newReviewer.setFullName(request.getFullName());
-            newReviewer.setEmail(request.getEmail());
-            // save in db
-            reviewerRepository.save(newReviewer);
-
-            // modify paper
-            paper.setReviewer(newReviewer);
-            paper.setStatus("UNDER REVIEW");
-        }
+        paper.setReviewer(reviewer);
+        paper.setStatus("UNDER REVIEW");
         researchPaperRepository.save(paper);
 
         return new MessageResponseDto("Reviewer assigned successfully");
@@ -169,7 +159,7 @@ public class ReviewerService {
         Long reviewerId = authService.getCurrentUserId();
 
         // find pending and reviewed
-        int pending = researchPaperRepository.countByReviewer_IdAndStatus(reviewerId, "NOT_REVIEWED");
+        int pending = researchPaperRepository.countByReviewer_IdAndStatus(reviewerId, "UNDER REVIEW");
         int reviewed = researchPaperRepository.countByReviewer_IdAndStatusIn(reviewerId, List.of("ACCEPTED", "REJECTED"));
 
         ReviewerStatsResponseDto stats = new ReviewerStatsResponseDto();
@@ -177,5 +167,18 @@ public class ReviewerService {
         stats.setReviewed(reviewed);
 
         return stats;
+    }
+
+    // get reviewer details
+    public ReviewerDetailResponseDto getDetails(Long currentUserId) {
+
+        Reviewer r = reviewerRepository.findById(currentUserId).orElseThrow(
+                () -> new RuntimeException("Reviewer not found")
+        );
+
+        ReviewerDetailResponseDto dto = new ReviewerDetailResponseDto();
+        dto.setReviewerName(r.getFullName());
+        dto.setCollegeName(r.getCollege().getName());
+        return dto;
     }
 }

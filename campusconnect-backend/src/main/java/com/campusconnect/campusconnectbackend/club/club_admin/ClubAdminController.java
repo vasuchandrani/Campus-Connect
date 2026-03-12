@@ -7,6 +7,7 @@ import com.campusconnect.campusconnectbackend.club.club_team.ClubTeamService;
 import com.campusconnect.campusconnectbackend.club.announcement.dto.req.AnnouncementPatchRequestDto;
 import com.campusconnect.campusconnectbackend.club.announcement.dto.req.AnnouncementRequestDto;
 import com.campusconnect.campusconnectbackend.club.dto.req.AddMemberRequestDto;
+import com.campusconnect.campusconnectbackend.club.dto.req.HandOverRequestDto;
 import com.campusconnect.campusconnectbackend.club.dto.req.SaveOverviewRequestDto;
 import com.campusconnect.campusconnectbackend.club.event.dto.req.EventRequestDto;
 import com.campusconnect.campusconnectbackend.club.announcement.dto.res.AnnouncementResponseDto;
@@ -18,7 +19,9 @@ import com.campusconnect.campusconnectbackend.club.event.dto.res.EventResponseDt
 import com.campusconnect.campusconnectbackend.club.event.overview_generation.EventOverviewService;
 import com.campusconnect.campusconnectbackend.club.event.service.EventService;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
+import com.campusconnect.campusconnectbackend.security.security_management.dto.res.ClubProfileDto;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -120,23 +123,24 @@ public class ClubAdminController {
     }
 
     // create new event
-    @PostMapping(value = "/events/active", consumes = "multipart/form-data")
+    @PostMapping(value = "/events/active", consumes =MediaType.MULTIPART_FORM_DATA_VALUE)
     public MessageResponseDto createEvent(
             @PathVariable Long clubId,
-            @ModelAttribute EventRequestDto request,
-            @RequestParam("image") MultipartFile image
+            @RequestPart("event") EventRequestDto request,
+            @RequestPart("image") MultipartFile image
     ) {
         return eventService.createEvent(request, clubId, image);
     }
 
     // modify any event
-    @PatchMapping(value = "/events/active/{eventId}", consumes = "multipart/form-data")
+    @PatchMapping(value = "/events/active/{eventId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public MessageResponseDto updateEvent(
+            @PathVariable Long clubId,
             @PathVariable Long eventId,
-            @ModelAttribute EventRequestDto request,
-            @RequestParam("image") MultipartFile image
+            @RequestPart("event") EventRequestDto request,
+            @RequestPart("image") MultipartFile image
     ) {
-        return eventService.updateEvent(request, eventId, image);
+        return eventService.updateEvent(request, eventId, clubId, image);
     }
 
     // delete any event
@@ -155,13 +159,14 @@ public class ClubAdminController {
     }
 
     // save overview
-    @PatchMapping(value = "/events/finished/{eventId}/save-overview", consumes = "multipart/form-data")
+    @PatchMapping(value = "/events/finished/{eventId}/save-overview", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public MessageResponseDto saveOverview(
+            @PathVariable Long clubId,
             @PathVariable Long eventId,
-            @ModelAttribute SaveOverviewRequestDto request,
-            @RequestParam("images") List<MultipartFile> images
+            @RequestPart("overview") SaveOverviewRequestDto request,
+            @RequestPart("images") List<MultipartFile> images
     ) {
-        return eventOverviewService.saveOverview(eventId, request, images);
+        return eventOverviewService.saveOverview(clubId, eventId, request, images);
     }
 
 
@@ -222,5 +227,35 @@ public class ClubAdminController {
     @DeleteMapping("/members/remove/{studentId}")
     public MessageResponseDto removeMember(@PathVariable Long clubId, @PathVariable Long studentId) {
         return clubAdminService.removeMember(clubId, studentId);
+    }
+
+    /* Settings */
+
+    // get club details
+    @GetMapping("/details")
+    public ClubProfileDto getClubProfile(@PathVariable Long clubId) {
+        return clubService.getClubProfile(clubId);
+    }
+
+    // modify club details
+    @PutMapping("/details")
+    public MessageResponseDto modifyClubProfile(
+            @PathVariable Long clubId,
+            @RequestPart("profile") ClubProfileDto request,
+            @RequestPart("image") MultipartFile image
+    ) {
+        return clubService.modifyClubProfile(clubId, request, image);
+    }
+
+    // delete club
+    @DeleteMapping("/details/delete")
+    public MessageResponseDto deleteClub(@PathVariable Long clubId) {
+        return clubService.deleteClub(clubId);
+    }
+
+    // transfer admin/ownership
+    @PatchMapping("/details/handover")
+    public MessageResponseDto handOver(@PathVariable Long clubId, @RequestBody HandOverRequestDto request) {
+        return clubService.handOver(clubId, request);
     }
 }

@@ -11,7 +11,7 @@ import com.campusconnect.campusconnectbackend.club.event.entity.*;
 import com.campusconnect.campusconnectbackend.club.event.repository.*;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -50,6 +50,8 @@ public class EventService {
     private EventResponseDto getDto(Event event) {
         // create response dto
         EventResponseDto dto = new EventResponseDto();
+        if (event == null) return dto;
+
         // map the data
         dto.setId(event.getId());
         dto.setTitle(event.getTitle());
@@ -295,7 +297,8 @@ public class EventService {
         Event savedEvent = eventRepository.save(event);
 
         // upload image to cloudinary
-        String imageUrl = cloudinaryService.uploadImage(image, savedEvent.getId());
+        String path = "clubs/" + clubId + "/events/" + savedEvent.getId();
+        String imageUrl = cloudinaryService.uploadImage(image, path);
         // save in db
         savedEvent.setImage(imageUrl);
         eventRepository.save(savedEvent);
@@ -315,22 +318,24 @@ public class EventService {
 
     // modify the event
     @Transactional
-    public MessageResponseDto updateEvent(EventRequestDto request, Long eventId, MultipartFile image) {
+    public MessageResponseDto updateEvent(EventRequestDto request, Long eventId, Long clubId, MultipartFile image) {
 
         // get event
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new RuntimeException("Event not found"));
 
-        if (eventSponsorRepository.existsById(eventId)) {
+        if (eventSponsorRepository.existsByEvent_Id(eventId)) {
             eventSponsorRepository.deleteAllByEvent_Id(eventId);
         }
-        if (eventSpeakerRepository.existsById(eventId)) {
+        if (eventSpeakerRepository.existsByEvent_Id(eventId)) {
             eventSpeakerRepository.deleteAllByEvent_Id(eventId);
         }
 
         // update new image
-        event.setImage(cloudinaryService.uploadImage(image, eventId));
-
+        if (image != null && !image.isEmpty()) {
+            String path = "clubs/" + clubId + "/events/" + eventId;
+            event.setImage(cloudinaryService.uploadImage(image, path));
+        }
         // update
         if(request.getTitle() != null) {
             event.setTitle(request.getTitle());

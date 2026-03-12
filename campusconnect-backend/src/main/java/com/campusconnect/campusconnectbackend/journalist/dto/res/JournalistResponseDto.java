@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 public class JournalistResponseDto {
 
     @NotNull
-    private String id;
+    private Long id;
 
     @NotBlank
     private String fullName;
@@ -23,7 +23,7 @@ public class JournalistResponseDto {
     private boolean isActive;
 
     @NotNull
-    private Long studentId;
+    private String studentId;
 
     @NotNull
     private Long collegeId;

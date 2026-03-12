@@ -1,5 +1,6 @@
 package com.campusconnect.campusconnectbackend.integrations.mail_service.service;
 
+import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import jakarta.mail.internet.MimeMessage;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,7 +13,6 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Objects;
 
 @Slf4j
 @Service
@@ -65,7 +65,17 @@ public class EmailSenderService {
     }
 
     // send verification-code
-    public void sendVerificationCode(String email, String code, String role) {
+    public MessageResponseDto sendVerificationCode(String email, String code, String codeFor) {
+
+        if(email == null || email.isBlank())
+            throw new IllegalArgumentException("Email cannot be empty");
+
+        if(code == null || code.isBlank())
+            throw new IllegalArgumentException("Verification code cannot be empty");
+
+        if(codeFor == null || codeFor.isBlank())
+            codeFor = "Email Verification";
+
         try {
             // create message
             MimeMessage message = mailSender.createMimeMessage();
@@ -75,26 +85,23 @@ public class EmailSenderService {
             // set
             helper.setFrom("Campus-Connect <campusconnector.team@gmail.com>");
             helper.setTo(email);
-            helper.setSubject("Your Campus-Connect Verification Code");
+            helper.setSubject("Campus-Connect " + codeFor);
 
             // load template
-            String htmlContent = null;
-            if (role.equals("COLLEGE_ADMIN")) {
-                htmlContent = loadEmailTemplate("college_admin_verification.html")
-                        .replace("{{CODE}}", code);
-            }
-            else if (role.equals("STUDENT")) {
-                htmlContent = loadEmailTemplate("student_verification.html")
-                        .replace("{{CODE}}", code);
-            }
+            String htmlContent = loadEmailTemplate("verification_code.html")
+                    .replace("{{CODE}}", code)
+                    .replace("{{VERIFICATION_FOR}}", codeFor);
 
-            helper.setText(Objects.requireNonNullElse(htmlContent, "<p>Sorry,</p>" +
-                    "<p>We couldn’t process your request. Please resend the code request and try again.</p>"), true);
+            helper.setText(htmlContent, true);
 
             // send mail
             mailSender.send(message);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to send verification email", e);
+
+            return new MessageResponseDto("Verification code sent successfully");
+        }
+        catch (Exception e) {
+            System.out.println(e.getMessage());
+            return new MessageResponseDto("Failed to send verification code, please try again.");
         }
     }
 }

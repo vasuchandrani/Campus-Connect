@@ -21,11 +21,19 @@ public class ResearchesResponseDto {
 
     private String status;
 
+    private String department;
+
     private String reviewerFeedback;
 
     private LocalDateTime createdAt;
 
     private Long reviewerId;
 
-    private Long studentId;
+    private String studentId;
+
+    private String studentName;
+
+    private String reviewerName;
+
+    private String reviewerEmail;
 }

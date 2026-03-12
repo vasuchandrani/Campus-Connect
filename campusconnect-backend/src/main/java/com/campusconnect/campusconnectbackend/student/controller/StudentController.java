@@ -9,6 +9,7 @@ import com.campusconnect.campusconnectbackend.journalist.service.JournalistReque
 import com.campusconnect.campusconnectbackend.research_paper.ResearchPaperService;
 import com.campusconnect.campusconnectbackend.research_paper.dto.req.ResearchRequestDto;
 import com.campusconnect.campusconnectbackend.research_paper.dto.res.ResearchesResponseDto;
+import com.campusconnect.campusconnectbackend.security.security_management.dto.res.StudentProfileDto;
 import com.campusconnect.campusconnectbackend.student.dto.req.ClubRequestDto;
 import com.campusconnect.campusconnectbackend.club.announcement.dto.res.AnnouncementResponseDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.YourClubListDto;
@@ -21,8 +22,10 @@ import com.campusconnect.campusconnectbackend.club.event.service.EventRegistrati
 import com.campusconnect.campusconnectbackend.club.event.service.EventService;
 import com.campusconnect.campusconnectbackend.newspaper.service.NewsPaperService;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
+import com.campusconnect.campusconnectbackend.student.service.StudentAuth;
 import com.campusconnect.campusconnectbackend.student.service.StudentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -42,6 +45,7 @@ public class StudentController {
     private final ClubFollowerService clubFollowerService;
     private final JournalistRequestService journalistRequestService;
     private final ResearchPaperService researchPaperService;
+    private final StudentAuth studentAuth;
 
 
     /* Home */
@@ -214,14 +218,28 @@ public class StudentController {
     }
 
     // submit research-paper
-    @PostMapping(value = "/researches", consumes = "multipart/form-data")
+    @PostMapping(value = "/researches", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public MessageResponseDto submitResearchPaper(
-            @ModelAttribute ResearchRequestDto request,
-            @RequestParam("pdf") MultipartFile pdf
+            @RequestPart("research") ResearchRequestDto request,
+            @RequestPart("pdf") MultipartFile pdf
     ) {
         if (pdf.getSize() > 5 * 1024 * 1024) {
             throw new RuntimeException("PDF must be less than 5MB");
         }
         return researchPaperService.submitPaper(request, pdf);
+    }
+
+    /* Settings */
+
+    // get student profile
+    @GetMapping("/profile")
+    public StudentProfileDto getStudent() {
+        return studentAuth.getProfile(authService.getCurrentUserId());
+    }
+
+    // update student profile
+    @PutMapping("/profile")
+    public MessageResponseDto updateStudent(@RequestBody StudentProfileDto request) {
+        return studentAuth.updateProfile(authService.getCurrentUserId(), request);
     }
 }

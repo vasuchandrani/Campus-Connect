@@ -6,7 +6,7 @@ import com.campusconnect.campusconnectbackend.club.club_follower.id.ClubFollower
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import com.campusconnect.campusconnectbackend.student.service.StudentRepoService;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -60,9 +60,12 @@ public class ClubFollowerService {
             clubFollowerRepository.deleteByClubAndStudent(clubId, studentId);
         }
 
+        Club club =  clubRepository.findById(clubId).orElseThrow(
+                () -> new RuntimeException("Club not found")
+        );
         if (follow) {
-            return new MessageResponseDto("Club Followed Successfully");
+            return new MessageResponseDto("Followed "+ club.getName() +" Successfully");
         }
-        return new MessageResponseDto("Club Unfollowed Successfully");
+        return new MessageResponseDto("Unfollowed " + club.getName() + " Successfully");
     }
 }

@@ -12,5 +12,6 @@ public class EventWinnerRequestDto {
     @NotBlank
     private String name;
 
+    @Email
     private String email;
 }

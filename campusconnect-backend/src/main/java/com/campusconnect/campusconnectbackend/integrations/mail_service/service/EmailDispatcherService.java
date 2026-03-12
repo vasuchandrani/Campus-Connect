@@ -111,4 +111,17 @@ public class EmailDispatcherService {
                 html
         );
     }
+
+    // send otp email (for reset password)
+    public boolean sendResetPasswordOtp(String email, String otp) {
+        String html = emailSenderService
+                .loadEmailTemplate("reset_password_otp.html")
+                .replace("{{OTP_CODE}}", otp);
+
+        return emailSenderService.sendHtmlEmail(
+                email,
+                "RESET PASSWORD OTP - Campus-Connect",
+                html
+        );
+    }
 }

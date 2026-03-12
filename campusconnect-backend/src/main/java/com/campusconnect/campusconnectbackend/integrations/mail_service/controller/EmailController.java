@@ -3,12 +3,10 @@ package com.campusconnect.campusconnectbackend.integrations.mail_service.control
 import com.campusconnect.campusconnectbackend.integrations.mail_service.dto.club_verification.ClubVerificationDto;
 import com.campusconnect.campusconnectbackend.integrations.mail_service.dto.club_verification.ClubVerifiedDto;
 import com.campusconnect.campusconnectbackend.integrations.mail_service.dto.college_verification.CollegeVerificationDto;
-import com.campusconnect.campusconnectbackend.integrations.mail_service.dto.email_verification.CodeRequestDto;
-import com.campusconnect.campusconnectbackend.integrations.mail_service.dto.email_verification.VerifyRequestDto;
 import com.campusconnect.campusconnectbackend.integrations.mail_service.dto.journalist.JournalistAssignmentDto;
 import com.campusconnect.campusconnectbackend.integrations.mail_service.dto.reviewer.ReviewerAssignmentDto;
 import com.campusconnect.campusconnectbackend.integrations.mail_service.service.EmailDispatcherService;
-import com.campusconnect.campusconnectbackend.integrations.mail_service.verification_code.VerificationCodeService;
+import com.campusconnect.campusconnectbackend.security.verification_code.service.VerificationCodeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,20 +18,8 @@ public class EmailController {
     private final EmailDispatcherService emailDispatcherService;
     private final VerificationCodeService verificationCodeService;
 
-    // send email verification code to
-    // college-admin and student while sign-up
-    @PostMapping("/send-code")
-    public boolean sendEmail(@RequestBody CodeRequestDto request) {
-        return verificationCodeService.sendCode(request);
-    }
-    // verify the code
-    @PostMapping("/verify-code")
-    public boolean sendEmail(@RequestBody VerifyRequestDto request) {
-        return verificationCodeService.verifyCode(request);
-    }
-
     // send college-verification mail or
-    // college-verified mail to college-admin
+    // college-verified mail to college-admin - testing
     @PostMapping("/college-verification-mail")
     public boolean sendEmail(@RequestBody CollegeVerificationDto request) {
 

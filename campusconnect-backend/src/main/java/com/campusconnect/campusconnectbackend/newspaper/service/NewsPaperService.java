@@ -2,6 +2,7 @@ package com.campusconnect.campusconnectbackend.newspaper.service;
 
 import com.campusconnect.campusconnectbackend.college.College;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
+import com.campusconnect.campusconnectbackend.integrations.cloudinary.service.CloudinaryService;
 import com.campusconnect.campusconnectbackend.newspaper.dto.req.NewsPaperRequestDto;
 import com.campusconnect.campusconnectbackend.journalist.entity.Journalist;
 import com.campusconnect.campusconnectbackend.journalist.repository.JournalistRepository;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 
@@ -25,18 +27,33 @@ public class NewsPaperService {
     private final NewsPaperRepository newsPaperRepository;
     private final AuthService authService;
     private final JournalistRepository journalistRepository;
+    private final CloudinaryService cloudinaryService;
+
+    // upload image on cloudinary and get url
+    private String getUploadedImageUrl (MultipartFile image, Long journalistId) {
+        // upload image and get url
+        String path = "news_papers/" +  journalistId;
+
+        return cloudinaryService.uploadImage(image, path);
+    }
 
     // get DTO
     private NewsPaperResponseDto getDto(NewsPaper newsPaper) {
         // create response dto
         NewsPaperResponseDto dto = new NewsPaperResponseDto();
+        if (newsPaper == null) return dto;
+
         // map data
         dto.setId(newsPaper.getId());
         dto.setTitle(newsPaper.getTitle());
         dto.setContent(newsPaper.getContent());
         dto.setImageUrl(newsPaper.getImageUrl());
         dto.setCreatedAt(newsPaper.getCreatedAt());
-        dto.setJournalistName(newsPaper.getJournalist().getFullName());
+        dto.setStatus(newsPaper.getStatus());
+
+        if (newsPaper.getJournalist() != null) {
+            dto.setJournalistName(newsPaper.getJournalist().getFullName());
+        }
         dto.setCollegeName(newsPaper.getCollege().getName());
 
         return dto;
@@ -60,7 +77,7 @@ public class NewsPaperService {
         Long collegeId = authService.getCurrentCollegeId();
         Pageable pageable = PageRequest.of(0, 4);
         // find all newspapers
-        List<NewsPaper> newsPapers = newsPaperRepository.findLatestByCollegeId(collegeId, pageable);
+        List<NewsPaper> newsPapers = newsPaperRepository.findLatestByCollegeId(collegeId, "PUBLISHED", pageable);
 
         return getDtoList(newsPapers);
     }
@@ -70,15 +87,15 @@ public class NewsPaperService {
 
         // get college-id
         Long collegeId = authService.getCurrentCollegeId();
+        Pageable pageable = PageRequest.of(0, 1);
 
         // return the latest one
         NewsPaper news = newsPaperRepository
-                .findLatestByCollegeId(collegeId, PageRequest.of(0, 1))
+                .findLatestByCollegeId(collegeId, "PUBLISHED", pageable)
                 .stream()
                 .findFirst()
                 .orElse(null);
 
-        assert news != null;
         return getDto(news);
     }
 
@@ -88,7 +105,7 @@ public class NewsPaperService {
         // find college
         Long collegeId = authService.getCurrentCollegeId();
 
-        List<NewsPaper> newsPapers = newsPaperRepository.findAllByCollege_Id(collegeId);
+        List<NewsPaper> newsPapers = newsPaperRepository.findAllByCollege_IdAndStatus(collegeId, "PUBLISHED");
 
         return getDtoList(newsPapers);
     }
@@ -96,6 +113,7 @@ public class NewsPaperService {
     /* College-Admin */
 
     // unpublish newspaper
+    @Transactional
     public MessageResponseDto unpublishNewsPaper(Long newsPaperId) {
         // check if exist
         if (!newsPaperRepository.existsById(newsPaperId)) {
@@ -109,7 +127,7 @@ public class NewsPaperService {
 
     // get count of publish newspaper by college
     public int getNewsPapersCountByCollege(Long collegeId) {
-        return newsPaperRepository.countByCollege_Id(collegeId);
+        return newsPaperRepository.countByCollege_IdAndStatus(collegeId,  "PUBLISHED");
     }
 
 
@@ -123,15 +141,23 @@ public class NewsPaperService {
 
         // find newspapers
         Pageable page = PageRequest.of(0, 3);
-        List<NewsPaper> newsPapers = newsPaperRepository.findLatestNewsPapers(journalistId, page);
+        List<NewsPaper> newsPapers = newsPaperRepository.findLatestNewsPapers(journalistId, "PUBLISHED", page);
 
         return getDtoList(newsPapers);
     }
 
-    // get all newspaper by journalist
-    public List<NewsPaperResponseDto> getNewsPaperByJournalist(Long JournalistId){
-        // find all newspapers
-        List<NewsPaper> list = newsPaperRepository.findByJournalist_Id(JournalistId);
+    // get all published newspaper by journalist
+    public List<NewsPaperResponseDto> getNewsPaperByJournalist(Long journalistId){
+        // find all published newspapers
+        List<NewsPaper> list = newsPaperRepository.findAllByJournalist_IdAndStatus(journalistId, "PUBLISHED");
+
+        return getDtoList(list);
+    }
+
+    // get all drafts of journalist
+    public List<NewsPaperResponseDto> getDraftPaperByJournalistId(Long journalistId){
+        // find all draft newspapers
+        List<NewsPaper> list = newsPaperRepository.findAllByJournalist_IdAndStatus(journalistId, "DRAFT");
 
         return getDtoList(list);
     }
@@ -146,9 +172,88 @@ public class NewsPaperService {
         return getDto(news);
     }
 
+    // create draft (save as draft)
+    @Transactional
+    public MessageResponseDto createDraft(NewsPaperRequestDto request, MultipartFile image) {
+
+        // find journalist
+        Long journalistId = authService.getCurrentUserId();
+        Journalist journalist = journalistRepository.findById(journalistId).orElseThrow(
+                () -> new RuntimeException("Journalist Not Found")
+        );
+        College college = journalist.getCollege();
+
+        // upload image and get url
+        String imageUrl = getUploadedImageUrl(image, journalistId);
+
+        // create
+        NewsPaper newsPaper = new NewsPaper();
+
+        newsPaper.setTitle(request.getTitle());
+        newsPaper.setContent(request.getContent());
+        newsPaper.setImageUrl(imageUrl);
+        newsPaper.setStatus("DRAFT");
+        newsPaper.setJournalist(journalist);
+        newsPaper.setCollege(college);
+
+        newsPaperRepository.save(newsPaper);
+
+        return new MessageResponseDto("Draft saved Successfully");
+    }
+
+    // modify any draft
+    @Transactional
+    public MessageResponseDto updateDraft(Long  journalistId, Long draftId, NewsPaperRequestDto request, MultipartFile image) {
+        // find draft
+        NewsPaper draftNewsPaper = newsPaperRepository.findById(draftId).orElseThrow(
+                ()->new RuntimeException("Draft Not Found")
+        );
+
+        if (image != null) {
+            String imageUrl = getUploadedImageUrl(image, journalistId);
+            draftNewsPaper.setImageUrl(imageUrl);
+        }
+        if (request.getTitle() != null) {
+            draftNewsPaper.setTitle(request.getTitle());
+        }
+        if (request.getContent() != null) {
+            draftNewsPaper.setContent(request.getContent());
+        }
+        newsPaperRepository.save(draftNewsPaper);
+
+        return new MessageResponseDto("Draft Modified Successfully");
+    }
+
+    // delete any draft
+    @Transactional
+    public MessageResponseDto deleteDraft(Long draftId) {
+        // check if exist
+        if (!newsPaperRepository.existsById(draftId)) {
+            throw new  RuntimeException("Draft Not Found");
+        }
+        // delete
+        newsPaperRepository.deleteById(draftId);
+        return new MessageResponseDto("Draft Deleted Successfully");
+    }
+
+    // publish draft -(change status to PUBLISHED)
+    @Transactional
+    public MessageResponseDto publishDraftPaper(Long draftId) {
+        // find draft
+        NewsPaper draftNewsPaper = newsPaperRepository.findById(draftId).orElseThrow(
+                ()->new RuntimeException("Draft Not Found")
+        );
+
+        // change status to PUBLISHED
+        draftNewsPaper.setStatus("PUBLISHED");
+        newsPaperRepository.save(draftNewsPaper);
+
+        return new MessageResponseDto("Draft Published Successfully");
+    }
+
     // publish new newspaper
     @Transactional
-    public MessageResponseDto publishNewspaper(NewsPaperRequestDto request) {
+    public MessageResponseDto publishNewspaper(NewsPaperRequestDto request, MultipartFile image) {
 
         // find journalist
         Long journalistId = authService.getCurrentUserId();
@@ -158,10 +263,13 @@ public class NewsPaperService {
         // find college
         College college = journalist.getCollege();
 
+        String imageUrl = getUploadedImageUrl(image, journalistId);
+
         // create
         NewsPaper newsPaper = new NewsPaper();
         newsPaper.setContent(request.getContent());
-        newsPaper.setImageUrl(request.getImageUrl());
+        newsPaper.setImageUrl(imageUrl);
+        newsPaper.setStatus("PUBLISHED");
         newsPaper.setTitle(request.getTitle());
         newsPaper.setCollege(college);
         newsPaper.setJournalist(journalist);

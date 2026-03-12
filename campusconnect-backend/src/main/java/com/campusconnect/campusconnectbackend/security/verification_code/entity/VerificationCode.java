@@ -1,4 +1,4 @@
-package com.campusconnect.campusconnectbackend.integrations.mail_service.verification_code;
+package com.campusconnect.campusconnectbackend.security.verification_code.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;

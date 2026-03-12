@@ -1,9 +1,7 @@
 package com.campusconnect.campusconnectbackend.club.club_admin;
 
-import com.campusconnect.campusconnectbackend.club.club_member.ClubMemberRepository;
+import com.campusconnect.campusconnectbackend.club.ClubMemberManagementService;
 import com.campusconnect.campusconnectbackend.club.club_member.ClubMemberService;
-import com.campusconnect.campusconnectbackend.club.club_member.ClubMember;
-import com.campusconnect.campusconnectbackend.club.club_member.id.ClubMemberId;
 import com.campusconnect.campusconnectbackend.club.Club;
 import com.campusconnect.campusconnectbackend.club.club_follower.ClubFollowerService;
 import com.campusconnect.campusconnectbackend.club.ClubService;
@@ -14,10 +12,9 @@ import com.campusconnect.campusconnectbackend.club.event.service.EventService;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.student.Student;
 import com.campusconnect.campusconnectbackend.student.service.StudentRepoService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -27,8 +24,8 @@ public class ClubAdminService {
     private final ClubTeamService clubTeamService;
     private final ClubFollowerService clubFollowerService;
     private final ClubService clubService;
-    private final ClubMemberRepository clubMemberRepository;
     private final StudentRepoService studentRepoService;
+    private final ClubMemberManagementService clubMemberManagementService;
 
     // get stats
     public ClubDashboardStatsDto getStats(Long clubId) {
@@ -43,38 +40,17 @@ public class ClubAdminService {
     // add student as club-member
     @Transactional
     public MessageResponseDto addMember(Long clubId, AddMemberRequestDto request) {
-        // find the student
+
         Student student = studentRepoService.getStudentByEmail(request.getEmail());
         Club club = clubService.getClubById(clubId);
 
-        // create embedded id
-        ClubMemberId clubMemberId = new ClubMemberId();
-        clubMemberId.setClubId(clubId);
-        clubMemberId.setStudentId(student.getId());
-
-        // create club-member
-        ClubMember member = new ClubMember();
-        member.setId(clubMemberId);
-        member.setClub(club);
-        member.setStudent(student);
-        member.setRole(request.getRole());
-
-        // save in db
-        clubMemberRepository.save(member);
-        return new MessageResponseDto("Member added successfully");
+        return clubMemberManagementService.addClubMember(club, student, request.getRole());
     }
 
     // remove club-member
     @Transactional
     public MessageResponseDto removeMember(Long clubId, Long studentId) {
-        // create club-member id
-        ClubMemberId clubMemberId = new ClubMemberId();
-        clubMemberId.setClubId(clubId);
-        clubMemberId.setStudentId(studentId);
 
-        if (!clubMemberRepository.existsById(clubMemberId)) {
-            throw new RuntimeException("Club member not found");
-        }
-        return new MessageResponseDto("Member removed successfully");
+        return clubMemberManagementService.removeClubMember(clubId, studentId);
     }
 }

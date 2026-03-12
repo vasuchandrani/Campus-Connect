@@ -7,15 +7,24 @@ import com.campusconnect.campusconnectbackend.club.club_member.ClubMember;
 import com.campusconnect.campusconnectbackend.club.club_team.entity.ClubTeam;
 import com.campusconnect.campusconnectbackend.club.club_follower.ClubFollowerRepository;
 import com.campusconnect.campusconnectbackend.club.club_team.repository.ClubTeamRepository;
+import com.campusconnect.campusconnectbackend.club.dto.req.HandOverRequestDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.club_card.*;
 import com.campusconnect.campusconnectbackend.club.dto.res.ClubListDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.YourClubListDto;
 import com.campusconnect.campusconnectbackend.club.event.entity.Event;
 import com.campusconnect.campusconnectbackend.club.event.repository.EventRepository;
+import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
+import com.campusconnect.campusconnectbackend.integrations.cloudinary.service.CloudinaryService;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
+import com.campusconnect.campusconnectbackend.security.security_management.dto.res.ClubProfileDto;
+import com.campusconnect.campusconnectbackend.security.verification_code.dto.VerifyCodeRequestDto;
+import com.campusconnect.campusconnectbackend.security.verification_code.service.VerificationCodeService;
 import com.campusconnect.campusconnectbackend.student.Student;
+import com.campusconnect.campusconnectbackend.student.service.StudentRepoService;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -33,6 +42,10 @@ public class ClubService {
     private final ClubFollowerRepository clubFollowerRepository;
     private final EventRepository eventRepository;
     private final AnnouncementRepository announcementRepository;
+    private final CloudinaryService cloudinaryService;
+    private final StudentRepoService studentRepoService;
+    private final VerificationCodeService verificationCodeService;
+    private final ClubMemberManagementService clubMemberManagementService;
 
     // get club by id
     public Club getClubById(Long clubId) {
@@ -122,6 +135,7 @@ public class ClubService {
         ClubAdminDto clubAdminDto = new ClubAdminDto();
         clubAdminDto.setId(clubAdmin.getId());
         clubAdminDto.setName(clubAdmin.getFullName());
+        clubAdminDto.setImage("");
 
         // get all club-teams details
         List<TeamCardDto> teams = new ArrayList<>();
@@ -148,7 +162,8 @@ public class ClubService {
             eventSummaryDto.setTitle(event.getTitle());
             eventSummaryDto.setDescription(event.getDescription());
             eventSummaryDto.setImage(event.getImage());
-            eventSummaryDto.setEventDate(event.getStartTime());
+            eventSummaryDto.setStartTime(event.getStartTime());
+            eventSummaryDto.setEndTime(event.getEndTime());
             eventSummaryDto.setLocation(event.getLocation());
             events.add(eventSummaryDto);
         }
@@ -210,5 +225,110 @@ public class ClubService {
     // get count of clubs in college
     public int getClubsCountByCollege(Long collegeId) {
         return clubRepository.countByCollege_Id(collegeId);
+    }
+
+    // get club profile
+    public ClubProfileDto getClubProfile(Long clubId) {
+
+        // find club
+        Club club = clubRepository.findById(clubId).orElseThrow(
+                () -> new RuntimeException("Club not found!")
+        );
+
+        // create response
+        ClubProfileDto profile = new ClubProfileDto();
+        profile.setClubName(club.getName());
+        profile.setClubDescription(club.getDescription());
+        profile.setLogoUrl(club.getLogoUrl());
+        profile.setWebsite(club.getWebsite());
+
+        return profile;
+    }
+
+    // modify club profile
+    @Transactional
+    public MessageResponseDto modifyClubProfile(Long clubId, ClubProfileDto request, MultipartFile image) {
+
+        // find club
+        Club club = clubRepository.findById(clubId).orElseThrow(
+                () -> new RuntimeException("Club not found!")
+        );
+
+        // upload image on cloudinary
+        if (image != null) {
+            String path = "clubs/" + clubId;
+            String imageUrl = cloudinaryService.uploadImage(image, path);
+            club.setLogoUrl(imageUrl);
+        }
+
+        // overwrite all fields to update
+        club.setName(request.getClubName());
+        club.setDescription(request.getClubDescription());
+        club.setWebsite(request.getWebsite());
+
+        clubRepository.save(club);
+
+        return new MessageResponseDto("Club Profile updated successfully!");
+    }
+
+    // delete club
+    @Transactional
+    public MessageResponseDto deleteClub(Long clubId) {
+        try {
+            if (!clubRepository.existsById(clubId)) {
+                return new  MessageResponseDto("Club not found!");
+            }
+            // delete
+            clubRepository.deleteById(clubId);
+
+            return new MessageResponseDto("Club deleted successfully!");
+        }
+        catch (Exception e) {
+            System.out.println(e.getMessage());
+            return new MessageResponseDto("Club could not be deleted!, Try again later.");
+        }
+    }
+
+    // verify the verification code and handover leadership
+    @Transactional
+    public MessageResponseDto handOver(Long clubId, HandOverRequestDto request) {
+
+        Club club = getClubById(clubId);
+
+        // find current admin
+        Long adminId = authService.getCurrentUserId();
+        Student admin = studentRepoService.getStudent(adminId);
+
+        // verify the code
+        VerifyCodeRequestDto dto = new VerifyCodeRequestDto();
+        dto.setEmail(admin.getEmail());
+        dto.setCode(request.getVerificationCode());
+        boolean isValid = verificationCodeService.verifyCode(dto);
+
+        if (!isValid) {
+            return new MessageResponseDto("Invalid verification code");
+        }
+
+        // change role of current-admin
+        ClubMember currentAdmin = clubMemberRepository.findClubMemberByClub_IdAndStudent_Id(clubId, adminId);
+        if (currentAdmin == null) {
+            return new MessageResponseDto("Club member not found!");
+        }
+        currentAdmin.setRole("MEMBER");
+        clubMemberRepository.save(currentAdmin);
+
+        // find new-admin
+        Student newAdmin = studentRepoService.getStudentByEmail(request.getNewAdminEmail());
+        ClubMember member = clubMemberRepository.findClubMemberByClub_IdAndStudent_Id(clubId, newAdmin.getId());
+
+        if (member == null) { // if new-admin is not a club-member
+            clubMemberManagementService.addClubMember(club, newAdmin, "ADMIN");
+        }
+        else { // new-admin is already club-member
+            member.setRole("ADMIN");
+            clubMemberRepository.save(member);
+        }
+
+        return new MessageResponseDto("You Handover the leadership to" + newAdmin.getFullName() + "successfully!");
     }
 }

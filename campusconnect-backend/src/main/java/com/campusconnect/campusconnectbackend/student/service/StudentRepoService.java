@@ -14,6 +14,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -34,6 +35,8 @@ public class StudentRepoService {
     private StudentResponseDto getDto(Student student) {
         // create dto
         StudentResponseDto dto = new StudentResponseDto();
+        if (student == null) return dto;
+
         // map the data
         dto.setId(student.getId());
         dto.setStudentId(student.getStudentId());
@@ -83,6 +86,7 @@ public class StudentRepoService {
     }
 
     // register multiple students
+    @Transactional
     public MessageResponseDto processExcel(MultipartFile file, Long collegeId) {
 
         try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
@@ -129,6 +133,7 @@ public class StudentRepoService {
     }
 
     // register single student
+    @Transactional
     public MessageResponseDto registerStudent(StudentRegisterRequestDto request, Long collegeId) {
 
         // generate password

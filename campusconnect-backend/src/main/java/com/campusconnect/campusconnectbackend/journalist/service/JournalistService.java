@@ -6,10 +6,9 @@ import com.campusconnect.campusconnectbackend.journalist.dto.res.JournalistRespo
 import com.campusconnect.campusconnectbackend.journalist.dto.res.JournalistStatResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.entity.Journalist;
 import com.campusconnect.campusconnectbackend.journalist.repository.JournalistRepository;
-import com.campusconnect.campusconnectbackend.newspaper.repository.DraftNewsPaperRepository;
 import com.campusconnect.campusconnectbackend.newspaper.repository.NewsPaperRepository;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -21,20 +20,21 @@ import java.util.List;
 public class JournalistService {
     private final JournalistRepository journalistRepository;
     private final AuthService authService;
-    private final DraftNewsPaperRepository draftNewsPaperRepository;
     private final NewsPaperRepository newsPaperRepository;
 
     // get DTO
-    private JournalistResponseDto getDto(Journalist journalists) {
+    private JournalistResponseDto getDto(Journalist journalist) {
         // create dto
         JournalistResponseDto dto = new JournalistResponseDto();
+        if (journalist == null) return dto;
+
         // map the data
-        dto.setId(journalists.getStudent().getStudentId());
-        dto.setFullName(journalists.getFullName());
-        dto.setActive(journalists.isActive());
-        dto.setCreatedAt(journalists.getCreatedAt());
-        dto.setCollegeId(journalists.getCollege().getId());
-        dto.setStudentId(journalists.getStudent().getId());
+        dto.setId(journalist.getId());
+        dto.setFullName(journalist.getFullName());
+        dto.setActive(journalist.isActive());
+        dto.setCreatedAt(journalist.getCreatedAt());
+        dto.setCollegeId(journalist.getCollege().getId());
+        dto.setStudentId(journalist.getStudent().getStudentId());
 
         return dto;
     }
@@ -91,8 +91,8 @@ public class JournalistService {
     public JournalistStatResponseDto getStat(Long journalistId){
 
         // find stats
-        int newsPaperCnt = newsPaperRepository.countByJournalist_Id(journalistId);
-        int draftCnt = draftNewsPaperRepository.countByJournalist_Id(journalistId);
+        int newsPaperCnt = newsPaperRepository.countByJournalist_IdAndStatus(journalistId, "PUBLISHED");
+        int draftCnt = newsPaperRepository.countByJournalist_IdAndStatus(journalistId, "DRAFT");
 
         // create response
         JournalistStatResponseDto dto = new JournalistStatResponseDto();
@@ -111,7 +111,7 @@ public class JournalistService {
 
         JournalistDetailResponseDto dto = new JournalistDetailResponseDto();
         dto.setName(j.getFullName());
-        dto.setCollageName(j.getCollege().getName());
+        dto.setCollegeName(j.getCollege().getName());
         return dto;
 
     }

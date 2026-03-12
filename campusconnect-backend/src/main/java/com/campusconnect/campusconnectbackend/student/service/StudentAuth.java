@@ -2,12 +2,16 @@ package com.campusconnect.campusconnectbackend.student.service;
 
 import com.campusconnect.campusconnectbackend.college.service.CollegeService;
 import com.campusconnect.campusconnectbackend.dto.request.LoginRequestDto;
+import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
+import com.campusconnect.campusconnectbackend.security.security_management.dto.req.ChangePasswordRequestDto;
+import com.campusconnect.campusconnectbackend.security.security_management.dto.req.ForgetPasswordRequestDto;
 import com.campusconnect.campusconnectbackend.student.dto.req.StudentSignupRequestDto;
 import com.campusconnect.campusconnectbackend.dto.response.AuthResponseDto;
 import com.campusconnect.campusconnectbackend.student.StudentRepository;
 import com.campusconnect.campusconnectbackend.security.jwt.JwtTokenProvider;
 import com.campusconnect.campusconnectbackend.student.Student;
-import jakarta.transaction.Transactional;
+import com.campusconnect.campusconnectbackend.security.security_management.dto.res.StudentProfileDto;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -25,7 +29,7 @@ public class StudentAuth {
     private final CollegeService collegeService;
 
     // get student-object
-    public Student getObject(StudentSignupRequestDto dto) {
+    private Student getObject(StudentSignupRequestDto dto) {
         // create student
         Student student = new Student();
         student.setStudentId(dto.getId());
@@ -108,4 +112,82 @@ public class StudentAuth {
                 "/campus-connect/student/dashboard"
         );
     }
+
+    // get profile
+    public StudentProfileDto getProfile(Long studentId) {
+
+        // find student
+        Student student = studentRepository.findById(studentId).orElseThrow(
+                () -> new RuntimeException("You are not logged in")
+        );
+
+        // create response
+        StudentProfileDto profile = new StudentProfileDto();
+        profile.setFullName(student.getFullName());
+        profile.setGender(student.getGender());
+
+        return profile;
+    }
+
+    // update profile
+    @Transactional
+    public MessageResponseDto updateProfile(Long studentId, StudentProfileDto request) {
+
+        // find student
+        Student student = studentRepository.findById(studentId).orElseThrow(
+                () -> new RuntimeException("You are not logged in")
+        );
+
+        // overwrite all fields to update
+        student.setFullName(request.getFullName());
+        student.setGender(request.getGender());
+
+        studentRepository.save(student);
+
+        return new MessageResponseDto("Your profile has been updated successfully!");
+    }
+
+    // reset password -(forget password)
+    @Transactional
+    public MessageResponseDto resetPassword(ForgetPasswordRequestDto request) {
+
+        String email = request.getEmail();
+        String password = request.getPassword();
+
+        // find student
+        Student student = studentRepository.findByEmail(email).orElseThrow(
+                () -> new RuntimeException("User not found, Try again!")
+        );
+
+        // change password
+        student.setPasswordHash(passwordEncoder.encode(password));
+        studentRepository.save(student);
+
+        return new MessageResponseDto("Your password changed successfully!");
+    }
+
+    // change password when provided old-password
+    @Transactional
+    public MessageResponseDto changePassword(Long studentId, ChangePasswordRequestDto request) {
+
+        String oldPassword = request.getOldPassword();
+        String newPassword = request.getNewPassword();
+
+        // find student
+        Student student = studentRepository.findById(studentId).orElseThrow(
+                () -> new RuntimeException("You are not logged in")
+        );
+
+        // check old-password
+        if (!passwordEncoder.matches(oldPassword, student.getPasswordHash())) {
+            throw new RuntimeException("Your old-password is wrong!");
+        }
+
+        // update
+        student.setPasswordHash(passwordEncoder.encode(newPassword));
+        studentRepository.save(student);
+
+        return new MessageResponseDto("Your password changed successfully!");
+    }
+
 }
