@@ -55,7 +55,7 @@ const ClubMemberEventsPage = () => {
   const [overviewTab, setOverviewTab] = useState("write");
   const [overviewMarkdown, setOverviewMarkdown] = useState("");
   const [overviewPhotos, setOverviewPhotos] = useState([]);
-  const [newPhotoUrl, setNewPhotoUrl] = useState("");
+  const [newPhoto, setNewPhoto] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isOverviewOpen, setIsOverviewOpen] = useState(false);
@@ -80,10 +80,40 @@ const ClubMemberEventsPage = () => {
     registrationEnd: "",
     location: "",
     description: "",
-    image: "",
+    image: null,
     speakers: [],
     sponsors: [],
   });
+  const [now, setNow] = useState(new Date());
+  const [existingImages, setExistingImages] = useState([]);
+
+  const resetCreateEventForm = () => {
+    setNewEvent({
+      title: "",
+      image: null,
+      date: "",
+      time: "",
+      registrationEnd: "",
+      location: "",
+      description: "",
+      endDate: "",
+      endTime: "",
+    });
+
+    setSpeakers([]);
+    setSponsors([]);
+
+    setNewSpeaker({ name: "", email: "", tagline: "" });
+    setNewSponsor({ name: "", tagline: "" });
+  };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   //render preview of markdown overview
   const renderedPreview = marked.parse(overviewMarkdown || "");
@@ -95,6 +125,10 @@ const ClubMemberEventsPage = () => {
     return { date, time: time.substring(0, 5) };
   };
 
+  const handleSelectPhoto = (e) => {
+    const file = e.target.files[0];
+    setNewPhoto(file);
+  };
   // Fetch club events
   const fetchClubEvents = async () => {
     const token = localStorage.getItem("authToken");
@@ -130,107 +164,179 @@ const ClubMemberEventsPage = () => {
       );
   };
 
-  //create event
-  const handleCreateEvent = () => {
+  const fetchEventOverviewDetails = async (eventId) => {
     const token = localStorage.getItem("authToken");
 
-    const eventDate = `${newEvent.date}T${newEvent.time}:00`;
-    const registrationEnd = `${newEvent.registrationEnd}T23:59:59`;
-    const endDate = `${newEvent.endDate}T${newEvent.endTime}:00`;
+    try {
+      const res = await fetch(`${baseUrl}/events/finished/${eventId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = await res.json();
+
+      setOverviewEvent(data);
+
+      if (data.overview) setOverviewMarkdown(data.overview);
+
+      if (data.images) setExistingImages(data.images);
+
+      if (data.winners) setWinners(data.winners);
+
+      setIsOverviewOpen(true);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to load overview details",
+        status: "error",
+      });
+    }
+  };
+
+  const getEventStatus = (event) => {
+    const start = new Date(event.startTime);
+    const end = new Date(event.endTime);
+
+    if (now >= start && now <= end) return "LIVE";
+    if (now < start) return "UPCOMING";
+    return "FINISHED";
+  };
+  const handleCreateEvent = async () => {
+    const token = localStorage.getItem("authToken");
 
     const payload = {
-      title: newEvent.title,
-      description: newEvent.description,
-      location: newEvent.location,
-      imageUrl: newEvent.image,
-      eventDate,
-      registrationEnd,
-      endDate,
-      speakers,
-      sponsors,
+      ...newEvent,
+      startTime: `${newEvent.date}T${newEvent.time}:00`,
+      endTime: `${newEvent.endDate}T${newEvent.endTime}:00`,
+      registrationEnd: `${newEvent.registrationEnd}T23:59:59`,
+      sponsors: sponsors,
+      speakers: speakers,
     };
 
-    fetch(`${baseUrl}/events/active`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    })
-      .then(() => {
+    try {
+      const formData = new FormData();
+
+      formData.append(
+        "event",
+        new Blob([JSON.stringify(payload)], { type: "application/json" }),
+      );
+
+      if (newEvent.image) {
+        formData.append("image", newEvent.image);
+      } else {
+        alert("Please upload an image for the event.");
+        return;
+      }
+
+      const response = await fetch(
+        `http://localhost:8080/campus-connect/clubs/${clubId}/member/events/active`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        },
+      );
+
+      const data = await response.json();
+
+      if (data.message === "Event created successfully") {
         toast({
           title: "Success",
-          description: "Event created successfully",
+          description: data.message,
           status: "success",
         });
         fetchClubEvents();
-      })
-      .catch((err) => {
+        setCreateOpen(false);
+        resetCreateEventForm();
+      } else {
         toast({
-          title: "Error",
-          description: "Failed to create event",
+          title: "error",
+          description: data.message,
           status: "error",
         });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create event",
+        status: "error",
       });
-
-    setCreateOpen(false);
-    setNewEvent({
-      title: "",
-      date: "",
-      time: "",
-      registrationEnd: "",
-      location: "",
-      description: "",
-      image: "",
-      endDate: "",
-      endTime: "",
-    });
+    }
   };
 
   //update event
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     const token = localStorage.getItem("authToken");
 
-    const eventDate = `${selectedEvent.date}T${selectedEvent.time}:00`;
+    const startTime = `${selectedEvent.date}T${selectedEvent.time}:00`;
     const registrationEnd = `${selectedEvent.registrationEndDate}T23:59:59`;
-    const endDate = `${selectedEvent.endDate}T${selectedEvent.endTime}:00`;
+    const endTime = `${selectedEvent.endDate}T${selectedEvent.endTime}:00`;
 
     const payload = {
       title: selectedEvent.title,
       description: selectedEvent.description,
       location: selectedEvent.location,
-      imageUrl: selectedEvent.image,
-      eventDate,
+      startTime,
       registrationEnd,
-      endDate,
+      endTime,
       speakers: speakers,
       sponsors: sponsors,
     };
 
-    fetch(`${baseUrl}/events/active/${selectedEvent.id}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    })
-      .then(() => {
+    const formData = new FormData();
+
+    formData.append(
+      "event",
+      new Blob([JSON.stringify(payload)], { type: "application/json" }),
+    );
+
+    // append image only if user uploaded new one
+    if (selectedEvent.image instanceof File) {
+      formData.append("image", selectedEvent.image);
+    } else {
+      const emptyFile = new File([], "empty.jpg");
+      formData.append("image", emptyFile);
+    }
+
+    try {
+      const response = await fetch(
+        `${baseUrl}/events/active/${selectedEvent.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        },
+      );
+
+      const data = await response.json();
+
+      if (data.message == "Event updated successfully") {
         fetchClubEvents();
+        resetCreateEventForm();
+        setCreateOpen(false);
+
         toast({
           title: "Success",
-          description: "Event updated successfully",
+          description: data.message,
           status: "success",
         });
-      })
-      .catch((err) => {
+      } else {
         toast({
-          title: "Error",
-          description: "Failed to update event",
+          title: "error",
+          description: data.message,
           status: "error",
         });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to update event",
+        status: "error",
       });
+    }
 
     setDialogType(null);
     setSelectedEvent(null);
@@ -244,11 +350,12 @@ const ClubMemberEventsPage = () => {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then(() => {
+      .then(async (response) => {
+        const data = await response.json();
         fetchClubEvents();
         toast({
           title: "Success",
-          description: "Event deleted successfully",
+          description: data.message,
           status: "success",
         });
       })
@@ -266,7 +373,6 @@ const ClubMemberEventsPage = () => {
     fetchClubEvents();
   }, [clubId]);
 
-  
   //sort upcoming events - live first, then registration open, then by date
   const sortedEvents = useMemo(() => {
     const statusPriority = {
@@ -284,7 +390,7 @@ const ClubMemberEventsPage = () => {
         if (a.register && !b.register) return -1;
         if (!a.register && b.register) return 1;
 
-        return new Date(a.eventDate) - new Date(b.eventDate);
+        return new Date(a.startTime) - new Date(b.startTime);
       }
 
       return 0;
@@ -292,17 +398,18 @@ const ClubMemberEventsPage = () => {
   }, [upcomingEvents]);
 
   //add photo to photo array for overview
-  const handleAddPhoto = () => {
-    if (!newPhotoUrl.trim()) return;
-    if (overviewPhotos.length >= 10) return;
+const handleAddPhoto = () => {
+  if (!newPhoto || existingImages.length + overviewPhotos.length >= 10)
+    return;
 
-    setOverviewPhotos([...overviewPhotos, newPhotoUrl.trim()]);
-    setNewPhotoUrl("");
-  };
+  setOverviewPhotos([...overviewPhotos, newPhoto]);
+  setNewPhoto(null);
 
-  //remove photo from overview photo array
-  const handleRemovePhoto = (index) => {
-    setOverviewPhotos(overviewPhotos.filter((_, i) => i !== index));
+  document.querySelector('input[type="file"]').value = "";
+};
+
+  const handleRemoveExistingImage = (index) => {
+    setExistingImages(existingImages.filter((_, i) => i !== index));
   };
 
   // generate markdown overview using AI
@@ -352,47 +459,76 @@ const ClubMemberEventsPage = () => {
     setIsSaving(true);
 
     const token = localStorage.getItem("authToken");
-    await fetch(
-      `${baseUrl}/events/finished/${overviewEvent.id}/save-overview`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+
+    const formData = new FormData();
+
+    const overviewRequest = {
+      overview: overviewMarkdown,
+      winners: winners,
+      oldImages: existingImages,
+    };
+
+    formData.append(
+      "overview",
+      new Blob([JSON.stringify(overviewRequest)], { type: "application/json" }),
+    );
+
+    overviewPhotos.forEach((file) => {
+      formData.append("images", file);
+    });
+
+    try {
+      const response = await fetch(
+        `${baseUrl}/events/finished/${overviewEvent.id}/save-overview`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
         },
-        body: JSON.stringify({
-          overview: overviewMarkdown,
-          imageUrls: overviewPhotos,
-          winners: winners,
-        }),
-      },
-    )
-      .then((response) => {
-        if (response.ok) {
-          toast({
-            title: "Success",
-            description: "Overview saved successfully",
-            status: "success",
-          });
-        } else {
-          toast({
-            title: "Error",
-            description: "Failed to save overview",
-            status: "error",
-          });
-        }
-      })
-      .catch((err) => {
+      );
+
+      const data = await response.json();
+
+      if (data.message === "Event Overview saved successfully") {
+        toast({
+          title: "Success",
+          description: data.message,
+          status: "success",
+        });
+
+        setOverviewMarkdown("");
+        setOverviewPhotos([]);
+        setExistingImages([]);
+        setWinners([]);
+        setNewWinner({ name: "", email: "" });
+
+        setIsSaving(false);
+
+        setIsOverviewOpen(false);
+
+        fetchClubEvents();
+      } else {
         toast({
           title: "Error",
-          description: "Failed to save overview",
+          description: data.message,
           status: "error",
         });
+
+        setIsSaving(false);
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to save overview",
+        status: "error",
       });
-    setIsSaving(false);
-    setIsOverviewOpen(false);
+
+      setIsSaving(false);
+    }
   };
-  
+
   //add speaker to speakers array for overview
   const handleAddSpeaker = () => {
     if (!newSpeaker.name.trim() || !newSpeaker.email.trim()) return;
@@ -470,7 +606,7 @@ const ClubMemberEventsPage = () => {
                 // Reset main event form
                 setNewEvent({
                   title: "",
-                  image: "",
+                  image: null,
                   date: "",
                   time: "",
                   registrationEnd: "",
@@ -510,17 +646,25 @@ const ClubMemberEventsPage = () => {
                   }
                 />
 
-                <Label>Image URL</Label>
+                <Label>Upload Image</Label>
                 <Input
-                  value={newEvent.image}
-                  onChange={(e) =>
-                    setNewEvent({ ...newEvent, image: e.target.value })
-                  }
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      setNewEvent({
+                        ...newEvent,
+                        image: file,
+                      });
+                    }
+                  }}
                 />
 
+                {/* Image Preview */}
                 {newEvent.image && (
                   <img
-                    src={newEvent.image}
+                    src={URL.createObjectURL(newEvent.image)}
                     className="w-full h-40 object-cover rounded-lg"
                   />
                 )}
@@ -764,15 +908,14 @@ const ClubMemberEventsPage = () => {
 
             {selectedEvent && (
               <div className="space-y-4 pt-4">
-                {selectedEvent.image && (
-                  <img
-                    src={selectedEvent.image}
-                    className="w-full h-48 object-cover rounded-lg"
-                  />
-                )}
-
                 {dialogType === "view" ? (
                   <>
+                    {selectedEvent.image && (
+                      <img
+                        src={selectedEvent.image}
+                        className="w-full h-48 object-cover rounded-lg"
+                      />
+                    )}
                     <p>
                       <strong>Title:</strong> {selectedEvent.title}
                     </p>
@@ -784,26 +927,26 @@ const ClubMemberEventsPage = () => {
                     </p>
                     <p>
                       <strong>start Date:</strong>{" "}
-                      {formatDate(selectedEvent.eventDate).date}
+                      {formatDate(selectedEvent.startTime).date}
                     </p>
 
                     <p>
                       <strong>Start Time:</strong>{" "}
-                      {formatDate(selectedEvent.eventDate).time}
+                      {formatDate(selectedEvent.startTime).time}
                     </p>
                     <p>
-                      {selectedEvent.eventDate && selectedEvent.endDate && (
+                      {selectedEvent.startTime && selectedEvent.endTime && (
                         <span>
                           <strong>End Date:</strong>{" "}
-                          {selectedEvent.endDate.split("T")[0]}
+                          {selectedEvent.endTime.split("T")[0]}
                         </span>
                       )}
                     </p>
                     <p>
-                      {selectedEvent.endDate && (
+                      {selectedEvent.endTime && (
                         <span>
                           <strong>End Time:</strong>{" "}
-                          {selectedEvent.endDate.split("T")[1].substring(0, 5)}
+                          {selectedEvent.endTime.split("T")[1].substring(0, 5)}
                         </span>
                       )}
                     </p>
@@ -811,10 +954,10 @@ const ClubMemberEventsPage = () => {
                       <strong>Registration End:</strong>{" "}
                       {formatDate(selectedEvent.registrationEnd).date}
                     </p>
-                    <p>
+                    {/* <p>
                       <strong>Status:</strong>{" "}
                       {selectedEvent.status.replace(/"/g, "")}
-                    </p>
+                    </p> */}
                     <p>
                       <strong>Registration Count:</strong>{" "}
                       {selectedEvent.registrationsCount}
@@ -849,6 +992,32 @@ const ClubMemberEventsPage = () => {
                   </>
                 ) : (
                   <>
+                    <Label>Upload Image</Label>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          setSelectedEvent({
+                            ...selectedEvent,
+                            image: file,
+                          });
+                        }
+                      }}
+                    />
+
+                    {/* Image Preview */}
+                    {selectedEvent.image && (
+                      <img
+                        src={
+                          typeof selectedEvent.image === "string"
+                            ? selectedEvent.image
+                            : URL.createObjectURL(selectedEvent.image)
+                        }
+                        className="w-full h-40 object-cover rounded-lg"
+                      />
+                    )}
                     {/* EVENT START */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
@@ -900,9 +1069,7 @@ const ClubMemberEventsPage = () => {
                         <Label>Event End Time</Label>
                         <Input
                           type="time"
-                          value={
-                            selectedEvent.endTime || ""
-                          }
+                          value={selectedEvent.endTime || ""}
                           onChange={(e) =>
                             setSelectedEvent({
                               ...selectedEvent,
@@ -1088,6 +1255,7 @@ const ClubMemberEventsPage = () => {
               setOverviewEvent(null);
               setOverviewMarkdown("");
               setOverviewPhotos([]);
+              setExistingImages([]);
               setOverviewTab("write");
 
               setWinners([]);
@@ -1134,52 +1302,72 @@ Write your markdown here..."
 
                 {/* PHOTOS */}
                 <div className="space-y-3">
-                  <Label>Event Photos ({overviewPhotos.length}/10)</Label>
+                  <Label>
+                    Event Photos (
+                    {existingImages.length + overviewPhotos.length}/10)
+                  </Label>
+
+                  <Label>Upload Overview Photos</Label>
 
                   <div className="flex gap-2">
                     <Input
-                      placeholder="Paste image URL..."
-                      value={newPhotoUrl}
-                      onChange={(e) => setNewPhotoUrl(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          handleAddPhoto();
-                        }
-                      }}
-                      disabled={overviewPhotos.length >= 10}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleSelectPhoto}
                     />
+
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={handleAddPhoto}
-                      disabled={
-                        overviewPhotos.length >= 10 || !newPhotoUrl.trim()
-                      }
+                      disabled={!newPhoto}
                     >
                       +
                     </Button>
                   </div>
+                  {(existingImages.length > 0 || overviewPhotos.length > 0) && (
+  <div className="grid grid-cols-3 gap-2 mt-4">
 
-                  {overviewPhotos.length > 0 && (
-                    <div className="grid grid-cols-5 gap-2">
-                      {overviewPhotos.map((photo, index) => (
-                        <div key={index} className="relative group">
-                          <img
-                            src={photo}
-                            alt="event"
-                            className="w-full h-16 object-cover rounded-md border"
-                          />
-                          <button
-                            onClick={() => handleRemovePhoto(index)}
-                            className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            x
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+    {/* Existing images */}
+    {existingImages.map((url, index) => (
+      <div key={`existing-${index}`} className="relative">
+        <img
+          src={url}
+          className="w-full h-24 object-cover rounded-lg"
+        />
+
+        <button
+          onClick={() => handleRemoveExistingImage(index)}
+          className="absolute top-1 right-1 bg-red-500 text-white text-xs px-1 rounded"
+        >
+          X
+        </button>
+      </div>
+    ))}
+
+    {/* Newly added photos */}
+    {overviewPhotos.map((photo, index) => (
+      <div key={`new-${index}`} className="relative">
+        <img
+          src={URL.createObjectURL(photo)}
+          className="w-full h-24 object-cover rounded-lg"
+        />
+
+        <button
+          onClick={() =>
+            setOverviewPhotos(
+              overviewPhotos.filter((_, i) => i !== index)
+            )
+          }
+          className="absolute top-1 right-1 bg-red-500 text-white text-xs px-1 rounded"
+        >
+          X
+        </button>
+      </div>
+    ))}
+
+  </div>
+)}
 
                   {/* WINNERS SECTION */}
                   <div className="space-y-4 mt-8">
@@ -1257,14 +1445,20 @@ Write your markdown here..."
                     )}
                   </CardContent>
                 </Card>
-
-                {overviewPhotos.length > 0 && (
+                {(existingImages.length > 0 || overviewPhotos.length > 0) && (
                   <div className="grid grid-cols-3 gap-2 mt-4">
+                    {existingImages.map((url, index) => (
+                      <img
+                        key={`existing-${index}`}
+                        src={url}
+                        className="w-full h-24 object-cover rounded-lg"
+                      />
+                    ))}
+
                     {overviewPhotos.map((photo, index) => (
                       <img
-                        key={index}
-                        src={photo}
-                        alt="event"
+                        key={`new-${index}`}
+                        src={URL.createObjectURL(photo)}
                         className="w-full h-24 object-cover rounded-lg"
                       />
                     ))}
@@ -1309,8 +1503,8 @@ Write your markdown here..."
           <TabsContent value="upcoming" className="mt-6">
             <div className="grid md:grid-cols-3 gap-4">
               {sortedEvents.map((event) => {
-                const formatted = formatDate(event.eventDate);
-
+                const formatted = formatDate(event.startTime);
+                const status = getEventStatus(event);
                 return (
                   <Card key={event.id} className="border-border/50">
                     {event.image && (
@@ -1325,14 +1519,14 @@ Write your markdown here..."
                       <div className="flex items-center justify-between mb-2">
                         <Badge
                           variant={
-                            event.status === "LIVE"
+                            status === "LIVE"
                               ? "destructive"
-                              : event.status === "UPCOMING"
+                              : status === "UPCOMING"
                                 ? "secondary"
                                 : "default"
                           }
                         >
-                          {event.status}
+                          {status}
                         </Badge>
                         <div>
                           <Button
@@ -1351,10 +1545,10 @@ Write your markdown here..."
                             size="icon"
                             onClick={() => {
                               const { date, time } = formatDate(
-                                event.eventDate,
+                                event.startTime,
                               );
                               const { date: endDate, time: endTime } =
-                                formatDate(event.endDate);
+                                formatDate(event.endTime);
                               const regEnd = formatDate(
                                 event.registrationEnd,
                               ).date;
@@ -1408,10 +1602,10 @@ Write your markdown here..."
                           <span>{event.location}</span>
                         </div>
                         <div>
-                          {event.eventDate && event.endDate && (
+                          {event.startTime && event.endTime && (
                             <span className="text-sm">
                               Duration:{" "}
-                              {getDuration(event.eventDate, event.endDate)}
+                              {getDuration(event.startTime, event.endTime)}
                             </span>
                           )}
                         </div>
@@ -1427,7 +1621,7 @@ Write your markdown here..."
           <TabsContent value="finished" className="mt-6">
             <div className="grid md:grid-cols-3 gap-4">
               {pastEvents.map((event) => {
-                const formatted = formatDate(event.eventDate);
+                const formatted = formatDate(event.startTime);
 
                 return (
                   <Card
@@ -1486,8 +1680,7 @@ Write your markdown here..."
                           variant="secondary"
                           className="w-auto"
                           onClick={() => {
-                            setOverviewEvent(event);
-                            setIsOverviewOpen(true);
+                            fetchEventOverviewDetails(event.id);
                           }}
                         >
                           <FileText className="w-4 h-4 mr-2" />

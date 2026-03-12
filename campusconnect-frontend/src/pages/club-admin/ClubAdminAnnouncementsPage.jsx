@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription
 } from "../../components/ui/Dialog";
 import { Megaphone, Plus, Eye, Edit, Trash2 } from "lucide-react";
 import { clubAdminNavItems } from "../../config/Navigation";
@@ -89,12 +90,10 @@ const ClubAdminAnnouncementsPage = () => {
         if (!res.ok) throw new Error("Request failed");
         return res.json();
       })
-      .then(() => {
+      .then((res) => {
         toast({
           title: "Success",
-          description: `Announcement ${
-            editingId ? "updated" : "created"
-          } successfully`,
+          description: res.message,
           status: "success",
         });
         fetchClubAnnouncements();
@@ -118,11 +117,12 @@ const ClubAdminAnnouncementsPage = () => {
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
     })
-      .then((res) => {
+      .then(async (res) => {
         if (res.ok) {
+          const data = await res.json();
           toast({
             title: "Success",
-            description: "Announcement deleted successfully",
+            description: data.message,
             status: "success",
           });
           fetchClubAnnouncements();
@@ -189,6 +189,7 @@ const ClubAdminAnnouncementsPage = () => {
                   {editingId ? "Edit Announcement" : "Create Announcement"}
                 </DialogTitle>
               </DialogHeader>
+              <DialogDescription></DialogDescription>
 
               <div className="space-y-4 pt-4">
                 <div className="space-y-2">
@@ -227,6 +228,7 @@ const ClubAdminAnnouncementsPage = () => {
             <DialogHeader>
               <DialogTitle>Announcement Details</DialogTitle>
             </DialogHeader>
+            <DialogDescription></DialogDescription>
 
             {viewAnnouncement && (
               <div className="space-y-4 pt-4">

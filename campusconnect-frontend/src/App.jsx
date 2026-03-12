@@ -31,6 +31,17 @@ import JournalistDashboard from "./pages/journalist/JournalistDashboard";
 import JournalistWritePage from "./pages/journalist/JournalistWritePage";
 import AdminNewspaperPage from "./pages/collageAdmin/AdminNewspaperPage";
 import StudentNewspaperPage from "./pages/student/StudentNewspaperPage";
+import ReviewerDashboard from "./pages/reviewer/ReviewerDashboard";
+import AdminResearchPage from "./pages/collageAdmin/AdminResearchPage";
+import ResearchPage from "./pages/student/ResearchPage";
+import ReviewerSetting from "./pages/reviewer/ReviewerSetting";
+import JournalistSetting from "./pages/journalist/JournalistSetting";
+import AdminSettingsPage from "./pages/collageAdmin/AdminSettingsPage";
+import StudentSetting from "./pages/student/studentSetting";
+import ClubSettingsPage from "./pages/club-admin/clubSetting";
+import AdminLogin from "./pages/admin/AdminLogin";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import StudentNotificationPage from "./pages/student/StudentNotificationPage";
 
 function App() {
   return (
@@ -40,14 +51,16 @@ function App() {
 
       <Route path="/campus-connect/journalist/dashboard" element={<JournalistDashboard />} />
       <Route path="/campus-connect/admin-dashboard" element={<div>Admin Dashboard</div>} />
-      <Route path="/campus-connect/reviewer-dashboard" element={<div>Reviewer Dashboard</div>} />
+      <Route path="/campus-connect/reviewer/dashboard" element={<ReviewerDashboard/>} />
+      <Route path="/campus-connect/admin/login" element={<AdminLogin />} />
+      <Route path="/campus-connect/student/notifications" element={<StudentNotificationPage />} />
 
       <Route path="/campus-connect/student/dashboard" element={<StudentDashboard />} />
       <Route path="/campus-connect/student/clubs/:clubId" element={<ClubDetailPage />} />
       <Route path="/campus-connect/student/clubs" element={<ClubsPage />} />
       <Route path="/campus-connect/student/announcements" element={<AnnouncementsPage />} />
       <Route path="/campus-connect/student/newspaper" element={<StudentNewspaperPage />} />
-      <Route path="/campus-connect/student/research" element={<div>Research Page</div>} />
+      <Route path="/campus-connect/student/research" element={<ResearchPage />} />
       <Route path="/campus-connect/student/events" element={<EventsPage />} />
       <Route path="/campus-connect/student/events/:id" element={<EventDetailPage />} />
 
@@ -57,6 +70,7 @@ function App() {
       <Route path="/campus-connect/college-admin/clubs/:clubId" element={<ClubDetailAdminPage />} />
       <Route path="/campus-connect/college-admin/events/:id" element={<AdminEventDetailPage />} />
       <Route path="/campus-connect/college-admin/newspaper" element={<AdminNewspaperPage />} />
+      <Route path="/campus-connect/college-admin/research" element={<AdminResearchPage />} />
 
       <Route path="/campus-connect/club-admin/:clubId/dashboard" element={<ClubAdminDashboard />} />
       <Route path="/campus-connect/club-admin/:clubId/announcements" element={<ClubAdminAnnouncementsPage />} />
@@ -74,7 +88,13 @@ function App() {
 
       <Route path="/campus-connect/journalist/articles" element={<JournalistArticlesPage />} />
       <Route path="/campus-connect/journalist/write" element={<JournalistWritePage />} />
-          
+      <Route path="/campus-connect/reviewer/settings" element={<ReviewerSetting />} />
+      <Route path="/campus-connect/journalist/settings" element={<JournalistSetting />} />
+      <Route path="/campus-connect/college-admin/settings" element={<AdminSettingsPage />} />
+      <Route path="/campus-connect/student/settings" element={<StudentSetting />} />
+      <Route path="/campus-connect/club-admin/:clubId/settings" element={<ClubSettingsPage />} />
+      <Route path="/campus-connect/admin/dashboard" element={<AdminDashboard />} />
+         
       <Route path="*" element={<NotFound />} /> 
     </Routes>
   );

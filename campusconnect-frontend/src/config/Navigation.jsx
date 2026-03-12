@@ -8,7 +8,6 @@ import {
   UserCircle,
   LayoutDashboard,
   PenSquare,
-  BarChart3,
   Megaphone,
   Layers,
 } from "lucide-react";
@@ -21,6 +20,7 @@ export const studentNavItems = [
   { label: "Announcements", href: "/campus-connect/student/announcements", icon: Megaphone },
   { label: "Newspaper", href: "/campus-connect/student/newspaper", icon: Newspaper },
   { label: "Research", href: "/campus-connect/student/research", icon: FileText },
+  { label: "Settings", href: "/campus-connect/student/settings", icon: Settings },
 ];
 
 // Club Admin Navigation
@@ -62,8 +62,8 @@ export const collegeAdminNavItems = [
 
 // Reviewer Navigation
 export const reviewerNavItems = [
-  { label: "Dashboard", href: "/campus-connect/reviewer-dashboard", icon: Home },
-  { label: "Settings", href: "/campus-connect/reviewer-settings", icon: Settings },
+  { label: "Dashboard", href: "/campus-connect/reviewer/dashboard", icon: Home },
+  { label: "Settings", href: "/campus-connect/reviewer/settings", icon: Settings },
 ];
 
 // Settings page navigation

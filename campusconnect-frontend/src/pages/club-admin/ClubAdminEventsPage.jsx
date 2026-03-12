@@ -54,8 +54,8 @@ const ClubAdminEventsPage = () => {
   const [overviewEvent, setOverviewEvent] = useState(null);
   const [overviewTab, setOverviewTab] = useState("write");
   const [overviewMarkdown, setOverviewMarkdown] = useState("");
-  const [overviewPhotos, setOverviewPhotos] = useState([]);
-  const [newPhotoUrl, setNewPhotoUrl] = useState("");
+  const [existingImages, setExistingImages] = useState([]);
+  const [newImages, setNewImages] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isOverviewOpen, setIsOverviewOpen] = useState(false);
@@ -80,19 +80,107 @@ const ClubAdminEventsPage = () => {
     registrationEnd: "",
     location: "",
     description: "",
-    image: "",
+    image: null,
     speakers: [],
     sponsors: [],
   });
+  const [now, setNow] = useState(new Date());
+
+
+//cleaning form data
+  const resetCreateEventForm = () => {
+    setNewEvent({
+      title: "",
+      image: null,
+      date: "",
+      time: "",
+      registrationEnd: "",
+      location: "",
+      description: "",
+      endDate: "",
+      endTime: "",
+    });
+
+    setSpeakers([]);
+    setSponsors([]);
+
+    setNewSpeaker({ name: "", email: "", tagline: "" });
+    setNewSponsor({ name: "", tagline: "" });
+  };
+  //fetching event overview
+  const fetchEventOverviewDetails = async (eventId) => {
+    const res = await fetch(`${baseUrl}/events/finished/${eventId}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    });
+
+    const data = await res.json();
+
+    setOverviewEvent(data);
+
+    if (data.overview) {
+      setOverviewMarkdown(data.overview);
+    }
+
+    if (data.winners) {
+      setWinners(data.winners);
+    }
+
+    if (data.images) {
+      setExistingImages(data.images); // existing URLs
+    }
+
+    setNewImages([]);
+    setIsOverviewOpen(true);
+  };
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   //preview for overview
   const renderedPreview = marked.parse(overviewMarkdown || "");
+
+  //upload image for overview
+  const handleImageUpload = (e) => {
+    const files = Array.from(e.target.files);
+
+    if (existingImages.length + newImages.length + files.length > 10) {
+      toast({
+        title: "Limit exceeded",
+        description: "Maximum 10 images allowed",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setNewImages((prev) => [...prev, ...files]);
+
+    e.target.value = null; // add this
+  };
+
+  //all image
+  const allImages = [...existingImages, ...newImages];
 
   //formate date and time for display
   const formatDate = (dateTime) => {
     if (!dateTime) return { date: "", time: "" };
     const [date, time] = dateTime.split("T");
     return { date, time: time.substring(0, 5) };
+  };
+
+  //get event status
+  const getEventStatus = (event) => {
+    const start = new Date(event.startTime);
+    const end = new Date(event.endTime);
+
+    if (now >= start && now <= end) return "LIVE";
+    if (now < start) return "UPCOMING";
+    return "FINISHED";
   };
 
   // Fetch club events
@@ -130,107 +218,152 @@ const ClubAdminEventsPage = () => {
       );
   };
 
+  //remove Image 
+  const removeImage = (index) => {
+    if (index < existingImages.length) {
+      setExistingImages((prev) => prev.filter((_, i) => i !== index));
+    } else {
+      const newIndex = index - existingImages.length;
+
+      setNewImages((prev) => prev.filter((_, i) => i !== newIndex));
+    }
+  };
+
   // Create event on form submission
-  const handleCreateEvent = () => {
+  const handleCreateEvent = async () => {
     const token = localStorage.getItem("authToken");
 
-    const eventDate = `${newEvent.date}T${newEvent.time}:00`;
-    const registrationEnd = `${newEvent.registrationEnd}T23:59:59`;
-    const endDate = `${newEvent.endDate}T${newEvent.endTime}:00`;
-
     const payload = {
-      title: newEvent.title,
-      description: newEvent.description,
-      location: newEvent.location,
-      imageUrl: newEvent.image,
-      eventDate,
-      registrationEnd,
-      endDate,
-      speakers,
-      sponsors,
+      ...newEvent,
+      startTime: `${newEvent.date}T${newEvent.time}:00`,
+      endTime: `${newEvent.endDate}T${newEvent.endTime}:00`,
+      registrationEnd: `${newEvent.registrationEnd}T23:59:59`,
+      sponsors: sponsors,
+      speakers: speakers,
     };
 
-    fetch(`${baseUrl}/events/active`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    })
-      .then(() => {
+    try {
+      const formData = new FormData();
+
+      formData.append(
+        "event",
+        new Blob([JSON.stringify(payload)], { type: "application/json" }),
+      );
+
+      if (newEvent.image) {
+        formData.append("image", newEvent.image);
+      } else {
+        alert("Please upload an image for the event");
+        return;
+      }
+
+      const response = await fetch(`${baseUrl}/events/active`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.message === "Event created successfully") {
         toast({
           title: "Success",
-          description: "Event created successfully",
+          description: data.message,
           status: "success",
         });
         fetchClubEvents();
-      })
-      .catch((err) => {
+        setCreateOpen(false);
+        resetCreateEventForm();
+      } else {
         toast({
-          title: "Error",
-          description: "Failed to create event",
+          title: "error",
+          description: data.message,
           status: "error",
         });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create event",
+        status: "error",
       });
-
-    setCreateOpen(false);
-    setNewEvent({
-      title: "",
-      date: "",
-      time: "",
-      registrationEnd: "",
-      location: "",
-      description: "",
-      image: "",
-      endDate: "",
-      endTime: "",
-    });
+    }
   };
 
-  // Handle edit - save changes to event
-  const handleSaveEdit = () => {
+  //update event
+  const handleSaveEdit = async () => {
     const token = localStorage.getItem("authToken");
 
-    const eventDate = `${selectedEvent.date}T${selectedEvent.time}:00`;
+    const startTime = `${selectedEvent.date}T${selectedEvent.time}:00`;
     const registrationEnd = `${selectedEvent.registrationEndDate}T23:59:59`;
-    const endDate = `${selectedEvent.endDate}T${selectedEvent.endTime}:00`;
+    const endTime = `${selectedEvent.endDate}T${selectedEvent.endTime}:00`;
 
     const payload = {
       title: selectedEvent.title,
       description: selectedEvent.description,
       location: selectedEvent.location,
-      imageUrl: selectedEvent.image,
-      eventDate,
+      startTime,
       registrationEnd,
-      endDate,
+      endTime,
       speakers: speakers,
       sponsors: sponsors,
     };
 
-    fetch(`${baseUrl}/events/active/${selectedEvent.id}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    })
-      .then(() => {
+    const formData = new FormData();
+
+    formData.append(
+      "event",
+      new Blob([JSON.stringify(payload)], { type: "application/json" }),
+    );
+
+    // append image only if user uploaded new one
+    if (selectedEvent.image instanceof File) {
+      formData.append("image", selectedEvent.image);
+    } else {
+      const emptyFile = new File([], "empty.jpg");
+      formData.append("image", emptyFile);
+    }
+
+    try {
+      const response = await fetch(
+        `${baseUrl}/events/active/${selectedEvent.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        },
+      );
+
+      const data = await response.json();
+
+      if (data.message == "Event updated successfully") {
         fetchClubEvents();
+        resetCreateEventForm();
+        setCreateOpen(false);
+
         toast({
           title: "Success",
-          description: "Event updated successfully",
+          description: data.message,
           status: "success",
         });
-      })
-      .catch((err) => {
+      } else {
         toast({
-          title: "Error",
-          description: "Failed to update event",
+          title: "error",
+          description: data.message,
           status: "error",
         });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to update event",
+        status: "error",
       });
+    }
 
     setDialogType(null);
     setSelectedEvent(null);
@@ -244,13 +377,22 @@ const ClubAdminEventsPage = () => {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then(() => {
-        fetchClubEvents();
-        toast({
-          title: "Success",
-          description: "Event deleted successfully",
-          status: "success",
-        });
+      .then(async (res) => {
+        const data = await res.json();
+        if (data.message == "Event deleted successfully") {
+          fetchClubEvents();
+          toast({
+            title: "Success",
+            description: data.message,
+            status: "success",
+          });
+        } else {
+          toast({
+            title: "error",
+            description: data.message,
+            status: "error",
+          });
+        }
       })
       .catch((err) => {
         toast({
@@ -266,14 +408,6 @@ const ClubAdminEventsPage = () => {
     fetchClubEvents();
   }, [clubId]);
 
-  //add photo to overview photos array
-  const handleAddPhoto = () => {
-    if (!newPhotoUrl.trim()) return;
-    if (overviewPhotos.length >= 10) return;
-
-    setOverviewPhotos([...overviewPhotos, newPhotoUrl.trim()]);
-    setNewPhotoUrl("");
-  };
 
   //sort events - live events first, then upcoming sorted by registration status and date
   const sortedEvents = useMemo(() => {
@@ -299,10 +433,6 @@ const ClubAdminEventsPage = () => {
     });
   }, [upcomingEvents]);
 
-  //remove photo from overview photos array
-  const handleRemovePhoto = (index) => {
-    setOverviewPhotos(overviewPhotos.filter((_, i) => i !== index));
-  };
 
   // Generate overview using AI
   const handleGenerateOverview = async () => {
@@ -346,50 +476,67 @@ const ClubAdminEventsPage = () => {
     setIsGenerating(false);
   };
 
-  // Save overview to database
+  //save overview
   const handleSaveOverview = async () => {
     setIsSaving(true);
 
-    const token = localStorage.getItem("authToken");
-    await fetch(
-      `${baseUrl}/events/finished/${overviewEvent.id}/save-overview`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+    const formData = new FormData();
+
+    const overviewDto = {
+      overview: overviewMarkdown,
+      winners: winners,
+      oldImages: existingImages,
+    };
+
+    formData.append(
+      "overview",
+      new Blob([JSON.stringify(overviewDto)], {
+        type: "application/json",
+      }),
+    );
+
+    newImages.forEach((img) => {
+      formData.append("images", img);
+    });
+
+    try {
+      const response = await fetch(
+        `${baseUrl}/events/finished/${overviewEvent.id}/save-overview`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+          body: formData,
         },
-        body: JSON.stringify({
-          overview: overviewMarkdown,
-          imageUrls: overviewPhotos,
-          winners: winners,
-        }),
-      },
-    )
-      .then((response) => {
-        if (response.ok) {
-          toast({
-            title: "Success",
-            description: "Overview saved successfully",
-            status: "success",
-          });
-        } else {
-          toast({
-            title: "Error",
-            description: "Failed to save overview",
-            status: "error",
-          });
-        }
-      })
-      .catch((err) => {
+      );
+
+      const data = await response.json();
+
+      if (data.message === "Event Overview saved successfully") {
         toast({
-          title: "Error",
-          description: "Failed to save overview",
-          status: "error",
+          title: "Success",
+          description: data.message,
         });
+
+        setOverviewMarkdown("");
+        setExistingImages([]);
+        setNewImages([]);
+        setWinners([]);
+
+        setIsOverviewOpen(false);
+
+        fetchClubEvents();
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to save overview",
+        variant: "destructive",
       });
+    }
+
     setIsSaving(false);
-    setIsOverviewOpen(false);
   };
 
   //add speaker to speakers array
@@ -469,7 +616,7 @@ const ClubAdminEventsPage = () => {
                 // Reset main event form
                 setNewEvent({
                   title: "",
-                  image: "",
+                  image: null,
                   date: "",
                   time: "",
                   registrationEnd: "",
@@ -498,6 +645,7 @@ const ClubAdminEventsPage = () => {
               <DialogHeader>
                 <DialogTitle>Create Event</DialogTitle>
               </DialogHeader>
+              <DialogDescription></DialogDescription>
 
               <div className="space-y-4 pt-4">
                 <Label>Title</Label>
@@ -509,17 +657,24 @@ const ClubAdminEventsPage = () => {
                   }
                 />
 
-                <Label>Image URL</Label>
+                <Label>Upload Image</Label>
                 <Input
-                  value={newEvent.image}
-                  onChange={(e) =>
-                    setNewEvent({ ...newEvent, image: e.target.value })
-                  }
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      setNewEvent({
+                        ...newEvent,
+                        image: file,
+                      });
+                    }
+                  }}
                 />
 
                 {newEvent.image && (
                   <img
-                    src={newEvent.image}
+                    src={URL.createObjectURL(newEvent.image)}
                     className="w-full h-40 object-cover rounded-lg"
                   />
                 )}
@@ -760,18 +915,18 @@ const ClubAdminEventsPage = () => {
                 {dialogType === "view" ? "Event Details" : "Edit Event"}
               </DialogTitle>
             </DialogHeader>
+            <DialogDescription></DialogDescription>
 
             {selectedEvent && (
               <div className="space-y-4 pt-4">
-                {selectedEvent.image && (
-                  <img
-                    src={selectedEvent.image}
-                    className="w-full h-48 object-cover rounded-lg"
-                  />
-                )}
-
                 {dialogType === "view" ? (
                   <>
+                    {selectedEvent.image && (
+                      <img
+                        src={selectedEvent.image}
+                        className="w-full h-48 object-cover rounded-lg"
+                      />
+                    )}
                     <p>
                       <strong>Title:</strong> {selectedEvent.title}
                     </p>
@@ -783,26 +938,26 @@ const ClubAdminEventsPage = () => {
                     </p>
                     <p>
                       <strong>start Date:</strong>{" "}
-                      {formatDate(selectedEvent.eventDate).date}
+                      {formatDate(selectedEvent.startTime).date}
                     </p>
 
                     <p>
                       <strong>Start Time:</strong>{" "}
-                      {formatDate(selectedEvent.eventDate).time}
+                      {formatDate(selectedEvent.startTime).time}
                     </p>
                     <p>
-                      {selectedEvent.eventDate && selectedEvent.endDate && (
+                      {selectedEvent.endTime && (
                         <span>
                           <strong>End Date:</strong>{" "}
-                          {selectedEvent.endDate.split("T")[0]}
+                          {selectedEvent.endTime.split("T")[0]}
                         </span>
                       )}
                     </p>
                     <p>
-                      {selectedEvent.endDate && (
+                      {selectedEvent.endTime && (
                         <span>
                           <strong>End Time:</strong>{" "}
-                          {selectedEvent.endDate.split("T")[1].substring(0, 5)}
+                          {selectedEvent.endTime.split("T")[1].substring(0, 5)}
                         </span>
                       )}
                     </p>
@@ -810,10 +965,10 @@ const ClubAdminEventsPage = () => {
                       <strong>Registration End:</strong>{" "}
                       {formatDate(selectedEvent.registrationEnd).date}
                     </p>
-                    <p>
+                    {/* <p>
                       <strong>Status:</strong>{" "}
                       {selectedEvent.status.replace(/"/g, "")}
-                    </p>
+                    </p> */}
                     <p>
                       <strong>Registration Count:</strong>{" "}
                       {selectedEvent.registrationsCount}
@@ -848,6 +1003,32 @@ const ClubAdminEventsPage = () => {
                   </>
                 ) : (
                   <>
+                    <Label>Upload Image</Label>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          setSelectedEvent({
+                            ...selectedEvent,
+                            image: file,
+                          });
+                        }
+                      }}
+                    />
+
+                    {/* Image Preview */}
+                    {selectedEvent.image && (
+                      <img
+                        src={
+                          typeof selectedEvent.image === "string"
+                            ? selectedEvent.image
+                            : URL.createObjectURL(selectedEvent.image)
+                        }
+                        className="w-full h-40 object-cover rounded-lg"
+                      />
+                    )}
                     {/* EVENT START */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
@@ -868,7 +1049,7 @@ const ClubAdminEventsPage = () => {
                         <Label>Event Time</Label>
                         <Input
                           type="time"
-                          value={selectedEvent.time || ""}
+                          value={selectedEvent.endTime || ""}
                           onChange={(e) =>
                             setSelectedEvent({
                               ...selectedEvent,
@@ -899,9 +1080,7 @@ const ClubAdminEventsPage = () => {
                         <Label>Event End Time</Label>
                         <Input
                           type="time"
-                          value={
-                            selectedEvent.endTime || ""
-                          }
+                          value={selectedEvent.endTime || ""}
                           onChange={(e) =>
                             setSelectedEvent({
                               ...selectedEvent,
@@ -1086,7 +1265,8 @@ const ClubAdminEventsPage = () => {
             if (!open) {
               setOverviewEvent(null);
               setOverviewMarkdown("");
-              setOverviewPhotos([]);
+              setExistingImages([]);
+              setNewImages([]);
               setOverviewTab("write");
 
               setWinners([]);
@@ -1133,52 +1313,40 @@ Write your markdown here..."
 
                 {/* PHOTOS */}
                 <div className="space-y-3">
-                  <Label>Event Photos ({overviewPhotos.length}/10)</Label>
+                  <Label>
+                    Event Photos ({existingImages.length + newImages.length}/10)
+                  </Label>
 
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Paste image URL..."
-                      value={newPhotoUrl}
-                      onChange={(e) => setNewPhotoUrl(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          handleAddPhoto();
-                        }
-                      }}
-                      disabled={overviewPhotos.length >= 10}
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleAddPhoto}
-                      disabled={
-                        overviewPhotos.length >= 10 || !newPhotoUrl.trim()
-                      }
-                    >
-                      +
-                    </Button>
+                  <Label>Upload Overview photos</Label>
+
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                  />
+                  {/* Photo Grid with Remove Button */}
+                  <div className="grid grid-cols-3 gap-2">
+                    {allImages.map((img, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={
+                            typeof img === "string"
+                              ? img
+                              : URL.createObjectURL(img)
+                          }
+                          className="w-full h-24 object-cover rounded-lg"
+                        />
+
+                        <button
+                          className="absolute top-1 right-1 bg-red-500 text-white text-xs px-2 py-1 rounded"
+                          onClick={() => removeImage(index)}
+                        >
+                          X
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                    {/* Photo Grid with Remove Button */}
-                  {overviewPhotos.length > 0 && (
-                    <div className="grid grid-cols-5 gap-2">
-                      {overviewPhotos.map((photo, index) => (
-                        <div key={index} className="relative group">
-                          <img
-                            src={photo}
-                            alt="event"
-                            className="w-full h-16 object-cover rounded-md border"
-                          />
-                          <button
-                            onClick={() => handleRemovePhoto(index)}
-                            className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            x
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
 
                   {/* WINNERS SECTION */}
                   <div className="space-y-4 mt-8">
@@ -1257,13 +1425,16 @@ Write your markdown here..."
                   </CardContent>
                 </Card>
 
-                {overviewPhotos.length > 0 && (
+                {allImages.length > 0 && (
                   <div className="grid grid-cols-3 gap-2 mt-4">
-                    {overviewPhotos.map((photo, index) => (
+                    {allImages.map((img, index) => (
                       <img
                         key={index}
-                        src={photo}
-                        alt="event"
+                        src={
+                          typeof img === "string"
+                            ? img
+                            : URL.createObjectURL(img)
+                        }
                         className="w-full h-24 object-cover rounded-lg"
                       />
                     ))}
@@ -1308,8 +1479,8 @@ Write your markdown here..."
           <TabsContent value="upcoming" className="mt-6">
             <div className="grid md:grid-cols-3 gap-4">
               {sortedEvents.map((event) => {
-                const formatted = formatDate(event.eventDate);
-
+                const formatted = formatDate(event.startTime);
+                const status = getEventStatus(event);
                 return (
                   <Card key={event.id} className="border-border/50">
                     {event.image && (
@@ -1324,14 +1495,14 @@ Write your markdown here..."
                       <div className="flex items-center justify-between mb-2">
                         <Badge
                           variant={
-                            event.status === "LIVE"
+                            status === "LIVE"
                               ? "destructive"
-                              : event.status === "UPCOMING"
+                              : status === "UPCOMING"
                                 ? "secondary"
                                 : "default"
                           }
                         >
-                          {event.status}
+                          {status}
                         </Badge>
                         <div>
                           <Button
@@ -1350,10 +1521,10 @@ Write your markdown here..."
                             size="icon"
                             onClick={() => {
                               const { date, time } = formatDate(
-                                event.eventDate,
+                                event.startTime,
                               );
                               const { date: endDate, time: endTime } =
-                                formatDate(event.endDate);
+                                formatDate(event.endTime);
                               const regEnd = formatDate(
                                 event.registrationEnd,
                               ).date;
@@ -1407,10 +1578,10 @@ Write your markdown here..."
                           <span>{event.location}</span>
                         </div>
                         <div>
-                          {event.eventDate && event.endDate && (
+                          {event.startTime && event.endTime && (
                             <span className="text-sm">
                               Duration:{" "}
-                              {getDuration(event.eventDate, event.endDate)}
+                              {getDuration(event.startTime, event.endTime)}
                             </span>
                           )}
                         </div>
@@ -1426,7 +1597,7 @@ Write your markdown here..."
           <TabsContent value="finished" className="mt-6">
             <div className="grid md:grid-cols-3 gap-4">
               {pastEvents.map((event) => {
-                const formatted = formatDate(event.eventDate);
+                const formatted = formatDate(event.startTime);
 
                 return (
                   <Card
@@ -1484,10 +1655,7 @@ Write your markdown here..."
                         <Button
                           variant="secondary"
                           className="w-auto"
-                          onClick={() => {
-                            setOverviewEvent(event);
-                            setIsOverviewOpen(true);
-                          }}
+                          onClick={() => fetchEventOverviewDetails(event.id)}
                         >
                           <FileText className="w-4 h-4 mr-2" />
                           Add Overview

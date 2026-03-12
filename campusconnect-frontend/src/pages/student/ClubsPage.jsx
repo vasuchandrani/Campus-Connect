@@ -54,7 +54,7 @@ const ClubsPage = () => {
   }, []);
 
   return (
-    <DashboardLayout navItems={studentNavItems} title="Clubs">
+    <DashboardLayout navItems={studentNavItems} title="Clubs" bell={true}>
       <div className="space-y-6">
         {/* Search & Filter */}
         <div className="flex flex-col md:flex-row gap-4">

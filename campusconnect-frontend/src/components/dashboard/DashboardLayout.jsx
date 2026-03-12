@@ -19,7 +19,7 @@ import {
 import { useState } from "react";
 import { Toaster } from "../ui/Toaster";
 
-const DashboardLayout = ({ children, navItems, title }) => {
+const DashboardLayout = ({ children, navItems, title, bell=false }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -31,7 +31,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
   };
 
   const handleBellClick = () => {
-    navigate("/notifications");
+    navigate("/campus-connect/student/notifications");
   };
 
   return (
@@ -124,7 +124,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
             </div>
 
             <div className="flex items-center gap-3">
-              <Button
+              {bell &&<Button
                 variant="ghost"
                 size="icon"
                 className="relative"
@@ -133,7 +133,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
                 <Bell className="w-5 h-5" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-accent rounded-full" />
               </Button>
-
+}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon">
@@ -146,10 +146,6 @@ const DashboardLayout = ({ children, navItems, title }) => {
                 </DropdownMenuTrigger>
 
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => navigate("/settings")}>
-                    <Settings className="w-4 h-4 mr-2" />
-                    Settings
-                  </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={handleLogout}
                     className="text-destructive"

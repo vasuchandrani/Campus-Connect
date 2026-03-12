@@ -2,7 +2,11 @@ import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 import { Badge } from "../../components/ui/Badge";
-import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/Avatar";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "../../components/ui/Avatar";
 import { Input } from "../../components/ui/Input";
 import { Label } from "../../components/ui/Label";
 import {
@@ -19,12 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/Select";
-import {
-  UserPlus,
-  MoreVertical,
-  Mail,
-  Shield,
-} from "lucide-react";
+import { UserPlus, MoreVertical, Mail, Shield } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,22 +38,21 @@ import { toast } from "../../hooks/use-toast";
 /* ================= COMPONENT ================= */
 
 const ClubAdminMembersPage = () => {
-
   // Get clubId from URL params
-    let { clubId } = useParams();
+  let { clubId } = useParams();
 
   // Base URL for API calls related to this club
-    const baseUrl=`http://localhost:8080/campus-connect/clubs/${clubId}/admin`; 
+  const baseUrl = `http://localhost:8080/campus-connect/clubs/${clubId}/admin`;
 
-    //---------Navs------------//
+  //---------Navs------------//
   const updatenavItems = () => {
-    return clubAdminNavItems.map(item => {
+    return clubAdminNavItems.map((item) => {
       return {
         ...item,
-        href: item.href.replace(":clubId", clubId)
-      }
-    })
-  }
+        href: item.href.replace(":clubId", clubId),
+      };
+    });
+  };
 
   // State variables
   const [clubMembers, setClubMembers] = useState([]);
@@ -62,10 +60,9 @@ const ClubAdminMembersPage = () => {
   const [role, setRole] = useState("member");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-
   //1) Fetch club members
   const fetchClubMembers = () => {
-    const token=localStorage.getItem("authToken"); 
+    const token = localStorage.getItem("authToken");
     fetch(`${baseUrl}/members`, {
       method: "GET",
       headers: {
@@ -88,23 +85,23 @@ const ClubAdminMembersPage = () => {
 
   //2) Add member
   const addMember = (email, role) => {
-    const token=localStorage.getItem("authToken");
+    const token = localStorage.getItem("authToken");
     fetch(`${baseUrl}/members/add`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ email, role: role.toUpperCase() }), 
+      body: JSON.stringify({ email, role: role.toUpperCase() }),
     })
       .then((res) => res.json())
       .then((data) => {
         toast({
           title: "Success",
-          description: "Member added successfully",
+          description: data.message,
           status: "success",
         });
-        fetchClubMembers(); 
+        fetchClubMembers();
         setEmail("");
         setRole("member");
         setIsDialogOpen(false);
@@ -118,12 +115,9 @@ const ClubAdminMembersPage = () => {
       });
   };
 
-
-
-
   //3) Remove member
   const removeMember = (memberId) => {
-    const token=localStorage.getItem("authToken");
+    const token = localStorage.getItem("authToken");
     fetch(`${baseUrl}/members/remove/${memberId}`, {
       method: "DELETE",
       headers: {
@@ -135,10 +129,10 @@ const ClubAdminMembersPage = () => {
       .then((data) => {
         toast({
           title: "Success",
-          description: "Member removed successfully",
+          description: data.message,
           status: "success",
         });
-        fetchClubMembers(); 
+        fetchClubMembers();
       })
       .catch((err) => {
         toast({
@@ -187,12 +181,15 @@ const ClubAdminMembersPage = () => {
                     placeholder="member@university.edu"
                     onChange={(e) => setEmail(e.target.value)}
                     value={email}
-                    />
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label>Role</Label>
-                  <Select defaultValue="member" onValueChange={(value) => setRole(value)}>
+                  <Select
+                    defaultValue="member"
+                    onValueChange={(value) => setRole(value)}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -203,13 +200,17 @@ const ClubAdminMembersPage = () => {
                   </Select>
                 </div>
 
-                <Button className="w-full" onClick={() => addMember(email, role)}>Send Invitation</Button>
+                <Button
+                  className="w-full"
+                  onClick={() => addMember(email, role)}
+                >
+                  Send Invitation
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
         </div>
 
-       
         {/* Members List */}
         <Card>
           <CardContent className="p-0">
@@ -221,9 +222,16 @@ const ClubAdminMembersPage = () => {
                 >
                   <div className="flex items-center gap-4">
                     <Avatar className="w-12 h-12">
-                      <AvatarImage src={member.avatar} />
+                      {member.image ? (
+                        <AvatarImage
+                          src={member.image}
+                          alt={member.studentName}
+                          className="object-cover"
+                        />
+                      ) : null}
+
                       <AvatarFallback>
-                        {member.studentName.charAt(0)}
+                        {member.studentName?.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div>
@@ -237,9 +245,7 @@ const ClubAdminMembersPage = () => {
                   <div className="flex items-center gap-4">
                     <Badge
                       variant={
-                        member.role === "President"
-                          ? "default"
-                          : "secondary"
+                        member.role === "President" ? "default" : "secondary"
                       }
                     >
                       {member.role}
@@ -257,7 +263,8 @@ const ClubAdminMembersPage = () => {
                           <Shield className="w-4 h-4 mr-2" />
                           Change Role
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive"
+                        <DropdownMenuItem
+                          className="text-destructive"
                           onClick={() => removeMember(member.studentId)}
                         >
                           Remove Member

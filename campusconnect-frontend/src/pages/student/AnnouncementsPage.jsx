@@ -44,7 +44,7 @@ const AnnouncementsPage = () => {
   }, []);
 
   return (
-    <DashboardLayout navItems={studentNavItems} title="Announcements">
+    <DashboardLayout navItems={studentNavItems} title="Announcements" bell={true}>
       <div className="space-y-6">
         {/* Header */}
         <div>

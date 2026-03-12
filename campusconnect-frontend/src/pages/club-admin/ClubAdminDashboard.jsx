@@ -255,9 +255,6 @@ const ClubAdminDashboard = () => {
                           </p>
                         </div>
 
-                        <Button variant="ghost" size="icon">
-                          <Eye className="w-4 h-4" />
-                        </Button>
                       </div>
                     </CardContent>
                   </Card>

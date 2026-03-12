@@ -279,8 +279,8 @@ const ClubMemberDashboard = () => {
                   <div className="text-sm text-muted-foreground space-y-1">
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4" />
-                      {e.eventDate.split("T")[0]} at{" "}
-                      {e.eventDate.split("T")[1].substring(0, 5)}
+                      {e.startTime.split("T")[0]} at{" "}
+                      {e.startTime.split("T")[1].substring(0, 5)}
                     </div>
 
                     <div className="flex items-center gap-2">

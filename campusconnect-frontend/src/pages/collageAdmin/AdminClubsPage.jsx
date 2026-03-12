@@ -64,11 +64,11 @@ const AdminClubsPage = () => {
       },
     })
       .then(async (res) => {
-        const ok = await res.text();
-        if (ok) {
+        const data = await res.json();
+        if (res.ok) {
           toast({
             title: "Club approved",
-            description: "The club request has been approved successfully.",
+            description: data.message,
             status: "success",
           });
           fetchClubRequest(); // Refresh pending clubs list
@@ -83,6 +83,26 @@ const AdminClubsPage = () => {
         }),
       );
   };
+
+  //get event status based on current time
+  const getEventStatus = (event) => {
+    const start = new Date(event.startTime);
+    const end = new Date(event.endTime);
+
+    if (now >= start && now <= end) return "LIVE";
+    if (now < start) return "UPCOMING";
+    return "FINISHED";
+  };
+
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   //fetch Announcements
   const fetchAnnouncements = () => {
@@ -115,12 +135,14 @@ const AdminClubsPage = () => {
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
     })
-      .then((res) => {
+      .then(async (res) => {
+        const data = await res.json();
+
         if (res.ok) {
           fetchClubRequest();
           toast({
             title: "Club request rejected",
-            description: "The club request has been rejected successfully.",
+            description: data.message,
             status: "success",
           });
         }
@@ -625,11 +647,11 @@ const AdminClubsPage = () => {
                       </p>
                     )}
 
-                    {viewEvent.eventDate && (
+                    {viewEvent.startTime && (
                       <p>
                         <strong>Date & Time:</strong>{" "}
-                        {viewEvent.eventDate.split("T")[0]} •{" "}
-                        {viewEvent.eventDate.split("T")[1]}
+                        {viewEvent.startTime.split("T")[0]} •{" "}
+                        {viewEvent.startTime.split("T")[1]}
                       </p>
                     )}
 
@@ -657,55 +679,60 @@ const AdminClubsPage = () => {
 
             {/* Events Grid */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredUpcomingEvents.map((event) => (
-                <Card
-                  key={event.id}
-                  className="border-border/50 overflow-hidden"
-                >
-                  <img
-                    src={event.image}
-                    alt={event.title}
-                    className="w-full h-40 object-cover"
-                  />
+              {filteredUpcomingEvents.map((event) => {
+                const status = getEventStatus(event);
 
-                  <CardContent className="p-5 pt-4">
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      {event.clubName && (
-                        <Badge variant="outline">{event.clubName}</Badge>
+                return (
+                  <Card
+                    key={event.id}
+                    className="border-border/50 overflow-hidden"
+                  >
+                    <img
+                      src={event.image}
+                      alt={event.title}
+                      className="w-full h-40 object-cover"
+                    />
+
+                    <CardContent className="p-5 pt-4">
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        {event.clubName && (
+                          <Badge variant="outline">{event.clubName}</Badge>
+                        )}
+
+                        <Badge
+                          variant={
+                            status === "LIVE"
+                              ? "destructive"
+                              : status === "UPCOMING"
+                                ? "secondary"
+                                : "default"
+                          }
+                        >
+                          {status}
+                        </Badge>
+                      </div>
+
+                      <h4 className="font-semibold mb-2">{event.title}</h4>
+
+                      {event.description && (
+                        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                          {event.description.substring(0, 40) +
+                            (event.description.length > 40 ? "..." : "")}
+                        </p>
                       )}
-                      <Badge
-                        variant={
-                          event.status === "LIVE"
-                            ? "destructive"
-                            : event.status === "UPCOMING"
-                              ? "secondary"
-                              : "default"
-                        }
+
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => setViewEvent(event)}
                       >
-                        {event.status}
-                      </Badge>
-                    </div>
-
-                    <h4 className="font-semibold mb-2">{event.title}</h4>
-
-                    {event.description && (
-                      <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                        {event.description.substring(0, 40) +
-                          (event.description.length > 40 ? "..." : "")}
-                      </p>
-                    )}
-                    
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => setViewEvent(event)}
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      Details
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
+                        <Eye className="w-4 h-4 mr-2" />
+                        Details
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </TabsContent>
 

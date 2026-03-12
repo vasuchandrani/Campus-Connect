@@ -13,74 +13,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/Ta
 import { journalistNavItems } from "../../config/Navigation";
 import { useNavigate } from "react-router-dom";
 import { marked } from "marked";
+import { toast } from "sonner";
 
 // ------------------------------Navigation Items------------------------------//
 const navItems = journalistNavItems;
 
-// Temporary initial articles data
-const initialArticles = [
-  {
-    id: "1",
-    title: "Annual Tech Fest Highlights",
-    date: "2024-01-20",
-    status: "published",
-    views: 1234,
-    image: "https://images.unsplash.com/photo-1505373877841-8d25f7d46678",
-    content: `
-# Annual Tech Fest 2024 🚀
-
-## Highlights
-- Hackathon
-- Robotics Competition
-- Guest Lecture
-
-**Winner:** IT Department
-
-> A grand technical celebration.
-    `,
-  },
-  {
-    id: "2",
-    title: "Sports Week Championship Results",
-    date: "2024-01-18",
-    status: "published",
-    views: 890,
-    image: "https://images.unsplash.com/photo-1517649763962-0c623066013b",
-    content: `
-## 🏆 Sports Week Championship
-
-Final Score: **3 - 2**
-
-Amazing teamwork and dedication from all players.
-    `,
-  },
-  {
-    id: "3",
-    title: "Upcoming Science Fair Preview",
-    date: "2024-01-16",
-    status: "draft",
-    content: `
-# Science Fair 2024
-
-Stay tuned for innovative student projects.
-    `,
-  },
-];
-
 const JournalistArticlesPage = () => {
 
   const navigate = useNavigate();
+  // Base URL for API calls related to journalist
   const baseUrl = "http://localhost:8080/campus-connect/journalist";
 
   //stat variables
-  const [articles, setArticles] = useState(initialArticles);
   const [viewArticle, setViewArticle] = useState(null);
 
   const[published,setPublished] = useState([]);
   const[drafts,setDrafts] = useState([]);
 
+  //fetch published
   const fetchPublishedArticles = async() => {
-    await fetch(`${baseUrl}/newspaper/published`,{
+    await fetch(`${baseUrl}/newspapers/published`,{
       method:"GET",
       headers:{
         "Content-Type":"application/json",
@@ -96,8 +48,9 @@ const JournalistArticlesPage = () => {
     });
   };
 
+  //fetch drafts
   const fetchDraftArticles = async() => {
-    await fetch(`${baseUrl}/newspaper/draft`,{
+    await fetch(`${baseUrl}/newspapers/drafts`,{
       method:"GET",
       headers:{
         "Content-Type":"application/json",
@@ -114,6 +67,7 @@ const JournalistArticlesPage = () => {
   };
 
 
+  //load published and draft articles on component mount
   useEffect(() => {
     fetchPublishedArticles();
     fetchDraftArticles();
@@ -125,18 +79,24 @@ const JournalistArticlesPage = () => {
     });
   };
 
-  //  delete draft 
+  //  delete published article 
   const handleUnpublish = (id) => {
-    fetch(`${baseUrl}/newspaper/publish/${id}`,{
+    fetch(`${baseUrl}/newspapers/published/${id}`,{
       method:"DELETE",
       headers:{
         "Content-Type":"application/json",
         "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
       },
     })
-    .then(res => {
-      if(res.ok){
+    .then(async (res) => {
+      const data = await res.json();
+      if (res.ok) {
         fetchPublishedArticles();
+        toast({
+          title: "Success",
+          description: data.message,
+          status: "success",
+        });
       }
     })
     .catch(err => {
@@ -144,18 +104,24 @@ const JournalistArticlesPage = () => {
     });
   };
 
-  //delete published article
+  //delete draft article
   const handleDelete = (id) => {
-    fetch(`${baseUrl}/newspaper/draft/${id}`,{
+    fetch(`${baseUrl}/newspapers/drafts/${id}`,{
       method:"DELETE",
       headers:{
         "Content-Type":"application/json",
         "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
       },
     })
-    .then(res => {
-      if(res.ok){
+    .then(async (res) => {
+      const data = await res.json();
+      if (res.ok) {
         fetchDraftArticles();
+        toast({
+          title: "Success",
+          description: data.message,
+          status: "success",
+        });
       }
     })
     .catch(err => {
