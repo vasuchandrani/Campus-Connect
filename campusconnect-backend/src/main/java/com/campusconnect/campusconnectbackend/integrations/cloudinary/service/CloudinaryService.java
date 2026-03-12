@@ -15,7 +15,7 @@ public class CloudinaryService {
     private final Cloudinary cloudinary;
 
     // upload image
-    public String uploadImage(MultipartFile file, Long eventId) {
+    public String uploadImage(MultipartFile file, String path) {
 
         try {
 
@@ -24,7 +24,7 @@ public class CloudinaryService {
                     file.getBytes(),
                     ObjectUtils.asMap(
                             "resource_type", "image",
-                            "folder", "events" + eventId
+                            "folder", path
                     )
             );
 

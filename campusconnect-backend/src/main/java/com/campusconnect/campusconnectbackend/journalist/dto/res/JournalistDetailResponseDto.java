@@ -14,5 +14,5 @@ public class JournalistDetailResponseDto {
     String name;
 
     @NotBlank
-    String CollageName;
+    String CollegeName;
 }

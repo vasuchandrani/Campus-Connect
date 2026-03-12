@@ -25,6 +25,10 @@ public class Journalist {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
+    private String about;
+
+    private String portfolio;
+
     @CreationTimestamp
     @Column(name = "created_at")
     private LocalDateTime createdAt;

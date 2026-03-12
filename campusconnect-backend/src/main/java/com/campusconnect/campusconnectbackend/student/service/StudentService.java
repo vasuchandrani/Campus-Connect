@@ -11,7 +11,7 @@ import com.campusconnect.campusconnectbackend.integrations.mail_service.dto.club
 import com.campusconnect.campusconnectbackend.integrations.mail_service.service.EmailDispatcherService;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import com.campusconnect.campusconnectbackend.student.Student;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -49,7 +49,9 @@ public class StudentService {
     // request for a new club
     @Transactional
     public MessageResponseDto requestForClub(ClubRequestDto request) {
+
         Student student = studentRepoService.getStudent(authService.getCurrentUserId());
+
         // store club-request
         boolean reqSaved = clubRequestService.store(request, student, student.getCollege());
 

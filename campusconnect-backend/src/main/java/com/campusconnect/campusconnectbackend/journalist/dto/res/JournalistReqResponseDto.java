@@ -10,7 +10,7 @@ import lombok.Setter;
 public class JournalistReqResponseDto {
 
     @NotNull
-    private String id;
+    private Long id;
 
     @NotBlank
     private String journalistName;
@@ -25,7 +25,7 @@ public class JournalistReqResponseDto {
     private String portfolioLink;
 
     @NotNull
-    private Long studentId;
+    private String studentId;
 
     @NotNull
     private Long collegeId;

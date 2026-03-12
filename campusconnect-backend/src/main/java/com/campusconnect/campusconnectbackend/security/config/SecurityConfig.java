@@ -46,7 +46,11 @@ public class SecurityConfig {
 
                                 "/campus-connect/colleges",
 
-                                "/campus-connect/email/**"
+                                "/campus-connect/email/**",
+
+                                "/campus-connect/security/reset-pwd",
+                                "/campus-connect/security/send-code",
+                                "/campus-connect/security/verify-code"
                         ).permitAll()
 
                         // Role-based routes

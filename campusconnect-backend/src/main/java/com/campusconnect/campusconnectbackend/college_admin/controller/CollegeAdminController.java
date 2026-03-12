@@ -3,11 +3,13 @@ package com.campusconnect.campusconnectbackend.college_admin.controller;
 import com.campusconnect.campusconnectbackend.club.announcement.AnnouncementService;
 import com.campusconnect.campusconnectbackend.club.club_request.ClubRequestService;
 import com.campusconnect.campusconnectbackend.club.ClubService;
+import com.campusconnect.campusconnectbackend.college_admin.service.CollegeAdminAuth;
 import com.campusconnect.campusconnectbackend.college_admin.service.CollegeAdminService;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.research_paper.ResearchPaperService;
 import com.campusconnect.campusconnectbackend.research_paper.dto.res.ResearchesResponseDto;
 import com.campusconnect.campusconnectbackend.reviewer.dto.req.AddReviewerRequestDto;
+import com.campusconnect.campusconnectbackend.security.security_management.dto.res.CollegeAdminProfileDto;
 import com.campusconnect.campusconnectbackend.student.dto.req.StudentRegisterRequestDto;
 import com.campusconnect.campusconnectbackend.club.announcement.dto.res.AnnouncementResponseDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.ClubListDto;
@@ -50,6 +52,7 @@ public class CollegeAdminController {
     private final ReviewerService reviewerService;
     private final StudentRepoService studentRepoService;
     private final ResearchPaperService researchPaperService;
+    private final CollegeAdminAuth collegeAdminAuth;
 
     /* Home */
 
@@ -241,27 +244,49 @@ public class CollegeAdminController {
     /* Research */
 
     // get all not-reviewed researches
-    @GetMapping("/researches")
+    @GetMapping("/researches/not-reviewed")
     public List<ResearchesResponseDto> getNotReviewedResearches() {
         return researchPaperService.getNotReviewedResearches();
     }
 
-    // get particular research-paper
-    @GetMapping("/researches/{id}")
-    public ResearchesResponseDto getResearchPaper(@PathVariable Long id) {
-        return researchPaperService.getResearchPaper(id);
+    // get all not-reviewed researches
+    @GetMapping("/researches/reviewed")
+    public List<ResearchesResponseDto> getReviewedResearches() {
+        return researchPaperService.getReviewedResearches();
+    }
+
+    // get all not-reviewed researches
+    @GetMapping("/researches/under-reviewed")
+    public List<ResearchesResponseDto> getUnderReviewedResearches() {
+        return researchPaperService.getUnderReviewedResearches();
     }
 
     // assign reviewer
     // get all reviewer
-    @GetMapping("/researches/review/{id}")
-    public List<ReviewerResponseDto> getReviewers(@PathVariable Long id) {
+    @GetMapping("/researches/reviewers")
+    public List<ReviewerResponseDto> getAllReviewers() {
         return reviewerService.getReviewers();
     }
 
-    @PostMapping("/researches/review/{id}")
-    public MessageResponseDto assignReviewer(@PathVariable Long id, @RequestBody AddReviewerRequestDto request) {
-        return reviewerService.assignReviewer(id, request);
+    @PostMapping("/researches/review/{researchId}")
+    public MessageResponseDto assignReviewer(@PathVariable Long researchId, @RequestBody Long reviewerId) {
+        return reviewerService.assignReviewer(researchId, reviewerId);
     }
+
+
+    /* Settings */
+
+    // get college-admin profile
+    @GetMapping("/profile")
+    public CollegeAdminProfileDto getCollegeAdmin() {
+        return collegeAdminAuth.getProfile(authService.getCurrentUserId());
+    }
+
+    // update college-admin profile
+    @PutMapping("/profile")
+    public MessageResponseDto updateCollegeAdmin(@RequestBody CollegeAdminProfileDto request) {
+        return collegeAdminAuth.updateProfile(authService.getCurrentUserId(), request);
+    }
+
 
 }

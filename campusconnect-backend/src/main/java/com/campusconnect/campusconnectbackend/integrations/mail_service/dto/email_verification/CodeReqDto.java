@@ -7,7 +7,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class CodeRequestDto {
+public class CodeReqDto {
 
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")

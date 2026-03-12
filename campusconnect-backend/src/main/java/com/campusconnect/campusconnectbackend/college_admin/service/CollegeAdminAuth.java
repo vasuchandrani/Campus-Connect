@@ -2,12 +2,17 @@ package com.campusconnect.campusconnectbackend.college_admin.service;
 
 import com.campusconnect.campusconnectbackend.college.College;
 import com.campusconnect.campusconnectbackend.college_admin.CollegeAdmin;
+import com.campusconnect.campusconnectbackend.security.security_management.dto.req.ChangePasswordRequestDto;
+import com.campusconnect.campusconnectbackend.security.security_management.dto.res.CollegeAdminProfileDto;
 import com.campusconnect.campusconnectbackend.dto.request.LoginRequestDto;
 import com.campusconnect.campusconnectbackend.college_admin.dto.req.CollegeAdminSignupRequestDto;
 import com.campusconnect.campusconnectbackend.dto.response.AuthResponseDto;
 import com.campusconnect.campusconnectbackend.college_admin.CollegeAdminRepository;
 import com.campusconnect.campusconnectbackend.college.CollegeRepository;
+import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.security.jwt.JwtTokenProvider;
+import com.campusconnect.campusconnectbackend.security.security_management.dto.req.ForgetPasswordRequestDto;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -25,6 +30,7 @@ public class CollegeAdminAuth {
     private final CollegeRepository collegeRepository;
 
     // college-admin signup
+    @Transactional
     public AuthResponseDto store(CollegeAdminSignupRequestDto request) {
 
         // create college
@@ -93,5 +99,108 @@ public class CollegeAdminAuth {
                 "COLLEGE_ADMIN",
                 "/campus-connect/college-admin/dashboard"
         );
+    }
+
+    // reset password
+    @Transactional
+    public MessageResponseDto resetPassword(ForgetPasswordRequestDto request) {
+        try {
+            String email = request.getEmail();
+            String password = request.getPassword();
+
+            // find student
+            CollegeAdmin admin = collegeAdminRepository.findByEmail(email).orElseThrow(
+                    () -> new RuntimeException("User not found, Try again!")
+            );
+
+            // change password
+            admin.setPasswordHash(passwordEncoder.encode(password));
+            collegeAdminRepository.save(admin);
+
+            return new MessageResponseDto("Your password changed successfully!");
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    // get college-admin profile
+    public CollegeAdminProfileDto getProfile(Long collegeAdminId) {
+
+        // find college-admin
+        CollegeAdmin admin = collegeAdminRepository.findById(collegeAdminId).orElseThrow(
+                () -> new RuntimeException("You are not logged in")
+        );
+        // find college
+        College college = admin.getCollege();
+
+        // create response
+        CollegeAdminProfileDto profile = new CollegeAdminProfileDto();
+        profile.setFullName(admin.getFullName());
+        profile.setEmail(admin.getEmail());
+        profile.setPhoneNumber(admin.getPhoneNumber());
+        profile.setCollegeName(college.getName());
+        profile.setDomain(college.getDomain());
+        profile.setWebsite(college.getWebsite());
+        profile.setCollegeAddress(college.getAddress());
+        profile.setCollegeDescription(college.getAbout());
+
+        return profile;
+    }
+
+    // update profile
+    @Transactional
+    public MessageResponseDto updateProfile(Long collegeAdminId, CollegeAdminProfileDto request) {
+
+        // find college-admin
+        CollegeAdmin admin = collegeAdminRepository.findById(collegeAdminId).orElseThrow(
+                () -> new RuntimeException("You are not logged in")
+        );
+        // find college
+        College college = admin.getCollege();
+
+        // overwrite all fields to update
+
+        // college fields
+        college.setName(request.getCollegeName());
+        college.setDomain(request.getDomain());
+        college.setWebsite(request.getWebsite());
+        college.setAddress(request.getCollegeAddress());
+        college.setAbout(request.getCollegeDescription());
+
+        College savedCollege = collegeRepository.save(college);
+
+        // admin fields
+        admin.setFullName(request.getFullName());
+        admin.setEmail(request.getEmail());
+        admin.setPhoneNumber(request.getPhoneNumber());
+        admin.setCollege(savedCollege);
+
+        collegeAdminRepository.save(admin);
+
+        return new MessageResponseDto("Your profile has been updated successfully!");
+    }
+
+    // change password when provided old-password
+    @Transactional
+    public MessageResponseDto changePassword(Long currentUserId, ChangePasswordRequestDto request) {
+        String oldPassword = request.getOldPassword();
+        String newPassword = request.getNewPassword();
+
+        // find college-admin
+        CollegeAdmin admin = collegeAdminRepository.findById(currentUserId).orElseThrow(
+                () -> new RuntimeException("You are not logged in")
+        );
+
+        // check old-password
+        if (!passwordEncoder.matches(oldPassword, admin.getPasswordHash())) {
+            return new MessageResponseDto("Your old-password is wrong!");
+        }
+
+        // update
+        admin.setPasswordHash(passwordEncoder.encode(newPassword));
+        collegeAdminRepository.save(admin);
+
+        return new MessageResponseDto("Your password changed successfully!");
     }
 }

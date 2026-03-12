@@ -23,6 +23,9 @@ public class NewsPaperResponseDto {
     @NotBlank
     private String imageUrl;
 
+    @NotBlank
+    private String status;
+
     @NotNull
     private LocalDateTime createdAt;
 

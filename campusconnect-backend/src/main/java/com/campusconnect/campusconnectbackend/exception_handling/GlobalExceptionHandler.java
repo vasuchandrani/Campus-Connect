@@ -8,6 +8,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.stream.Collectors;
 
@@ -151,5 +152,14 @@ public class GlobalExceptionHandler {
                 new ApiError("Something went wrong: " + ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR),
                 HttpStatus.INTERNAL_SERVER_ERROR
         );
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<?> handleMaxSizeException(MaxUploadSizeExceededException ex) {
+        HttpStatus status = HttpStatus.CONTENT_TOO_LARGE;
+
+        return ResponseEntity
+                .status(status)
+                .body(new ApiError("Image exceeds the maximum allowed size (5MB)", status));
     }
 }

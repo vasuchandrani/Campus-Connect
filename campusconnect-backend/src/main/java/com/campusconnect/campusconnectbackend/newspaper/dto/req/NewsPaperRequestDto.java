@@ -10,7 +10,4 @@ public class NewsPaperRequestDto {
     private String title;
 
     private String content;
-
-    private String imageUrl;
-
 }
