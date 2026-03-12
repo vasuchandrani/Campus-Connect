@@ -9,4 +9,6 @@ public interface EventSponsorRepository extends JpaRepository<EventSponsor, Long
     List<EventSponsor> findAllByEvent_Id(Long eventId);
 
     void deleteAllByEvent_Id(Long eventId);
+
+    boolean existsByEvent_Id(Long eventId);
 }

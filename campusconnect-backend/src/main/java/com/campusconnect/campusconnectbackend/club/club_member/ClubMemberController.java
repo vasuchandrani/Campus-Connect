@@ -17,6 +17,7 @@ import com.campusconnect.campusconnectbackend.club.event.overview_generation.Eve
 import com.campusconnect.campusconnectbackend.club.event.service.EventService;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -91,23 +92,24 @@ public class ClubMemberController {
     }
 
     // create new event
-    @PostMapping(value = "/events/active", consumes = "multipart/form-data")
+    @PostMapping(value = "/events/active", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public MessageResponseDto createEvent(
             @PathVariable Long clubId,
-            @ModelAttribute EventRequestDto request,
-            @RequestParam("image") MultipartFile image
+            @RequestPart("event") EventRequestDto request,
+            @RequestPart("image") MultipartFile image
     ) {
         return eventService.createEvent(request, clubId, image);
     }
 
     // modify any event
-    @PatchMapping(value = "/events/active/{eventId}", consumes = "multipart/form-data")
+    @PatchMapping(value = "/events/active/{eventId}", consumes =MediaType.MULTIPART_FORM_DATA_VALUE)
     public MessageResponseDto updateEvent(
+            @PathVariable Long clubId,
             @PathVariable Long eventId,
-            @ModelAttribute EventRequestDto request,
-            @RequestParam("image") MultipartFile image
+            @RequestPart("event") EventRequestDto request,
+            @RequestPart("image") MultipartFile image
     ) {
-        return eventService.updateEvent(request, eventId, image);
+        return eventService.updateEvent(request, eventId, clubId, image);
     }
 
     // delete any event
@@ -126,16 +128,15 @@ public class ClubMemberController {
     }
 
     // save overview
-    @PatchMapping(value = "/events/finished/{eventId}/save-overview", consumes = "multipart/form-data")
+    @PatchMapping(value = "/events/finished/{eventId}/save-overview", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public MessageResponseDto saveOverview(
+            @PathVariable Long clubId,
             @PathVariable Long eventId,
-            @ModelAttribute SaveOverviewRequestDto request,
-            @RequestParam("images") List<MultipartFile> images
+            @RequestPart("overview") SaveOverviewRequestDto request,
+            @RequestPart("images") List<MultipartFile> images
     ) {
-        return eventOverviewService.saveOverview(eventId, request, images);
+        return eventOverviewService.saveOverview(clubId, eventId, request, images);
     }
-
-
 
     /* Announcements */
 

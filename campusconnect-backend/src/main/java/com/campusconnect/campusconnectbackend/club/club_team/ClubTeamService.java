@@ -13,7 +13,8 @@ import com.campusconnect.campusconnectbackend.club.dto.res.club_admin_member.Clu
 import com.campusconnect.campusconnectbackend.club.dto.res.club_card.ClubMemberDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.club_admin_member.TeamNameDto;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
-import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -28,6 +29,13 @@ public class ClubTeamService {
     private final ClubTeamMemberRepository clubTeamMemberRepository;
     private final ClubMemberRepository clubMemberRepository;
     private final ClubRepository clubRepository;
+
+    @Value("${CLUB_MEMBER_MALE}")
+    private String maleMemberDefaultImage;
+
+    @Value("${CLUB_MEMBER_FEMALE}")
+    private String femaleMemberDefaultImage;
+
 
     // get teams of club
     public List<ClubTeamDto> getTeamsByClub(Long clubId) {
@@ -45,6 +53,8 @@ public class ClubTeamService {
                 ClubTeamMemberDto dto = new ClubTeamMemberDto();
                 dto.setStudentName(teamMember.getStudent().getFullName());
                 dto.setStudentId(teamMember.getStudent().getId());
+                dto.setImage(teamMember.getImage());
+
                 members.add(dto);
             }
             // team member count
@@ -52,13 +62,14 @@ public class ClubTeamService {
 
             // find club members
             List<ClubMember> clubMembersList = clubMemberRepository.findClubMemberByClub_Id(clubId);
-            List<ClubMemberDto>  clubMembers = new ArrayList<>();
+            List<ClubMemberDto> clubMembers = new ArrayList<>();
 
             for (ClubMember clubMember : clubMembersList) {
                 ClubMemberDto dto = new ClubMemberDto();
                 dto.setStudentName(clubMember.getStudent().getFullName());
                 dto.setStudentId(clubMember.getStudent().getId());
                 dto.setRole(clubMember.getRole());
+                dto.setImage(clubMember.getImage());
                 clubMembers.add(dto);
             }
 
@@ -143,6 +154,13 @@ public class ClubTeamService {
         member.setTeam(clubTeamRepository.findById(teamId));
         member.setStudent(student.getStudent());
         member.setRole(student.getRole());
+
+        if (student.getStudent().getGender().equals("MALE")) {
+            member.setImage(maleMemberDefaultImage);
+        }
+        else {
+            member.setImage(femaleMemberDefaultImage);
+        }
         // save in db
         clubTeamMemberRepository.save(member);
         return new MessageResponseDto("Team-member added successfully");

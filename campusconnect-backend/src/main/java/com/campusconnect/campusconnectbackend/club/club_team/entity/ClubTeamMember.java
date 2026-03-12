@@ -32,4 +32,6 @@ public class ClubTeamMember {
     @CreationTimestamp
     @Column(name = "joined_at")
     private LocalDateTime joinedAt;
+    
+    private String image;
 }

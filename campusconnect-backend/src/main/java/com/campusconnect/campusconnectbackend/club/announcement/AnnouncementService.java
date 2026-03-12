@@ -7,7 +7,7 @@ import com.campusconnect.campusconnectbackend.club.announcement.dto.req.Announce
 import com.campusconnect.campusconnectbackend.club.announcement.dto.req.AnnouncementRequestDto;
 import com.campusconnect.campusconnectbackend.club.announcement.dto.res.AnnouncementResponseDto;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -29,6 +29,8 @@ public class AnnouncementService {
     private AnnouncementResponseDto getDto (Announcement a) {
         // create response dto
         AnnouncementResponseDto dto = new AnnouncementResponseDto();
+        if (a == null)  return dto;
+
         // map the data
         dto.setId(a.getId());
         dto.setTitle(a.getTitle());

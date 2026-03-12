@@ -14,4 +14,6 @@ public class ClubTeamMemberDto {
 
     @NotNull
     private Long studentId;
+
+    private String image;
 }

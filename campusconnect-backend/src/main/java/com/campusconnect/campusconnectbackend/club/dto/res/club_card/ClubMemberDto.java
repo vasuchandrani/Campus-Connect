@@ -17,5 +17,7 @@ public class ClubMemberDto {
 
     @NotBlank
     private String role;
+
+    private String image;
 }
 

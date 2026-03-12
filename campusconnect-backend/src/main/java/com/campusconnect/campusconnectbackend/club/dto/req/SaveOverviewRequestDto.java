@@ -13,4 +13,6 @@ public class SaveOverviewRequestDto {
     private String overview;
 
     private List<EventWinnerRequestDto> winners;
+
+    private List<String> oldImages;
 }
