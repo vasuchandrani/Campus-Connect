@@ -51,6 +51,9 @@ export const AuthProvider = ({ children }) => {
       setUser({ email, role });
       return data.redirectUrl; 
     }
+    else if(data && data.role=="EXPIRE"){
+      return "EXPIRE subscription";
+    }
     
 
     return "Invalid credentials";

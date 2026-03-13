@@ -39,8 +39,15 @@ const JournalistLogin = ({ onBack }) => {
     setRequesting(true);
     const success = await login(email, password, "journalist");
     setRequesting(false);
-    
-    if (typeof success === "string" && success !== "Invalid credentials") {
+
+    if(typeof success=== "string" && success=== "EXPIRE subscription"){
+        toast({
+          title: "Subscription Expired",
+          description: "Your College's subscription has expired. Please contact the administrator.",
+          variant: "destructive",
+        });
+      }
+    else  if (typeof success === "string" && success !== "Invalid credentials") {
       toast({
         title: "Success",
         description: "Login successful!",

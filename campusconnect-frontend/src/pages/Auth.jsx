@@ -42,8 +42,14 @@ const Auth = () => {
 
     if(selectedRole){
       const success = await login(email, password, selectedRole);
-
-      if (typeof success === "string" && success !== "Invalid credentials") {
+      if(typeof success=== "string" && success=== "EXPIRE subscription"){
+        toast({
+          title: "Subscription Expired",
+          description: "Your College's subscription has expired. Please contact the administrator.",
+          variant: "destructive",
+        });
+      }
+      else if (typeof success === "string" && success !== "Invalid credentials") {
         navigate(success);
       } else {
         toast({
