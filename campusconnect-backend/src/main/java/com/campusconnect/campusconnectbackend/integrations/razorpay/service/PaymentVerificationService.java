@@ -11,7 +11,7 @@ public class PaymentVerificationService {
     @Value("${razorpay.api.secret}")
     private String secret;
 
-    public boolean verifyPayment(String orderId, String paymentId, String signature) throws Exception {
+    public void verifyPayment(String orderId, String paymentId, String signature) throws Exception {
 
         JSONObject params = new JSONObject();
 
@@ -24,7 +24,5 @@ public class PaymentVerificationService {
         if (!isValid) {
             throw new RuntimeException("Payment verification failed");
         }
-
-        return true;
     }
 }

@@ -31,7 +31,14 @@ public class AuthController {
     public AuthResponseDto collegeAdminSignup(
             @RequestBody CollegeAdminSignupRequestDto request
     ) {
-        return authService.signup(request);
+        if (request.isPaid()) {
+            return authService.signup(request);
+        }
+        return new AuthResponseDto(
+                null,
+                "Payment required before signup",
+                "/campus-connect/auth"
+        );
     }
     @PostMapping("/college-admin/login")
     public AuthResponseDto collegeAdminLogin(

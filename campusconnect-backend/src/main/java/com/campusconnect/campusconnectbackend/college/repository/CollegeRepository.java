@@ -1,5 +1,6 @@
-package com.campusconnect.campusconnectbackend.college;
+package com.campusconnect.campusconnectbackend.college.repository;
 
+import com.campusconnect.campusconnectbackend.college.College;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

@@ -2,7 +2,7 @@ package com.campusconnect.campusconnectbackend.college_admin.service;
 
 import com.campusconnect.campusconnectbackend.club.ClubService;
 import com.campusconnect.campusconnectbackend.college.College;
-import com.campusconnect.campusconnectbackend.college.CollegeRepository;
+import com.campusconnect.campusconnectbackend.college.repository.CollegeRepository;
 import com.campusconnect.campusconnectbackend.college_admin.CollegeAdmin;
 import com.campusconnect.campusconnectbackend.college_admin.CollegeAdminRepository;
 import com.campusconnect.campusconnectbackend.college_admin.dto.res.CollegeAdminDashboardStatsDto;

@@ -1,6 +1,8 @@
 package com.campusconnect.campusconnectbackend.college_admin.service;
 
 import com.campusconnect.campusconnectbackend.college.College;
+import com.campusconnect.campusconnectbackend.college.entity.CollegeSubscription;
+import com.campusconnect.campusconnectbackend.college.repository.CollegeSubscriptionRepository;
 import com.campusconnect.campusconnectbackend.college_admin.CollegeAdmin;
 import com.campusconnect.campusconnectbackend.security.security_management.dto.req.ChangePasswordRequestDto;
 import com.campusconnect.campusconnectbackend.security.security_management.dto.res.CollegeAdminProfileDto;
@@ -8,7 +10,7 @@ import com.campusconnect.campusconnectbackend.dto.request.LoginRequestDto;
 import com.campusconnect.campusconnectbackend.college_admin.dto.req.CollegeAdminSignupRequestDto;
 import com.campusconnect.campusconnectbackend.dto.response.AuthResponseDto;
 import com.campusconnect.campusconnectbackend.college_admin.CollegeAdminRepository;
-import com.campusconnect.campusconnectbackend.college.CollegeRepository;
+import com.campusconnect.campusconnectbackend.college.repository.CollegeRepository;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.security.jwt.JwtTokenProvider;
 import com.campusconnect.campusconnectbackend.security.security_management.dto.req.ForgetPasswordRequestDto;
@@ -19,6 +21,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+
 
 @Service
 @RequiredArgsConstructor
@@ -28,10 +32,19 @@ public class CollegeAdminAuth {
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
     private final CollegeRepository collegeRepository;
+    private final CollegeSubscriptionRepository collegeSubscriptionRepository;
 
     // college-admin signup
     @Transactional
     public AuthResponseDto store(CollegeAdminSignupRequestDto request) {
+        var plan = request.getSubscription();
+        if (plan == null) {
+            return new AuthResponseDto(
+                    null,
+                    "Your subscription not found",
+                    "/campus-connect/auth"
+            );
+        }
 
         // create college
         College college = new College();
@@ -45,6 +58,20 @@ public class CollegeAdminAuth {
 
         // save college in db
         College savedCollege = collegeRepository.save(college);
+
+        // create college-subscription
+        CollegeSubscription subscription = new CollegeSubscription();
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime endDate = now.plusMonths(plan.getDurationInMonths());
+
+        subscription.setPlanName(plan.getPlanName());
+        subscription.setAmount(plan.getAmount());
+        subscription.setStartDate(now);
+        subscription.setEndDate(endDate);
+        subscription.setCollege(savedCollege);
+        // save subscription in db
+        collegeSubscriptionRepository.save(subscription);
 
         // create college-admin
         CollegeAdmin admin = new CollegeAdmin();

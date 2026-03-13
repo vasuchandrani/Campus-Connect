@@ -37,6 +37,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/campus-connect/college-admin/signup",
                                 "/campus-connect/college-admin/login",
+                                "/campus-connect/college-admin/create-order",
+                                "/campus-connect/college-admin/verify",
 
                                 "/campus-connect/student/signup",
                                 "/campus-connect/student/login",

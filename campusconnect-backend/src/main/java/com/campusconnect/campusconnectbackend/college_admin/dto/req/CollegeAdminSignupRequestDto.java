@@ -1,5 +1,6 @@
 package com.campusconnect.campusconnectbackend.college_admin.dto.req;
 
+import com.campusconnect.campusconnectbackend.college.dto.req.CollegeSubscriptionRequestDto;
 import com.campusconnect.campusconnectbackend.dto.request.SignupRequestDto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -41,4 +42,8 @@ public class CollegeAdminSignupRequestDto implements SignupRequestDto {
     private String website;
 
     private String aboutCollege;
+
+    private boolean isPaid = false;
+
+    private CollegeSubscriptionRequestDto subscription;
 }

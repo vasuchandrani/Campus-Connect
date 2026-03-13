@@ -5,6 +5,11 @@ import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Label } from "../ui/Label";
 import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot
+} from "../ui/InputOtp";
+import {
   Card,
   CardContent,
   CardDescription,
@@ -12,53 +17,35 @@ import {
   CardTitle,
 } from "../ui/Card";
 import { Textarea } from "../ui/Textarea";
-import { ArrowLeft, Building2, Check, Crown, Zap, Star } from "lucide-react";
+import { ArrowLeft, Building2, Check, Crown, Zap, Star, CheckCircle  } from "lucide-react";
 
-const subscriptionPlans = [
-  {
-    id: "basic",
-    name: "Basic",
-    price: "$99/month",
-    icon: Zap,
-    features: [
-      "Up to 5 clubs",
-      "Basic analytics",
-      "Email support",
-      "1 admin account",
-    ],
-  },
-  {
-    id: "premium",
-    name: "Premium",
-    price: "$199/month",
-    icon: Star,
-    popular: true,
-    features: [
-      "Up to 20 clubs",
-      "Advanced analytics",
-      "Priority support",
-      "5 admin accounts",
-      "Custom branding",
-    ],
-  },
-  {
-    id: "enterprise",
-    name: "Enterprise",
-    price: "$399/month",
-    icon: Crown,
-    features: [
-      "Unlimited clubs",
-      "Full analytics suite",
-      "24/7 support",
-      "Unlimited admins",
-      "API access",
-      "White-label option",
-    ],
-  },
-];
+// Get the raw string, or an empty array string if undefined
+const rawPlans = import.meta.env.VITE_SUBSCRIPTION_PLANS || "[]";
+
+const getSubscriptionPlans = () => {
+  try {
+    return JSON.parse(rawPlans);
+  } catch (err) {
+    console.error("Failed to parse VITE_SUBSCRIPTION_PLANS:", err);
+    return []; 
+  }
+};
+
+const subscriptionPlans = getSubscriptionPlans();
+
+const iconMap = {
+  basic: Zap,
+  premium: Star,
+  enterprise: Crown,
+};
+
+// Map icons safely
+subscriptionPlans.forEach((plan) => {
+  plan.icon = iconMap[plan.id] || Zap;
+  plan.popular = plan.isPopular;
+});
 
 const CollegeSignup = ({ onBack }) => {
-  //stat variables
   const navigate = useNavigate();
   const { collegeSignup } = useAuth();
 
@@ -82,7 +69,7 @@ const CollegeSignup = ({ onBack }) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  //send otp
+  // SEND OTP
   const handleSendOtp = () => {
     if (!formData.email) {
       alert("Please enter email first");
@@ -92,13 +79,16 @@ const CollegeSignup = ({ onBack }) => {
     fetch("http://localhost:8080/campus-connect/security/send-code", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify({ email: formData.email , codeFor:"COLLEGE_ADMIN EMAIL_VERIFICATION"})
+      body: JSON.stringify({
+        email: formData.email,
+        codeFor: "College Admin email verification",
+      }),
     })
       .then((response) => response.json())
       .then((data) => {
-        if(data.message === "verification code sent successfully"){
+        if (data.message === "Verification code sent successfully") {
           alert("OTP sent to " + formData.email);
           setStep(2);
         } else {
@@ -107,67 +97,155 @@ const CollegeSignup = ({ onBack }) => {
       })
       .catch((error) => {
         console.error("Error sending OTP:", error);
-        alert("An error occurred while sending OTP.");
       });
   };
 
-  //verify that otp
+  // VERIFY OTP
   const handleVerifyOtp = () => {
-    if (otp === "") {
-      alert("Please enter OTP");
+    if (!otp) {
+      alert("Enter OTP");
       return;
     }
+
     fetch("http://localhost:8080/campus-connect/security/verify-code", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify({ email: formData.email, code: otp })
+      body: JSON.stringify({ email: formData.email, code: otp }),
     })
       .then((response) => response.json())
       .then((data) => {
         if (data.message === "Code verified successfully") {
-          alert("OTP verified successfully!");
           setStep(3);
         } else {
-          alert(data.message || "Invalid OTP. Please try again.");
+          alert("Invalid OTP");
         }
       })
-      .catch((error) => {
-        console.error("Error verifying OTP:", error);
-        alert("An error occurred while verifying OTP.");
-      });
+      .catch((error) => console.error(error));
   };
 
-  //submit details and signup
-  const handleDetailsSubmit = async () => {
-
-    const redirectUrl = await collegeSignup({
-      fullName: formData.adminName,
-      email: formData.email,
-      password: formData.password,
-      phoneNumber: formData.phone,
-      collegeName: formData.name,
-      domain: formData.domain,
-      address: formData.address,
-      website: formData.website,
-      aboutCollege: formData.description,
-    });
-
-    navigate(redirectUrl);
+  //Resend OTP
+  const resendOtp = async () => {
+    const response = await fetch(
+      "http://localhost:8080/campus-connect/security/send-code",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          codeFor: "College Admin email verification",
+        }),
+      },
+    ).then((res) => res.json());
+    if (response) {
+      alert("OTP resent successfully");
+    } else {
+      alert("please try again");
+    }
   };
 
-  //conform selected plan and submit details
-  const handlePlanConfirm = async() => {
-    if (selectedPlan) {
-      await handleDetailsSubmit();
-    } 
+  // RAZORPAY PAYMENT
+  const handlePlanConfirm = async () => {
+    if (!selectedPlan) return;
+
+    const plan = subscriptionPlans.find((p) => p.id === selectedPlan);
+
+    try {
+      const orderRes = await fetch(
+        "http://localhost:8080/campus-connect/college-admin/create-order",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            amount: plan.amount,
+            currency: "INR",
+          }),
+        }
+      );
+
+      const orderData = await orderRes.json();
+
+      const options = {
+        key: orderData.key,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        order_id: orderData.orderId,
+        name: "Campus Connect",
+        description: `${plan.name} Subscription`,
+        handler: async function (response) {
+
+          const verifyRes = await fetch(
+            "http://localhost:8080/campus-connect/college-admin/verify",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+              }),
+            }
+          );
+
+          const verified = await verifyRes.json();
+
+          if (!verified) {
+            alert("Payment verification failed");
+            return;
+          }
+
+          const redirectUrl = await collegeSignup({
+            fullName: formData.adminName,
+            email: formData.email,
+            password: formData.password,
+            phoneNumber: formData.phone,
+            collegeName: formData.name,
+            domain: formData.domain,
+            address: formData.address,
+            website: formData.website,
+            aboutCollege: formData.description,
+            paid: true,
+            subscription:{
+              planName: plan.name,
+              ammount: plan.amount,
+              durationInMonths: plan.durationInMonths,
+              isLimited: plan.isLimited,
+            }
+          });
+
+          navigate(redirectUrl);
+        },
+        prefill: {
+          name: formData.adminName,
+          email: formData.email,
+          contact: formData.phone,
+        },
+        theme: {
+          color: "#10b981",
+        },
+      };
+
+      const razor = new window.Razorpay(options);
+      razor.open();
+    } catch (err) {
+      console.error(err);
+      alert("Payment initialization failed");
+    }
   };
 
+  // PLAN PAGE
   if (step === 4) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 py-12 px-4">
         <div className="max-w-5xl mx-auto">
+
           <Button
             variant="ghost"
             size="sm"
@@ -229,16 +307,21 @@ const CollegeSignup = ({ onBack }) => {
               Continue
             </Button>
           </div>
+
         </div>
       </div>
     );
   }
 
+  // COLLEGE DETAILS
   if (step === 3) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-background to-primary/5">
+
         <Card className="w-full max-w-lg">
+
           <CardHeader className="text-center relative">
+
             <Button
               variant="ghost"
               size="sm"
@@ -251,11 +334,22 @@ const CollegeSignup = ({ onBack }) => {
 
             <Building2 className="w-10 h-10 mx-auto text-primary mb-2" />
             <CardTitle>Register Your College</CardTitle>
-            <CardDescription>Fill your institution details</CardDescription>
+            <CardDescription>
+              Fill your institution details
+            </CardDescription>
+
           </CardHeader>
 
           <CardContent>
-            <form onSubmit={()=>{setStep(4)}} className="space-y-4">
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setStep(4);
+              }}
+              className="space-y-4"
+            >
+
               <div>
                 <Label>College Name</Label>
                 <Input
@@ -335,13 +429,17 @@ const CollegeSignup = ({ onBack }) => {
               <Button type="submit" className="w-full">
                 Continue to Plans
               </Button>
+
             </form>
+
           </CardContent>
         </Card>
+
       </div>
     );
   }
 
+  // OTP
   if (step === 2) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-background to-primary/5">
@@ -357,27 +455,59 @@ const CollegeSignup = ({ onBack }) => {
               Back
             </Button>
 
-            <CardTitle>Verify OTP</CardTitle>
-            <CardDescription>OTP sent to {formData.email}</CardDescription>
+            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <CheckCircle className="w-8 h-8 text-primary" />
+            </div>
+
+            <CardTitle>Enter Verification Code</CardTitle>
+
+            <CardDescription>
+              We've sent a 6-digit code to {formData.email}
+            </CardDescription>
           </CardHeader>
 
-          <CardContent className="space-y-4">
-            <Label>Enter OTP</Label>
-            <Input value={otp} onChange={(e) => setOtp(e.target.value)} />
+          <CardContent className="space-y-6">
+            <div className="flex justify-center">
+              <InputOTP maxLength={6} value={otp} onChange={setOtp}>
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                  <InputOTPSlot index={3} />
+                  <InputOTPSlot index={4} />
+                  <InputOTPSlot index={5} />
+                </InputOTPGroup>
+              </InputOTP>
+            </div>
 
-            <Button className="w-full" onClick={handleVerifyOtp}>
-              Verify OTP
+            <Button
+              onClick={handleVerifyOtp}
+              className="w-full"
+              disabled={otp.length !== 6}
+            >
+              Verify Code
             </Button>
+
+            <p className="text-center text-sm text-muted-foreground">
+              Didn't receive the code?{" "}
+              <Button variant="link" className="p-0 h-auto" onClick={resendOtp}>
+                Resend
+              </Button>
+            </p>
           </CardContent>
         </Card>
       </div>
     );
   }
 
+  // EMAIL
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-background to-primary/5">
+
       <Card className="w-full max-w-md">
+
         <CardHeader className="text-center relative">
+
           <Button
             variant="ghost"
             size="sm"
@@ -390,11 +520,16 @@ const CollegeSignup = ({ onBack }) => {
 
           <Building2 className="w-10 h-10 mx-auto text-primary mb-2" />
           <CardTitle>College Signup</CardTitle>
-          <CardDescription>Enter your email to receive OTP</CardDescription>
+          <CardDescription>
+            Enter your email to receive OTP
+          </CardDescription>
+
         </CardHeader>
 
         <CardContent className="space-y-4">
+
           <Label>Email</Label>
+
           <Input
             type="email"
             name="email"
@@ -406,8 +541,10 @@ const CollegeSignup = ({ onBack }) => {
           <Button className="w-full" onClick={handleSendOtp}>
             Send OTP
           </Button>
+
         </CardContent>
       </Card>
+
     </div>
   );
 };
