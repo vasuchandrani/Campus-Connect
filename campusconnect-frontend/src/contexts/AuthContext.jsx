@@ -47,6 +47,7 @@ export const AuthProvider = ({ children }) => {
 
     if (data && data.token) {
       setToken(data.token);
+      localStorage.setItem("role",roleName);
       setUser({ email, role });
       return data.redirectUrl; 
     }
@@ -63,6 +64,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () =>{ 
     setUser(null);
     localStorage.removeItem("authToken");
+    localStorage.removeItem("role");
   }
 
 
@@ -77,6 +79,7 @@ export const AuthProvider = ({ children }) => {
 
       const data = await res.json();
       setToken(data.token);
+      localStorage.setItem("role", "COLLEGE_ADMIN");
       setUser({ email: payload.email, role: "COLLEGE_ADMIN" });
       return data.redirectUrl; 
     }
@@ -111,12 +114,25 @@ const studentSignup = async (formData) => {
     });
 
     setToken(data.token);
+    localStorage.setItem("role","STUDENT");
     return data.redirectUrl;
   } catch (error) {
     console.error("Register student error:", error);
     throw error;
   }
 };
+
+const routeProtection=(roleName)=>{
+  const authToken=localStorage.getItem("authToken");
+  const role=localStorage.getItem("role");
+  if(!authToken || !role){
+    return false;
+  }
+  else if(role!==roleName){
+    return false;
+  }
+  return true;
+}
 
 
   return (
@@ -127,6 +143,7 @@ const studentSignup = async (formData) => {
     collegeSignup,
     studentSignup,
     user,
+    routeProtection,
   }}
 >
 

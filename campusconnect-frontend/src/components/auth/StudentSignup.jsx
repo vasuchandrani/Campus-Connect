@@ -26,6 +26,7 @@ import {
   Mail,
 } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "../ui/InputOtp";
+import { toast } from "../../hooks/use-toast";
 
 const StudentSignup = ({ onBack }) => {
   const [step, setStep] = useState(1);
@@ -33,6 +34,7 @@ const StudentSignup = ({ onBack }) => {
   const [collegeEmail, setCollegeEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [isVerified, setIsVerified] = useState(false);
+  const [requesting, setRequesting] = useState(false);
 
   //Data for final registration form
   const [formData, setFormData] = useState({
@@ -43,7 +45,7 @@ const StudentSignup = ({ onBack }) => {
     id: "",
     department: "",
     year: "",
-    gender:"",
+    gender: "",
   });
 
   const navigate = useNavigate();
@@ -74,16 +76,17 @@ const StudentSignup = ({ onBack }) => {
   const handleCollegeSelect = async (collegeId) => {
     setSelectedCollegeId(collegeId);
 
-      setFormData((prev) => ({
-        ...prev,
-        collegeId: selectedCollegeId,
-      }));
+    setFormData((prev) => ({
+      ...prev,
+      collegeId: selectedCollegeId,
+    }));
   };
 
   const handleCheckCollege = () => {
     if (selectedCollegeId) setStep(2);
   };
 
+  //send otp to verify email
   const handleSendOTP = async (e) => {
     e.preventDefault();
     // veryfy domain
@@ -96,35 +99,59 @@ const StudentSignup = ({ onBack }) => {
     let currnetdomain = collegeEmail.split("@")[1];
 
     if (currnetdomain !== domain) {
-      alert("invalid email");
+      toast({
+        title: "Error",
+        description: "Invalid email domain.",
+        variant: "destructive",
+      });
       return;
     }
 
     // send otp
-    const response = await fetch(
-      "http://localhost:8080/campus-connect/security/send-code",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+    setRequesting(true);
+    try {
+      const response = await fetch(
+        "http://localhost:8080/campus-connect/security/send-code",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: formData.email,
+            codeFor: "Student Email verification",
+          }),
         },
-        body: JSON.stringify({
-          email: formData.email,
-          codeFor: "STUDENT_EMAIL_VERIFICATION",
-        }),
-      },
-    ).then(async (res) => await res.json());
+      ).then(async (res) => await res.json());
 
-    if (response) {
-      alert("OTP sent successfully");
-      setStep(3);
-    } else {
-      alert("please try again");
+      if (response.message === "Verification code sent successfully") {
+        toast({
+          title: "Success",
+          description: "OTP sent successfully.",
+          variant: "success",
+        });
+        setStep(3);
+      } else {
+        toast({
+          title: "Error",
+          description: response.message || "Failed to send OTP.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An error occurred while sending OTP. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setRequesting(false);
     }
   };
 
   //verify otp
   const handleVerifyOTP = async () => {
+    setRequesting(true);
     if (otp.length === 6) {
       const response = await fetch(
         "http://localhost:8080/campus-connect/security/verify-code",
@@ -136,24 +163,42 @@ const StudentSignup = ({ onBack }) => {
           body: JSON.stringify({
             email: formData.email,
             code: otp,
-
           }),
         },
       ).then((res) => res.json());
 
-      if (response) {
+      if (response.message === "Code verified successfully") {
+        toast({
+          title: "Success",
+          description: "Email verified successfully.",
+          variant: "success",
+        });
+        setIsVerified(true);
         setStep(4);
       } else {
-        alert("Invalid code");
+        toast({
+          title: "Error",
+          description: "Invalid code.",
+          variant: "destructive",
+        });
       }
+    } else {
+      toast({
+        title: "Error",
+        description: "Please enter a 6-digit code.",
+        variant: "destructive",
+      });
     }
+    setRequesting(false);
   };
 
   // final submission
   const handleFinalSubmit = async (e) => {
     e.preventDefault();
+    setRequesting(true);
     formData.collegeId = selectedCollegeId;
     const redirectUrl = await studentSignup(formData);
+    setRequesting(false);
     navigate(redirectUrl);
   };
 
@@ -168,6 +213,7 @@ const StudentSignup = ({ onBack }) => {
 
   //resend otp
   const resendOtp = async () => {
+    setRequesting(true);
     const response = await fetch(
       "http://localhost:8080/campus-connect/security/send-code",
       {
@@ -177,15 +223,24 @@ const StudentSignup = ({ onBack }) => {
         },
         body: JSON.stringify({
           email: formData.email,
-          codeFor: "STUDENT_EMAIL_VERIFICATION",
+          codeFor: "Student Email verification",
         }),
       },
     ).then((res) => res.json());
-    if (response) {
-      alert("OTP resent successfully");
+    if (response.message === "Verification code sent successfully") {
+      toast({
+        title: "Success",
+        description: "OTP resent successfully.",
+        variant: "success",
+      });
     } else {
-      alert("please try again");
+      toast({
+        title: "Error",
+        description: response.message || "Failed to resend OTP.",
+        variant: "destructive",
+      });
     }
+    setRequesting(false);
   };
 
   // choose your college step
@@ -199,6 +254,7 @@ const StudentSignup = ({ onBack }) => {
               size="sm"
               className="absolute left-4 top-4"
               onClick={handleBack}
+              disabled={requesting}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
@@ -282,6 +338,7 @@ const StudentSignup = ({ onBack }) => {
               variant="ghost"
               size="sm"
               className="absolute left-4 top-4"
+              disabled={requesting}
               onClick={() => setStep(1)}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -326,7 +383,7 @@ const StudentSignup = ({ onBack }) => {
                 </p>
               </div>
 
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" disabled={requesting}>
                 Send Verification Code
               </Button>
             </form>
@@ -346,6 +403,7 @@ const StudentSignup = ({ onBack }) => {
               variant="ghost"
               size="sm"
               className="absolute left-4 top-4"
+              disabled={requesting}
               onClick={() => setStep(2)}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -387,7 +445,12 @@ const StudentSignup = ({ onBack }) => {
 
             <p className="text-center text-sm text-muted-foreground">
               Didn't receive the code?{" "}
-              <Button variant="link" className="p-0 h-auto" onClick={resendOtp}>
+              <Button
+                variant="link"
+                className="p-0 h-auto"
+                onClick={resendOtp}
+                disabled={requesting}
+              >
                 Resend
               </Button>
             </p>
@@ -407,6 +470,7 @@ const StudentSignup = ({ onBack }) => {
             size="sm"
             className="absolute left-4 top-4"
             onClick={() => setStep(3)}
+            disabled={requesting}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
@@ -505,7 +569,9 @@ const StudentSignup = ({ onBack }) => {
               <select
                 name="gender"
                 value={formData.gender}
-                onChange={(e)=>setFormData({...formData,gender:e.target.value})}
+                onChange={(e) =>
+                  setFormData({ ...formData, gender: e.target.value })
+                }
                 className="w-full border rounded-md p-2 bg-background"
               >
                 <option value="">Select Gender</option>
@@ -514,7 +580,7 @@ const StudentSignup = ({ onBack }) => {
                 <option value="OTHER">Other</option>
               </select>
             </div>
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full" disabled={requesting}>
               Complete Registration
             </Button>
           </form>

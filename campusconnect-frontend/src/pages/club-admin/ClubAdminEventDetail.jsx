@@ -16,6 +16,8 @@ import {
 import { clubMemberNavItems } from "../../config/Navigation";
 import { marked } from "marked";
 import { useMemo,useEffect,useState } from "react";
+import { toast } from "../../hooks/use-toast";
+
 
 const ClubAdminEventDetailPage = () => {
   const { clubId, id } = useParams();
@@ -60,7 +62,7 @@ const ClubAdminEventDetailPage = () => {
         toast({
           title: "Error",
           description: "Failed to fetch event details",
-          status: "error",
+          variant: "destructive",
         });
       });
   };

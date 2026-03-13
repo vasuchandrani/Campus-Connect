@@ -48,35 +48,35 @@ const ClubMemberDashboard = () => {
   const [clubName, setClubName] = useState("Club Name");
 
   //fetch club name
-  const fetchClubName = () => {
-    fetch(`${baseUrl}/club-name`, {
+  const fetchClubName = async() => {
+    await fetch(`${baseUrl}/club-name`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
     })
-      .then((res) => res.text())
+      .then(async (res) => await res.text())
       .then((text) => setClubName(text))
       .catch((err) => {
         toast({
           title: "Error",
-          description: "Failed to fetch club details",
-          status: "error",
+          description: err.message||"Failed to fetch club details",
+          variant: "destructive",
         });
       });
   };
 
   //fetch stats
-  const fetchStates = () => {
-    fetch(`${baseUrl}/stats`, {
+  const fetchStates = async () => {
+    await fetch(`${baseUrl}/stats`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
     })
-      .then((res) => res.json())
+      .then(async (res) => await res.json())
       .then((data) => {
         setStats({
           events: data.events,
@@ -88,52 +88,52 @@ const ClubMemberDashboard = () => {
       .catch((err) => {
         toast({
           title: "Error",
-          description: "Failed to fetch stats",
-          status: "error",
+          description: err.message||"Failed to fetch stats",
+          variant: "destructive",
         });
       });
   };
 
   //fetch club announcements
-  const fetchClubAnnouncements = () => {
-    fetch(`${baseUrl}/top-announcements`, {
+  const fetchClubAnnouncements = async () => {
+    await fetch(`${baseUrl}/top-announcements`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
     })
-      .then((res) => res.json())
+      .then(async (res) => await res.json())
       .then((data) => {
         setClubAnnouncements(data);
       })
       .catch((err) => {
         toast({
           title: "Error",
-          description: "Failed to fetch announcements",
-          status: "error",
+          description: err.message || "Failed to fetch announcements",
+          variant: "destructive",
         });
       });
   };
 
   //fetch club events
-  const fetchClubEvents = () => {
-    fetch(`${baseUrl}/top-events`, {
+  const fetchClubEvents = async () => {
+    await fetch(`${baseUrl}/top-events`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
     })
-      .then((res) => res.json())
+      .then(async (res) => await res.json())
       .then((data) => {
         setClubEvents(data);
       })
       .catch((err) => {
         toast({
           title: "Error",
-          description: "Failed to fetch events",
-          status: "error",
+          description: err.message || "Failed to fetch events",
+          variant: "destructive",
         });
       });
   };

@@ -39,12 +39,12 @@ import JournalistSetting from "./pages/journalist/JournalistSetting";
 import AdminSettingsPage from "./pages/collageAdmin/AdminSettingsPage";
 import StudentSetting from "./pages/student/studentSetting";
 import ClubSettingsPage from "./pages/club-admin/clubSetting";
-import AdminLogin from "./pages/admin/AdminLogin";
-import AdminDashboard from "./pages/admin/AdminDashboard";
 import StudentNotificationPage from "./pages/student/StudentNotificationPage";
+import { Toaster } from "./components/ui/Toaster";
 
 function App() {
   return (
+    <>
     <Routes>
       <Route path="/auth" element={<Auth />} />
       <Route path="/" element={<Index />} />
@@ -52,7 +52,6 @@ function App() {
       <Route path="/campus-connect/journalist/dashboard" element={<JournalistDashboard />} />
       <Route path="/campus-connect/admin-dashboard" element={<div>Admin Dashboard</div>} />
       <Route path="/campus-connect/reviewer/dashboard" element={<ReviewerDashboard/>} />
-      <Route path="/campus-connect/admin/login" element={<AdminLogin />} />
       <Route path="/campus-connect/student/notifications" element={<StudentNotificationPage />} />
 
       <Route path="/campus-connect/student/dashboard" element={<StudentDashboard />} />
@@ -93,10 +92,11 @@ function App() {
       <Route path="/campus-connect/college-admin/settings" element={<AdminSettingsPage />} />
       <Route path="/campus-connect/student/settings" element={<StudentSetting />} />
       <Route path="/campus-connect/club-admin/:clubId/settings" element={<ClubSettingsPage />} />
-      <Route path="/campus-connect/admin/dashboard" element={<AdminDashboard />} />
          
       <Route path="*" element={<NotFound />} /> 
     </Routes>
+    <Toaster position="bottom-right"/>
+    </>
   );
 }
 

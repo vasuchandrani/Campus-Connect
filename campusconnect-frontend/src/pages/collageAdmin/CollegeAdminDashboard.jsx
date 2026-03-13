@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { collegeAdminNavItems } from "../../config/Navigation";
 import { toast } from "../../hooks/use-toast";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function CollegeAdminDashboard() {
   const navigate = useNavigate();
@@ -24,6 +25,14 @@ export default function CollegeAdminDashboard() {
 
   // Base URL for API calls related to college admin
   const baseUrl = "http://localhost:8080/campus-connect/college-admin";
+
+    const { routeProtection } = useAuth();
+
+  useEffect(() => {
+    if (!routeProtection("COLLEGE_ADMIN")) {
+      navigate("/auth");
+    }
+  },[]);
 
   // Fetch dashboard stats
   const fetchStats = () => {

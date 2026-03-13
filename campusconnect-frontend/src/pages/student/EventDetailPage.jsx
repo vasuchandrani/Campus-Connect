@@ -16,6 +16,9 @@ import {
 import { studentNavItems } from "../../config/Navigation";
 import { marked } from "marked";
 import { useEffect, useMemo,useState } from "react";
+import { toast } from "../../hooks/use-toast";
+import { useAuth } from "../../contexts/AuthContext";
+
 
 
 const EventDetailPage = () => {
@@ -27,6 +30,12 @@ const EventDetailPage = () => {
   const baseUrl = `http://localhost:8080/campus-connect/student/events/finished/${id}`;
 
 
+    const { routeProtection } = useAuth();
+    useEffect(() => {
+      if (!routeProtection("STUDENT")) {
+        navigate("/auth");
+      }
+    },[]);
 
   // State variable to hold event details
   const [event,setEvent] = useState({});
@@ -47,8 +56,11 @@ const EventDetailPage = () => {
         setEvent(data);
       })
       .catch((err) => {
-        console.error("Error fetching event details:", err);
-        alert("Failed to load event details");
+        toast({
+          title: "Error",
+          description: err.message || "Failed to fetch event details",
+          variant: "destructive",
+        });
       });
   };
 

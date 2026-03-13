@@ -30,6 +30,7 @@ import { Plus, Trash2, UsersRound } from "lucide-react";
 import { clubAdminNavItems } from "../../config/Navigation";
 import { toast } from "../../hooks/use-toast";
 import { useParams } from "react-router-dom";
+import { set } from "date-fns";
 
 
 const ClubAdminTeamsPage = () => {
@@ -55,6 +56,7 @@ const ClubAdminTeamsPage = () => {
   const [newTeamDesc, setNewTeamDesc] = useState("");
   const [selectedMember, setSelectedMember] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [requesting, setRequesting] = useState(false);
 
   
   // Fetch teams for this club
@@ -96,17 +98,17 @@ const ClubAdminTeamsPage = () => {
   };
 
   // Create a new team
-  const handleCreateTeam = () => {
+  const handleCreateTeam = async () => {
     if (!newTeamName.trim()) {
       toast({
         title: "Error",
         description: "Team name is required",
-        status: "error",
+        variant: "destructive",
       });
       return;
     }
-
-    fetch(`${baseUrl}/teams`, {
+    setRequesting(true);
+    await fetch(`${baseUrl}/teams`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -119,45 +121,77 @@ const ClubAdminTeamsPage = () => {
     })
       .then(async (response) => {
         const data = await response.json();
-        fetchTeams();
-        setNewTeamName("");
-        setNewTeamDesc("");
-        setCreateDialogOpen(false);
-        toast({ title: "Team Created Successfully", description: data.message, status: "success" });
+        if(data.message==="Team created successfully"){
+          fetchTeams();
+          setNewTeamName("");
+          setNewTeamDesc("");
+          setCreateDialogOpen(false);
+          toast({
+            title: "Success",
+            description: data.message,
+            variant: "success",
+          });
+        }
+        else {
+          toast({
+            title: "Error",
+            description: data.message || "Failed to create team",
+            variant: "destructive",
+          });
+        }
       })
-      .catch(() => {
+      .catch((err) => {
         toast({
           title: "Error",
-          description: "Failed to create team",
-          status: "error",
+          description: err.message,
+          variant: "destructive",
         });
+      }).finally(() => {
+        setRequesting(false);
       });
   };
 
   // Delete a team
-  const handleDeleteTeam = (teamId) => {
-    fetch(`${baseUrl}/teams/${teamId}`, {
+  const handleDeleteTeam = async (teamId) => {
+    setRequesting(true);
+    await fetch(`${baseUrl}/teams/${teamId}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(async (response) => {
         const data = await response.json();
-        fetchTeams();
-        toast({ title: "Team Deleted Successfully", description: data.message, status: "success" });
+        if(data.message==="Team deleted successfully"){
+          toast({
+            title: "Success",
+            description: data.message,
+            variant: "success",
+          });
+          fetchTeams();
+        }
+        else{
+          toast({
+            title: "Error",
+            description: data.message || "Failed to delete team",
+            variant: "destructive",
+          });
+        }
+       
       })
       .catch((err) => {
-        console.error("Error deleting team:", err);
         toast({
           title: "Error",
-          description: "Failed to delete team",
-          status: "error",
+          description: err.message || "Failed to delete team",
+          variant: "destructive",
         });
-      });
+      }).finally(()=>{
+        setRequesting(false);
+      })
   };
 
   // Add member to a team
-  const handleAddMember = (teamId, studentId) => {
-    fetch(`${baseUrl}/teams/${teamId}/${studentId}`, {
+  const handleAddMember = async(teamId, studentId) => {
+    setRequesting(true);
+    await fetch(`${baseUrl}/teams/${teamId}/${studentId}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -166,37 +200,67 @@ const ClubAdminTeamsPage = () => {
     })
       .then(async (response) => {
         const data = await response.json();
-        fetchTeams();
+        if(data.message==="Team-member added successfully"){
+          toast({
+            title: "Success",
+            description: data.message,
+            variant: "success",
+          });
+          fetchTeams();
         setSelectedMember("");
-        toast({ title: "Member Added Successfully", description: data.message, status: "success" });
+        }
+        else {
+          toast({
+            title: "Error",
+            description: data.message || "Failed to add member to team",
+            variant: "destructive",
+          });
+        }
       })
-      .catch(() =>
+      .catch((err) =>
         toast({
           title: "Error",
-          description: "Failed to add member",
-          status: "error",
+          description: err.message || "Failed to add member",
+          variant: "destructive",
         }),
-      );
+      ).finally(()=>{
+        setRequesting(false);
+      })
   };
 
   // Remove member from a team
-  const handleRemoveMember = (teamId, studentId) => {
-    fetch(`${baseUrl}/teams/${teamId}/${studentId}`, {
+  const handleRemoveMember = async (teamId, studentId) => {
+    setRequesting(true);
+    await fetch(`${baseUrl}/teams/${teamId}/${studentId}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(async (response) => {
         const data = await response.json();
-        fetchTeams();
-        toast({ title: "Member Removed Successfully", description: data.message, status: "success" });
+        if(data.message==="Team-member removed successfully"){
+          toast({
+            title: "Success",
+            description: data.message,
+            variant: "success",
+          });
+          fetchTeams();
+        }else{
+          toast({
+            title: "Error",
+            description: data.message || "Failed to remove member from team",
+            variant: "destructive",
+          });
+        }
       })
-      .catch(() =>
+      .catch((err) =>
         toast({
           title: "Error",
-          description: "Failed to remove member",
+          description: err || "Failed to remove member",
           status: "error",
         }),
-      );
+      ).finally(()=>{
+        setRequesting(false);
+      })
   };
 
 // Load teams and members on component mount and whenever clubId changes
@@ -219,7 +283,7 @@ const ClubAdminTeamsPage = () => {
 
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button disabled={requesting}>
                 <Plus className="w-4 h-4 mr-2" />
                 Create Team
               </Button>
@@ -250,7 +314,7 @@ const ClubAdminTeamsPage = () => {
                   />
                 </div>
 
-                <Button className="w-full" onClick={handleCreateTeam}>
+                <Button className="w-full" onClick={handleCreateTeam} disabled={requesting}>
                   Create
                 </Button>
               </div>
@@ -292,6 +356,7 @@ const ClubAdminTeamsPage = () => {
                     <Button
                       size="icon"
                       variant="ghost"
+                      disabled={requesting}
                       onClick={() => handleDeleteTeam(team.id)}
                     >
                       <Trash2 className="w-4 h-4 text-destructive" />
@@ -317,6 +382,7 @@ const ClubAdminTeamsPage = () => {
                         size="icon"
                         variant="ghost"
                         className="h-6 w-6"
+                        disabled={requesting}
                         onClick={() => handleRemoveMember(team.id, m.studentId)}
                       >
                         <Trash2 className="w-3 h-3 text-destructive" />

@@ -16,6 +16,8 @@ import {
 import { collegeAdminNavItems } from "../../config/Navigation";
 import { marked } from "marked";
 import { useMemo,useEffect,useState } from "react";
+import { toast } from "../../hooks/use-toast";
+import { useAuth } from "../../contexts/AuthContext";
 
 const AdminEventDetailPage = () => {
   // Get event ID from URL params
@@ -27,6 +29,14 @@ const AdminEventDetailPage = () => {
 
   //state variables
   const [event, setEvent] = useState({});
+
+    const { routeProtection } = useAuth();
+  
+    useEffect(() => {
+      if (!routeProtection("COLLEGE_ADMIN")) {
+        navigate("/auth");
+      }
+    },[]);
 
 
   //formatDate function

@@ -7,6 +7,7 @@ import JournalistLogin from "../components/auth/JournalistLogin";
 import ReviewerLogin from "../components/auth/ReviewerLogin";
 import StudentAuth from "../components/auth/StudentAuth";
 import CollegeAdminAuth from "../components/auth/CollageAdminAuth";
+import { toast } from "../hooks/use-toast";
 
 // configuration for different user roles
 const roleConfig = {
@@ -45,7 +46,11 @@ const Auth = () => {
       if (typeof success === "string" && success !== "Invalid credentials") {
         navigate(success);
       } else {
-        alert("Invalid credentials");
+        toast({
+          title: "Login Failed",
+          description: success || "Invalid email or password. Please try again.",
+          variant: "destructive",
+        });
       }  
     }
   };

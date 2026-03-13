@@ -29,6 +29,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { toast } from "../../hooks/use-toast";
 import { studentNavItems } from "../../config/Navigation";
 
+
 const navItems = studentNavItems;
 
 const StudentDashboard = () => {
@@ -50,6 +51,13 @@ const StudentDashboard = () => {
 
   // Base URL for API calls related to student dashboard
   const baseUrl = "http://localhost:8080/campus-connect/student";
+
+    const { routeProtection } = useAuth();
+    useEffect(() => {
+      if (!routeProtection("STUDENT")) {
+        navigate("/auth");
+      }
+    },[]);
 
   // Fetch user name for welcome message
   const fetchUserName = () => {

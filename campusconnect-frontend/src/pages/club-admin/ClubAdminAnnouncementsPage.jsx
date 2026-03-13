@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, version } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
@@ -37,6 +37,7 @@ const ClubAdminAnnouncementsPage = () => {
   // For edit mode, store the ID of the announcement being edited
   const [editingId, setEditingId] = useState(null);
 
+  const [requesting, setRequesting] = useState(false);
   /* ---------------- NAV ---------------- */
 
   const updatenavItems = () => {
@@ -61,13 +62,14 @@ const ClubAdminAnnouncementsPage = () => {
         toast({
           title: "Error",
           description: "Failed to load announcements",
-          status: "error",
+          variant: "destructive",
         });
       });
   };
 
   //2) Create or Update announcement based on whether we're in edit mode or not
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    setRequesting(true);
     const payload = {
       title: newTitle,
       content: newContent,
@@ -78,7 +80,7 @@ const ClubAdminAnnouncementsPage = () => {
       ? `${baseurl}/announcements/${editingId}`
       : `${baseurl}/announcements`;
 
-    fetch(url, {
+    await fetch(url, {
       method,
       headers: {
         "Content-Type": "application/json",
@@ -86,31 +88,53 @@ const ClubAdminAnnouncementsPage = () => {
       },
       body: JSON.stringify(payload),
     })
-      .then((res) => {
-        if (!res.ok) throw new Error("Request failed");
-        return res.json();
+      .then(async (res) => {
+        return await res.json();
       })
       .then((res) => {
-        toast({
-          title: "Success",
-          description: res.message,
-          status: "success",
-        });
-        fetchClubAnnouncements();
-        resetForm();
+        if(editingId){
+          if(res.message === "Announcement updated successfully") {
+            toast({
+              title: "Success",
+              description: res.message,
+              variant: "success",
+            });
+            fetchClubAnnouncements();
+            resetForm();
+          } else {
+            throw new Error(res.message || "Failed to update announcement");
+          }
+        }
+        else{
+          if(res.message === "Announcement created successfully") {
+            toast({
+              title: "Success",
+              description: res.message,
+              variant: "success",
+            });
+            fetchClubAnnouncements();
+            resetForm();
+          } else {
+            throw new Error(res.message || "Failed to create announcement");
+          }
+        }
+        
       })
-      .catch(() => {
+      .catch((err) => {
         toast({
           title: "Error",
-          description: "Operation failed",
-          status: "error",
+          description:err.message ,
+          variant: "destructive",
         });
+      }).finally(() => {
+        setRequesting(false);
       });
   };
 
   //3) Delete announcement
-  const deleteAnnouncement = (id) => {
-    fetch(`${baseurl}/announcements/${id}`, {
+  const deleteAnnouncement =async (id) => {
+    setRequesting(true);
+    await fetch(`${baseurl}/announcements/${id}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
@@ -118,22 +142,24 @@ const ClubAdminAnnouncementsPage = () => {
       },
     })
       .then(async (res) => {
-        if (res.ok) {
-          const data = await res.json();
+        const data= await res.json();
+        if (data.message === "Announcement deleted successfully") {
           toast({
             title: "Success",
             description: data.message,
-            status: "success",
+            variant: "success",
           });
           fetchClubAnnouncements();
-        } else throw new Error();
+        } else throw new Error(data.message);
       })
-      .catch(() => {
+      .catch((err) => {
         toast({
           title: "Error",
-          description: "Failed to delete announcement",
-          status: "error",
+          description: err.message,
+          variant: "destructive",
         });
+      }).finally(() => {
+        setRequesting(false);
       });
   };
 
@@ -177,7 +203,7 @@ const ClubAdminAnnouncementsPage = () => {
           {/* Create Announcement Button And Dialog */}
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => setEditingId(null)}>
+              <Button onClick={() => setEditingId(null)} disabled={requesting}>
                 <Plus className="w-4 h-4 mr-2" />
                 New Announcement
               </Button>
@@ -209,7 +235,7 @@ const ClubAdminAnnouncementsPage = () => {
                   />
                 </div>
 
-                <Button className="w-full" onClick={handleSubmit}>
+                <Button className="w-full" onClick={handleSubmit} disabled={requesting}>
                   {editingId
                     ? "Update Announcement"
                     : "Publish Announcement"}
@@ -281,7 +307,8 @@ const ClubAdminAnnouncementsPage = () => {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => setViewAnnouncement(announcement)}
+                        disabled={requesting}
+                        onClick={() => setViewAnnouncement(announcement) }
                       >
                         <Eye className="w-4 h-4" />
                       </Button>
@@ -289,6 +316,7 @@ const ClubAdminAnnouncementsPage = () => {
                       <Button
                         variant="ghost"
                         size="icon"
+                        disabled={requesting}
                         onClick={() => editAnnouncement(announcement)}
                       >
                         <Edit className="w-4 h-4" />
@@ -297,6 +325,7 @@ const ClubAdminAnnouncementsPage = () => {
                       <Button
                         variant="ghost"
                         size="icon"
+                        disabled={requesting}
                         className="text-destructive"
                         onClick={() => deleteAnnouncement(announcement.id)}
                       >

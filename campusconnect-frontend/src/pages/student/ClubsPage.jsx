@@ -7,6 +7,7 @@ import { studentNavItems } from "../../config/Navigation";
 import { Search, Eye } from "lucide-react";
 import { Input } from "../../components/ui/Input";
 import { toast } from "../../hooks/use-toast";
+import { useAuth } from "../../contexts/AuthContext";
 
 const ClubsPage = () => {
 
@@ -19,7 +20,13 @@ const ClubsPage = () => {
   // Base URL for API calls related to student clubs
   const baseUrl = "http://localhost:8080/campus-connect/student";
 
-
+  
+    const { routeProtection } = useAuth();
+    useEffect(() => {
+      if (!routeProtection("STUDENT")) {
+        navigate("/auth");
+      }
+    },[]);
   // Fetch clubs from API
   const fetchClubs = () => {
     

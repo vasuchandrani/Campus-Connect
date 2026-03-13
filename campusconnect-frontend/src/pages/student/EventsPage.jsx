@@ -22,6 +22,7 @@ import {
 } from "../../components/ui/Tabs";
 import { useNavigate } from "react-router-dom";
 import { useMemo } from "react";
+import { useAuth } from "../../contexts/AuthContext";
 
 const EventsPage = () => {
   // Base URL for API calls related to student events
@@ -34,7 +35,16 @@ const EventsPage = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [finishedEvents, setFinishedEvents] = useState([]);
-      const [now, setNow] = useState(new Date());
+  const [now, setNow] = useState(new Date());
+  const [requesting,setRequesting]=useState(false);
+
+
+      const { routeProtection } = useAuth();
+      useEffect(() => {
+        if (!routeProtection("STUDENT")) {
+          navigate("/auth");
+        }
+      },[]);
 
   useEffect(() => {
   const interval = setInterval(() => {
@@ -107,6 +117,7 @@ const isRegistrationOpen = (event) => {
   const toggleRegistration = (eventId) => {
     const eventObj = upcomingEvents.find((e) => e.id === eventId);
     if (eventObj.register) {
+      setRequesting(true);
       fetch(`${baseUrl}/events/active/${eventId}/unregister`, {
         method: "POST",
         headers: {
@@ -132,8 +143,11 @@ const isRegistrationOpen = (event) => {
             description: "Failed to unregister from event",
             variant: "destructive",
           });
+        }).finally(()=>{
+          setRequesting(false);
         });
     } else {
+      setRequesting(true);
       fetch(`${baseUrl}/events/active/${eventId}/register`, {
         method: "POST",
         headers: {
@@ -159,6 +173,8 @@ const isRegistrationOpen = (event) => {
             description: "Failed to register for event",
             variant: "destructive",
           });
+        }).finally(()=>{
+          setRequesting(false);
         });
     }
   };
@@ -361,6 +377,7 @@ const isRegistrationOpen = (event) => {
                             className="flex-1"
                             variant={isRegistered ? "outline" : "default"}
                             onClick={() => toggleRegistration(event.id)}
+                            disabled={requesting}
                           >
                             {isRegistered ? (
                               <>
@@ -388,6 +405,7 @@ const isRegistrationOpen = (event) => {
                         <Button
                           variant="outline"
                           className="flex-1"
+                          disabled={requesting}
                           onClick={() => {
                             setSelectedEvent({
                               ...event,

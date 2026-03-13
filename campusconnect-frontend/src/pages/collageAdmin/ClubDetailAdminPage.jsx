@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "../../hooks/use-toast";
 import {collegeAdminNavItems} from "../../config/Navigation";
+import { useAuth } from "../../contexts/AuthContext";
 
 /* ======================================================================== */
 
@@ -36,6 +37,15 @@ const ClubDetailAdminPage = () => {
   const [events, setEvents] = useState([]);
   const [teams, setTeams] = useState([]);
   const [clubMembers, setClubMembers] = useState([]);
+
+
+    const { routeProtection } = useAuth();
+  
+    useEffect(() => {
+      if (!routeProtection("COLLEGE_ADMIN")) {
+        navigate("/auth");
+      }
+    },[]);
 
 
   // Fetch club details

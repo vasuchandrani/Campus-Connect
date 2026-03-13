@@ -67,7 +67,7 @@ const ClubAdminEventsPage = () => {
   });
   const [sponsors, setSponsors] = useState([]);
   const [newSponsor, setNewSponsor] = useState({ name: "", tagline: "" });
-
+  const [requesting, setRequesting] = useState(false);
   const [winners, setWinners] = useState([]);
   const [newWinner, setNewWinner] = useState({ name: "", email: "" });
 
@@ -160,7 +160,7 @@ const ClubAdminEventsPage = () => {
 
     setNewImages((prev) => [...prev, ...files]);
 
-    e.target.value = null; // add this
+    e.target.value = null; 
   };
 
   //all image
@@ -187,7 +187,7 @@ const ClubAdminEventsPage = () => {
   const fetchClubEvents = async () => {
     const token = localStorage.getItem("authToken");
 
-    fetch(`${baseUrl}/events/finished`, {
+    await fetch(`${baseUrl}/events/finished`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
@@ -198,11 +198,11 @@ const ClubAdminEventsPage = () => {
         toast({
           title: "Error",
           description: "Failed to fetch events",
-          status: "error",
+          variant: "destructive",
         }),
       );
 
-    fetch(`${baseUrl}/events/active`, {
+    await fetch(`${baseUrl}/events/active`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
@@ -213,7 +213,7 @@ const ClubAdminEventsPage = () => {
         toast({
           title: "Error",
           description: "Failed to fetch upcoming events",
-          status: "error",
+          variant: "destructive",
         }),
       );
   };
@@ -243,6 +243,7 @@ const ClubAdminEventsPage = () => {
     };
 
     try {
+
       const formData = new FormData();
 
       formData.append(
@@ -253,10 +254,14 @@ const ClubAdminEventsPage = () => {
       if (newEvent.image) {
         formData.append("image", newEvent.image);
       } else {
-        alert("Please upload an image for the event");
+        toast({
+          title: "Error",
+          description: "Event image is required",
+          variant: "destructive",
+        });
         return;
       }
-
+      setRequesting(true);
       const response = await fetch(`${baseUrl}/events/active`, {
         method: "POST",
         headers: {
@@ -271,7 +276,7 @@ const ClubAdminEventsPage = () => {
         toast({
           title: "Success",
           description: data.message,
-          status: "success",
+          variant: "success",
         });
         fetchClubEvents();
         setCreateOpen(false);
@@ -280,15 +285,18 @@ const ClubAdminEventsPage = () => {
         toast({
           title: "error",
           description: data.message,
-          status: "error",
+          variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "Error",
         description: error.message || "Failed to create event",
-        status: "error",
-      });
+        variant: "destructive",
+      })
+    }
+    finally {    
+      setRequesting(false);
     }
   };
 
@@ -327,6 +335,7 @@ const ClubAdminEventsPage = () => {
     }
 
     try {
+      setRequesting(true);
       const response = await fetch(
         `${baseUrl}/events/active/${selectedEvent.id}`,
         {
@@ -348,32 +357,35 @@ const ClubAdminEventsPage = () => {
         toast({
           title: "Success",
           description: data.message,
-          status: "success",
+          variant: "success",
         });
       } else {
         toast({
           title: "error",
           description: data.message,
-          status: "error",
+          variant: "destructive",
         });
       }
     } catch (err) {
       toast({
         title: "Error",
         description: err.message || "Failed to update event",
-        status: "error",
+        variant: "destructive",
       });
     }
-
+    finally{
     setDialogType(null);
     setSelectedEvent(null);
+    setRequesting(false);
+    }
   };
 
   // Handle delete event
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     const token = localStorage.getItem("authToken");
 
-    fetch(`${baseUrl}/events/active/${id}`, {
+    setRequesting(true);
+    await fetch(`${baseUrl}/events/active/${id}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -384,13 +396,13 @@ const ClubAdminEventsPage = () => {
           toast({
             title: "Success",
             description: data.message,
-            status: "success",
+            variant: "success",
           });
         } else {
           toast({
             title: "error",
             description: data.message,
-            status: "error",
+            variant: "destructive",
           });
         }
       })
@@ -398,8 +410,10 @@ const ClubAdminEventsPage = () => {
         toast({
           title: "Error",
           description: "Failed to delete event",
-          status: "error",
+          variant: "destructive",
         });
+      }).finally(() => {
+        setRequesting(false);
       });
   };
 
@@ -439,6 +453,7 @@ const ClubAdminEventsPage = () => {
     const token = localStorage.getItem("authToken");
 
     setIsGenerating(true);
+    setRequesting(true);
     await fetch(
       `${baseUrl}/events/finished/${overviewEvent.id}/generate-overview`,
       {
@@ -456,13 +471,13 @@ const ClubAdminEventsPage = () => {
           toast({
             title: "Success",
             description: "Overview generated successfully",
-            status: "success",
+            variant: "success",
           });
         } else {
           toast({
             title: "Error",
             description: "Failed to generate overview",
-            status: "error",
+            variant: "destructive",
           });
         }
       })
@@ -470,10 +485,11 @@ const ClubAdminEventsPage = () => {
         toast({
           title: "Error",
           description: "Failed to generate overview",
-          status: "error",
+          variant: "destructive",
         });
       });
     setIsGenerating(false);
+    setRequesting(false);
   };
 
   //save overview
@@ -635,7 +651,7 @@ const ClubAdminEventsPage = () => {
             }}
           >
             <DialogTrigger asChild>
-              <Button>
+              <Button disabled={requesting}>
                 <Plus className="w-4 h-4 mr-2" />
                 Create Event
               </Button>
@@ -792,7 +808,7 @@ const ClubAdminEventsPage = () => {
                     variant="outline"
                     size="sm"
                     onClick={handleAddSpeaker}
-                    disabled={!newSpeaker.name || !newSpeaker.email}
+                    disabled={!newSpeaker.name || !newSpeaker.email||requesting}
                   >
                     + Add Speaker
                   </Button>
@@ -855,7 +871,7 @@ const ClubAdminEventsPage = () => {
                       variant="outline"
                       size="sm"
                       onClick={handleAddSponsor}
-                      disabled={!newSponsor.name || !newSponsor.tagline}
+                      disabled={!newSponsor.name || !newSponsor.tagline || requesting}
                     >
                       + Add
                     </Button>
@@ -887,7 +903,7 @@ const ClubAdminEventsPage = () => {
                   )}
                 </div>
 
-                <Button className="w-full" onClick={handleCreateEvent}>
+                <Button className="w-full" onClick={handleCreateEvent} disabled={requesting}>
                   Create Event
                 </Button>
               </div>
@@ -1165,6 +1181,7 @@ const ClubAdminEventsPage = () => {
                         variant="outline"
                         size="sm"
                         onClick={handleAddSpeaker}
+                        disabled={!newSpeaker.name || !newSpeaker.email || requesting}
                       >
                         + Add Speaker
                       </Button>
@@ -1220,6 +1237,7 @@ const ClubAdminEventsPage = () => {
                           variant="outline"
                           size="sm"
                           onClick={handleAddSponsor}
+                          disabled={requesting}
                         >
                           + Add
                         </Button>
@@ -1246,7 +1264,7 @@ const ClubAdminEventsPage = () => {
                       ))}
                     </div>
 
-                    <Button onClick={handleSaveEdit} className="w-full">
+                    <Button onClick={handleSaveEdit} className="w-full" disabled={requesting}>
                       Save Changes
                     </Button>
                   </>
@@ -1372,7 +1390,7 @@ Write your markdown here..."
                         variant="outline"
                         size="sm"
                         onClick={handleAddWinner}
-                        disabled={!newWinner.name || !newWinner.email}
+                        disabled={!newWinner.name || !newWinner.email || requesting}
                       >
                         + Add
                       </Button>
@@ -1508,6 +1526,7 @@ Write your markdown here..."
                           <Button
                             variant="ghost"
                             size="icon"
+                            disabled={requesting}
                             onClick={() => {
                               setSelectedEvent(event);
                               setDialogType("view");
@@ -1519,6 +1538,7 @@ Write your markdown here..."
                           <Button
                             variant="ghost"
                             size="icon"
+                            disabled={requesting}
                             onClick={() => {
                               const { date, time } = formatDate(
                                 event.startTime,
@@ -1550,6 +1570,7 @@ Write your markdown here..."
                             size="icon"
                             className="text-destructive"
                             onClick={() => handleDelete(event.id)}
+                            disabled={requesting}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -1643,6 +1664,7 @@ Write your markdown here..."
                         <Button
                           variant="outline"
                           className="w-auto"
+                          disabled={requesting}
                           onClick={() =>
                             navigate(
                               `/campus-connect/club-admin/${clubId}/events/${event.id}`,
@@ -1655,6 +1677,7 @@ Write your markdown here..."
                         <Button
                           variant="secondary"
                           className="w-auto"
+                          disabled={requesting}
                           onClick={() => fetchEventOverviewDetails(event.id)}
                         >
                           <FileText className="w-4 h-4 mr-2" />

@@ -13,7 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/Ta
 import { journalistNavItems } from "../../config/Navigation";
 import { useNavigate } from "react-router-dom";
 import { marked } from "marked";
-import { toast } from "sonner";
+import { toast } from "../../hooks/use-toast";
+import { useAuth } from "../../contexts/AuthContext";
 
 // ------------------------------Navigation Items------------------------------//
 const navItems = journalistNavItems;
@@ -29,7 +30,15 @@ const JournalistArticlesPage = () => {
 
   const[published,setPublished] = useState([]);
   const[drafts,setDrafts] = useState([]);
+  const[requesting,setRequesting] = useState(false); 
 
+    const { routeProtection } = useAuth();
+  
+    useEffect(() => {
+      if (!routeProtection("JOURNALIST")) {
+        navigate("/auth");
+      }
+    },[]);
   //fetch published
   const fetchPublishedArticles = async() => {
     await fetch(`${baseUrl}/newspapers/published`,{
@@ -44,7 +53,11 @@ const JournalistArticlesPage = () => {
       setPublished(data);
     })
     .catch(err => {
-      console.error("Error fetching published articles:", err);
+      toast({
+        title: "Error",
+        description: err.message || "Failed to fetch published articles",
+        variant: "destructive",
+      });
     });
   };
 
@@ -62,7 +75,11 @@ const JournalistArticlesPage = () => {
       setDrafts(data);
     })
     .catch(err => {
-      console.error("Error fetching draft articles:", err);
+      toast({
+        title: "Error",
+        description: err.message || "Failed to fetch draft articles",
+        variant: "destructive",
+      });
     });
   };
 
@@ -80,8 +97,9 @@ const JournalistArticlesPage = () => {
   };
 
   //  delete published article 
-  const handleUnpublish = (id) => {
-    fetch(`${baseUrl}/newspapers/published/${id}`,{
+  const handleUnpublish = async (id) => {
+    setRequesting(true);
+    await fetch(`${baseUrl}/newspapers/published/${id}`,{
       method:"DELETE",
       headers:{
         "Content-Type":"application/json",
@@ -90,22 +108,33 @@ const JournalistArticlesPage = () => {
     })
     .then(async (res) => {
       const data = await res.json();
-      if (res.ok) {
+      if (data.message === "News Paper Unpublished!") {
         fetchPublishedArticles();
         toast({
           title: "Success",
           description: data.message,
-          status: "success",
+          variant: "success",
         });
+      }
+      else{
+        throw new Error(data.message || "Failed to unpublish article");
       }
     })
     .catch(err => {
       console.error("Error unpublishing draft article:", err);
+      toast({
+        title: "Error",
+        description: err.message || "Failed to unpublish article",
+        variant: "destructive",
+      });
+    }).finally(() => {
+      setRequesting(false);
     });
   };
 
   //delete draft article
   const handleDelete = (id) => {
+    setRequesting(true);
     fetch(`${baseUrl}/newspapers/drafts/${id}`,{
       method:"DELETE",
       headers:{
@@ -115,18 +144,29 @@ const JournalistArticlesPage = () => {
     })
     .then(async (res) => {
       const data = await res.json();
-      if (res.ok) {
+      if (data.message==="Draft Deleted Successfully") {
         fetchDraftArticles();
         toast({
           title: "Success",
           description: data.message,
-          status: "success",
+          variant: "success",
         });
+
+      }
+      else{
+        throw new Error(data.message);
       }
     })
     .catch(err => {
-      console.error("Error deleting published article:", err);
-    });
+      
+      toast({
+        title: "Error",
+        description: err.message || "Failed to delete article",
+        variant: "destructive",
+      });
+    }).finally(()=>{
+      setRequesting(false);
+    })
   };
 
   // Compile markdown
@@ -170,6 +210,7 @@ const JournalistArticlesPage = () => {
                     <Button
                       variant="outline"
                       size="sm"
+                      disabled={requesting}
                       onClick={() => setViewArticle(article)}
                     >
                       View
@@ -178,6 +219,7 @@ const JournalistArticlesPage = () => {
                     <Button
                       variant="destructive"
                       size="sm"
+                      disabled={requesting}
                       onClick={() => handleUnpublish(article.id)}
                     >
                       Unpublish
@@ -204,6 +246,7 @@ const JournalistArticlesPage = () => {
                     <Button
                       variant="outline"
                       size="sm"
+                      disabled={requesting}
                       onClick={() => handleEdit(article)}
                     >
                       Continue Editing
@@ -212,6 +255,7 @@ const JournalistArticlesPage = () => {
                     <Button
                       variant="destructive"
                       size="sm"
+                      disabled={requesting}
                       onClick={() => handleDelete(article.id)}
                     >
                       Delete

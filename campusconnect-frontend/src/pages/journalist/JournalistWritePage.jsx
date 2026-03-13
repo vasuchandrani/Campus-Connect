@@ -15,6 +15,9 @@ import { Save, Send } from "lucide-react";
 import { journalistNavItems } from "../../config/Navigation";
 import { useLocation } from "react-router-dom";
 import { marked } from "marked";
+import { toast } from "../../hooks/use-toast"; 
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 // ------------------------------Navigation Items------------------------------//
 const navItems = journalistNavItems;
@@ -22,6 +25,8 @@ const navItems = journalistNavItems;
 const JournalistWritePage = () => {
   const location = useLocation();
   const editArticle = location.state?.article;
+
+  const navigate = useNavigate();
 
   const baseUrl = "http://localhost:8080/campus-connect/journalist";
 
@@ -32,6 +37,15 @@ const JournalistWritePage = () => {
   const [preview, setPreview] = useState(null);
   const [activeTab, setActiveTab] = useState("write");
   const renderedPreview = marked.parse(content || "");
+  const [requesting, setRequesting] = useState(false);
+
+        const { routeProtection } = useAuth();
+    
+      useEffect(() => {
+        if (!routeProtection("JOURNALIST")) {
+          navigate("/auth");
+        }
+      },[]);
 
   /* Load Draft Data */
   useEffect(() => {
@@ -80,6 +94,7 @@ const JournalistWritePage = () => {
     }
 
     try {
+      setRequesting(true);
       const response = await fetch(
         editArticle
           ? `${baseUrl}/write/drafts/${editArticle.id}`
@@ -93,20 +108,25 @@ const JournalistWritePage = () => {
         },
       );
 
-      if (response.ok) {
-        alert(
-          editArticle
-            ? "Draft updated successfully!"
-            : "Draft saved successfully!",
-        );
+      const data=await response.json();
+      if ((editArticle && data.message==="Draft Modified Successfully")||(!editArticle && data.message==="Draft saved Successfully")) {
+        toast({
+          title: "Success",
+          description: data.message,
+          variant: "success",
+        });
         clearForm();
       } else {
-        const errorData = await response.json();
-        alert(errorData.message || "Failed to save draft");
+       throw new Error(data.message || "Failed to save draft");
       }
-    } catch {
-      alert(editArticle ? "Failed to update draft" : "Failed to save draft");
+    } catch(err) {
+      toast({
+        title: "Error",
+        description: err.message||"Failed to save draft. Please try again.",
+        variant: "destructive",
+      });
     }
+    setRequesting(false);
   };
   // ---------------- SUBMIT ARTICLE ----------------
   const handleSubmit = async () => {
@@ -129,6 +149,7 @@ const JournalistWritePage = () => {
     }
 
     try {
+      setRequesting(true);
       const response = await fetch(
         editArticle
           ? `${baseUrl}/write/drafts/${editArticle.id}`
@@ -142,17 +163,25 @@ const JournalistWritePage = () => {
         },
       );
 
-      if (response.ok) {
-        const data = await response.json();
-        alert(data.message || "Article submitted successfully!");
+      const data=await response.json();
+      if ((editArticle && data.message==="Draft Published Successfully")||(!editArticle && data.message==="News-Paper Published!")) {
+        toast({
+          title: "Success",
+          description: data.message,
+          variant: "success",
+        });
         clearForm();
       } else {
-        const errorData = await response.json();
-        alert(errorData.message || "Failed to submit article");
+        throw new Error(data.message);
       }
-    } catch {
-      alert("Failed to publish");
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to submit article. Please try again.",
+        variant: "destructive",
+      });
     }
+    setRequesting(false);
   };
 
   const wordCount = content.split(" ").filter(Boolean).length;
@@ -167,12 +196,12 @@ const JournalistWritePage = () => {
           </h1>
 
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handleSaveDraft}>
+            <Button variant="outline" onClick={handleSaveDraft} disabled={requesting}>
               <Save className="w-4 h-4 mr-2" />
               Save Draft
             </Button>
 
-            <Button onClick={handleSubmit}>
+            <Button onClick={handleSubmit} disabled={requesting}>
               <Send className="w-4 h-4 mr-2" />
               Submit
             </Button>

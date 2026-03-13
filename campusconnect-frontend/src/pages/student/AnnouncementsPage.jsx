@@ -7,6 +7,8 @@ import { Eye } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/Dialog";
 import { Button } from "../../components/ui/Button";
 import { toast } from "../../hooks/use-toast";
+import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 
 const AnnouncementsPage = () => {
@@ -15,6 +17,13 @@ const AnnouncementsPage = () => {
   const [viewAnnouncement, setViewAnnouncement] = useState(null);
   // Base URL for API calls related to student announcements
   const baseUrl = "http://localhost:8080/campus-connect/student";
+  const navigate=useNavigate();
+  const { routeProtection } = useAuth();
+  useEffect(() => {
+    if (!routeProtection("STUDENT")) {
+      navigate("/auth");
+    }
+  },[]);
 
   // Fetch announcements 
   const fetchAnnouncements = () => {
@@ -32,8 +41,8 @@ const AnnouncementsPage = () => {
       .catch((err) => {
         toast({
           title: "Error",
-          description: "Failed to fetch announcements",
-          status: "error",
+          description: err.message||"Failed to fetch announcements",
+          variant:"destructive",
         });
       });
   };
