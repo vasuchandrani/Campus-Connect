@@ -5,6 +5,6 @@ import lombok.Data;
 @Data
 public class CreateOrderRequestDto {
 
-    private int amount;
+    private long amount;
     private String currency;
 }

@@ -3,6 +3,8 @@ package com.campusconnect.campusconnectbackend.college_admin.controller;
 import com.campusconnect.campusconnectbackend.club.announcement.AnnouncementService;
 import com.campusconnect.campusconnectbackend.club.club_request.ClubRequestService;
 import com.campusconnect.campusconnectbackend.club.ClubService;
+import com.campusconnect.campusconnectbackend.college.dto.res.CollegeSubscriptionResponseDto;
+import com.campusconnect.campusconnectbackend.college.service.CollegeSubscriptionService;
 import com.campusconnect.campusconnectbackend.college_admin.service.CollegeAdminAuth;
 import com.campusconnect.campusconnectbackend.college_admin.service.CollegeAdminService;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
@@ -53,6 +55,7 @@ public class CollegeAdminController {
     private final StudentRepoService studentRepoService;
     private final ResearchPaperService researchPaperService;
     private final CollegeAdminAuth collegeAdminAuth;
+    private final CollegeSubscriptionService collegeSubscriptionService;
 
     /* Home */
 
@@ -286,6 +289,11 @@ public class CollegeAdminController {
     @PutMapping("/profile")
     public MessageResponseDto updateCollegeAdmin(@RequestBody CollegeAdminProfileDto request) {
         return collegeAdminAuth.updateProfile(authService.getCurrentUserId(), request);
+    }
+
+    @GetMapping("/subscription")
+    public CollegeSubscriptionResponseDto getSubscription() {
+        return collegeSubscriptionService.getSubscription(authService.getCurrentCollegeId());
     }
 
 

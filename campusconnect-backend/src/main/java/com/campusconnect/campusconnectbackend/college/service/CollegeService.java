@@ -1,7 +1,7 @@
 package com.campusconnect.campusconnectbackend.college.service;
 
 import com.campusconnect.campusconnectbackend.college.College;
-import com.campusconnect.campusconnectbackend.college.CollegeRepository;
+import com.campusconnect.campusconnectbackend.college.repository.CollegeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

@@ -17,9 +17,9 @@ public class PaymentService {
 
         JSONObject options = new JSONObject();
 
-        options.put("amount", request.getAmount() * 100); // Razorpay works in paise
+        options.put("amount", request.getAmount() * 100);
         options.put("currency", request.getCurrency());
-        options.put("receipt", "college_reg_" + System.currentTimeMillis());
+        options.put("receipt", "cc_order_" + System.currentTimeMillis());
 
         return razorpayClient.orders.create(options);
     }
