@@ -57,7 +57,7 @@ const JournalistDashboard = () => {
     .then(data => {
       setDetails({
         name: data.name,
-        college: data.CollageName,
+        college: data.collegeName,
       });
     })
     .catch(err => {
@@ -67,7 +67,7 @@ const JournalistDashboard = () => {
 
   // Fetch top 3 articles
   const fetchTopArticles = async() => {
-    await fetch(`${baseUrl}/newspaper/latest`,{
+    await fetch(`${baseUrl}/newspapers/latest`,{
       method:"GET",
       headers:{
         "Content-Type":"application/json",

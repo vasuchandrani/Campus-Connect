@@ -117,12 +117,13 @@ const ClubAdminTeamsPage = () => {
         description: newTeamDesc,
       }),
     })
-      .then(() => {
+      .then(async (response) => {
+        const data = await response.json();
         fetchTeams();
         setNewTeamName("");
         setNewTeamDesc("");
         setCreateDialogOpen(false);
-        toast({ title: "Team Created Successfully" });
+        toast({ title: "Team Created Successfully", description: data.message, status: "success" });
       })
       .catch(() => {
         toast({
@@ -139,9 +140,10 @@ const ClubAdminTeamsPage = () => {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then(() => {
+      .then(async (response) => {
+        const data = await response.json();
         fetchTeams();
-        toast({ title: "Team Deleted Successfully" });
+        toast({ title: "Team Deleted Successfully", description: data.message, status: "success" });
       })
       .catch((err) => {
         console.error("Error deleting team:", err);
@@ -162,10 +164,11 @@ const ClubAdminTeamsPage = () => {
         Authorization: `Bearer ${token}`,
       },
     })
-      .then(() => {
+      .then(async (response) => {
+        const data = await response.json();
         fetchTeams();
         setSelectedMember("");
-        toast({ title: "Member Added Successfully" });
+        toast({ title: "Member Added Successfully", description: data.message, status: "success" });
       })
       .catch(() =>
         toast({
@@ -182,15 +185,16 @@ const ClubAdminTeamsPage = () => {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then(() => {
+      .then(async (response) => {
+        const data = await response.json();
         fetchTeams();
-        toast({ title: "Member Removed Successfully" });
+        toast({ title: "Member Removed Successfully", description: data.message, status: "success" });
       })
       .catch(() =>
         toast({
           title: "Error",
           description: "Failed to remove member",
-          variant: "destructive",
+          status: "error",
         }),
       );
   };

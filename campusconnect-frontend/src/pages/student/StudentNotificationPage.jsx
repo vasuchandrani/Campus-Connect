@@ -9,7 +9,7 @@ import { Button } from "../../components/ui/Button";
 import { toast } from "../../hooks/use-toast";
 
 
-const AnnouncementsPage = () => {
+const StudentNotificationPage = () => {
   // State variables
   const [announcements, setAnnouncements] = useState([]);
   const [viewAnnouncement, setViewAnnouncement] = useState(null);
@@ -18,7 +18,7 @@ const AnnouncementsPage = () => {
 
   // Fetch announcements 
   const fetchAnnouncements = () => {
-    fetch(`${baseUrl}/announcements`, {
+    fetch(`${baseUrl}/notifications`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -159,4 +159,5 @@ const AnnouncementCard = ({ announcement, onView }) => (
 );
 
 
-export default AnnouncementsPage;
+export default StudentNotificationPage;
+

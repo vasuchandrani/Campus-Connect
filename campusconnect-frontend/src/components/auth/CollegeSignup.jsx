@@ -12,17 +12,8 @@ import {
   CardTitle,
 } from "../ui/Card";
 import { Textarea } from "../ui/Textarea";
-import {
-  ArrowLeft,
-  Building2,
-  Check,
-  Crown,
-  Zap,
-  Star,
-  ImageOff,
-} from "lucide-react";
+import { ArrowLeft, Building2, Check, Crown, Zap, Star } from "lucide-react";
 
-// subscription plans data
 const subscriptionPlans = [
   {
     id: "basic",
@@ -41,6 +32,7 @@ const subscriptionPlans = [
     name: "Premium",
     price: "$199/month",
     icon: Star,
+    popular: true,
     features: [
       "Up to 20 clubs",
       "Advanced analytics",
@@ -48,7 +40,6 @@ const subscriptionPlans = [
       "5 admin accounts",
       "Custom branding",
     ],
-    popular: true,
   },
   {
     id: "enterprise",
@@ -67,10 +58,17 @@ const subscriptionPlans = [
 ];
 
 const CollegeSignup = ({ onBack }) => {
+  //stat variables
+  const navigate = useNavigate();
+  const { collegeSignup } = useAuth();
+
   const [step, setStep] = useState(1);
+  const [otp, setOtp] = useState("");
+  const [selectedPlan, setSelectedPlan] = useState(null);
+
   const [formData, setFormData] = useState({
-    name: "",
     email: "",
+    name: "",
     password: "",
     address: "",
     phone: "",
@@ -79,18 +77,71 @@ const CollegeSignup = ({ onBack }) => {
     description: "",
     adminName: "",
   });
-  const [selectedPlan, setSelectedPlan] = useState(null);
-  const { collegeSignup } = useAuth();
-  const navigate = useNavigate();
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleDetailsSubmit = async (e) => {
-    e.preventDefault();
+  //send otp
+  const handleSendOtp = () => {
+    if (!formData.email) {
+      alert("Please enter email first");
+      return;
+    }
 
-    // college form data send to database and get redirect url
+    fetch("http://localhost:8080/campus-connect/security/send-code", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ email: formData.email , codeFor:"COLLEGE_ADMIN EMAIL_VERIFICATION"})
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if(data.message === "verification code sent successfully"){
+          alert("OTP sent to " + formData.email);
+          setStep(2);
+        } else {
+          alert(data.message || "Failed to send OTP.");
+        }
+      })
+      .catch((error) => {
+        console.error("Error sending OTP:", error);
+        alert("An error occurred while sending OTP.");
+      });
+  };
+
+  //verify that otp
+  const handleVerifyOtp = () => {
+    if (otp === "") {
+      alert("Please enter OTP");
+      return;
+    }
+    fetch("http://localhost:8080/campus-connect/security/verify-code", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ email: formData.email, code: otp })
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.message === "Code verified successfully") {
+          alert("OTP verified successfully!");
+          setStep(3);
+        } else {
+          alert(data.message || "Invalid OTP. Please try again.");
+        }
+      })
+      .catch((error) => {
+        console.error("Error verifying OTP:", error);
+        alert("An error occurred while verifying OTP.");
+      });
+  };
+
+  //submit details and signup
+  const handleDetailsSubmit = async () => {
+
     const redirectUrl = await collegeSignup({
       fullName: formData.adminName,
       email: formData.email,
@@ -103,70 +154,61 @@ const CollegeSignup = ({ onBack }) => {
       aboutCollege: formData.description,
     });
 
-    if (redirectUrl) {
-      navigate(redirectUrl);
-    }
+    navigate(redirectUrl);
   };
 
-  const handlePlanSelect = (planId) => {
-    setSelectedPlan(planId);
-  };
-
-  const handlePlanConfirm = () => {
+  //conform selected plan and submit details
+  const handlePlanConfirm = async() => {
     if (selectedPlan) {
-      navigate("/admin-dashboard");
-    }
+      await handleDetailsSubmit();
+    } 
   };
 
-  // Step 2: Plan Selection
-  if (step === 2) {
+  if (step === 4) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 py-12 px-4">
         <div className="max-w-5xl mx-auto">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mb-6"
+            onClick={() => setStep(3)}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              Choose Your Plan
-            </h1>
-            <p className="text-muted-foreground">
-              Select a subscription plan that fits your institution
-            </p>
+            <h1 className="text-3xl font-bold mb-2">Choose Your Plan</h1>
+            <p className="text-muted-foreground">Select a subscription plan</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 mb-8">
             {subscriptionPlans.map((plan) => {
               const Icon = plan.icon;
+
               return (
                 <Card
                   key={plan.id}
-                  className={`cursor-pointer transition-all duration-300 relative ${
+                  className={`cursor-pointer transition-all ${
                     selectedPlan === plan.id
-                      ? "border-primary shadow-lg ring-2 ring-primary"
-                      : "hover:border-primary/50 hover:shadow-md"
-                  } ${plan.popular ? "md:-mt-4 md:mb-4" : ""}`}
-                  onClick={() => handlePlanSelect(plan.id)}
+                      ? "border-primary ring-2 ring-primary"
+                      : "hover:border-primary/50"
+                  }`}
+                  onClick={() => setSelectedPlan(plan.id)}
                 >
-                  {plan.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-semibold">
-                      Most Popular
-                    </div>
-                  )}
-
                   <CardHeader className="text-center">
-                    <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                      <Icon className="w-6 h-6 text-primary" />
-                    </div>
+                    <Icon className="w-8 h-8 mx-auto text-primary mb-2" />
                     <CardTitle>{plan.name}</CardTitle>
-                    <CardDescription className="text-2xl font-bold text-foreground">
+                    <CardDescription className="text-xl font-bold">
                       {plan.price}
                     </CardDescription>
                   </CardHeader>
+
                   <CardContent>
                     <ul className="space-y-2">
                       {plan.features.map((feature, index) => (
-                        <li
-                          key={index}
-                          className="flex items-center gap-2 text-sm"
-                        >
+                        <li key={index} className="flex gap-2 items-center">
                           <Check className="w-4 h-4 text-primary" />
                           {feature}
                         </li>
@@ -181,14 +223,10 @@ const CollegeSignup = ({ onBack }) => {
           <div className="text-center">
             <Button
               size="lg"
-              onClick={handlePlanConfirm}
               disabled={!selectedPlan}
-              className="px-8"
+              onClick={handlePlanConfirm}
             >
-              Continue with{" "}
-              {selectedPlan
-                ? subscriptionPlans.find((p) => p.id === selectedPlan)?.name
-                : "Plan"}
+              Continue
             </Button>
           </div>
         </div>
@@ -196,10 +234,149 @@ const CollegeSignup = ({ onBack }) => {
     );
   }
 
-  // Step 1: College Details Form
+  if (step === 3) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-background to-primary/5">
+        <Card className="w-full max-w-lg">
+          <CardHeader className="text-center relative">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute left-4 top-4"
+              onClick={() => onBack()}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+
+            <Building2 className="w-10 h-10 mx-auto text-primary mb-2" />
+            <CardTitle>Register Your College</CardTitle>
+            <CardDescription>Fill your institution details</CardDescription>
+          </CardHeader>
+
+          <CardContent>
+            <form onSubmit={()=>{setStep(4)}} className="space-y-4">
+              <div>
+                <Label>College Name</Label>
+                <Input
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label>Admin Name</Label>
+                <Input
+                  name="adminName"
+                  value={formData.adminName}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label>Password</Label>
+                <Input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label>Domain</Label>
+                <Input
+                  name="domain"
+                  value={formData.domain}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              <div>
+                <Label>Address</Label>
+                <Textarea
+                  name="address"
+                  value={formData.address}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              <div>
+                <Label>Phone</Label>
+                <Input
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              <div>
+                <Label>Website</Label>
+                <Input
+                  name="website"
+                  value={formData.website}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              <div>
+                <Label>Description</Label>
+                <Textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              <Button type="submit" className="w-full">
+                Continue to Plans
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (step === 2) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-background to-primary/5">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center relative">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute left-4 top-4"
+              onClick={() => setStep(1)}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+
+            <CardTitle>Verify OTP</CardTitle>
+            <CardDescription>OTP sent to {formData.email}</CardDescription>
+          </CardHeader>
+
+          <CardContent className="space-y-4">
+            <Label>Enter OTP</Label>
+            <Input value={otp} onChange={(e) => setOtp(e.target.value)} />
+
+            <Button className="w-full" onClick={handleVerifyOtp}>
+              Verify OTP
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
-      <Card className="w-full max-w-lg">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-background to-primary/5">
+      <Card className="w-full max-w-md">
         <CardHeader className="text-center relative">
           <Button
             variant="ghost"
@@ -210,124 +387,25 @@ const CollegeSignup = ({ onBack }) => {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
-          <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-            <Building2 className="w-8 h-8 text-primary" />
-          </div>
-          <CardTitle>Register Your College</CardTitle>
-          <CardDescription>
-            Enter your institution details to get started
-          </CardDescription>
+
+          <Building2 className="w-10 h-10 mx-auto text-primary mb-2" />
+          <CardTitle>College Signup</CardTitle>
+          <CardDescription>Enter your email to receive OTP</CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleDetailsSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2 col-span-2">
-                <Label htmlFor="name">College/University Name *</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  placeholder="State University"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="space-y-2 col-span-2">
-                <Label htmlFor="name">College Admin Full Name *</Label>
-                <Input
-                  id="adminName"
-                  name="adminName"
-                  placeholder="John Doe"
-                  value={formData.adminName}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="space-y-2 col-span-2">
-                <Label htmlFor="email">Official Email *</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="admin@university.edu"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="space-y-2 col-span-2">
-                <Label htmlFor="domain">Domain</Label>
-                <Input
-                  id="domain"
-                  name="domain"
-                  type="text"
-                  placeholder="university.edu"
-                  value={formData.domain}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="space-y-2 col-span-2">
-                <Label htmlFor="password">Password *</Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="space-y-2 col-span-2">
-                <Label htmlFor="address">Address *</Label>
-                <Textarea
-                  id="address"
-                  name="address"
-                  placeholder="123 University Ave, City, State"
-                  value={formData.address}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  placeholder="+1 234 567 8900"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="website">Website</Label>
-                <Input
-                  id="website"
-                  name="website"
-                  type="url"
-                  placeholder="https://university.edu"
-                  value={formData.website}
-                  onChange={handleInputChange}
-                />
-              </div>
-              <div className="space-y-2 col-span-2">
-                <Label htmlFor="description">About Your Institution</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  placeholder="Brief description of your institution..."
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  rows={3}
-                />
-              </div>
-            </div>
-            <Button type="submit" className="w-full">
-              Continue to Plans
-            </Button>
-          </form>
+
+        <CardContent className="space-y-4">
+          <Label>Email</Label>
+          <Input
+            type="email"
+            name="email"
+            placeholder="admin@college.edu"
+            value={formData.email}
+            onChange={handleInputChange}
+          />
+
+          <Button className="w-full" onClick={handleSendOtp}>
+            Send OTP
+          </Button>
         </CardContent>
       </Card>
     </div>

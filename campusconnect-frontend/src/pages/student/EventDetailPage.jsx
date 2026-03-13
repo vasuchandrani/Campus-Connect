@@ -16,7 +16,6 @@ import {
 import { studentNavItems } from "../../config/Navigation";
 import { marked } from "marked";
 import { useEffect, useMemo,useState } from "react";
-import { set } from "date-fns";
 
 
 const EventDetailPage = () => {
@@ -86,7 +85,7 @@ const EventDetailPage = () => {
   }
 
   return (
-    <DashboardLayout navItems={navItems} title={event.title}>
+    <DashboardLayout navItems={navItems} title={event.title} bell={true}>
       <div className="space-y-6">
         <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
           <ArrowLeft className="w-4 h-4" /> Back
@@ -116,7 +115,7 @@ const EventDetailPage = () => {
               <Calendar className="w-5 h-5 text-primary" />
               <div>
                 <p className="text-sm text-muted-foreground">Date</p>
-                <p className="font-medium">{formatDate(event.eventDate).date}</p>
+                <p className="font-medium">{formatDate(event.startTime).date}</p>
               </div>
             </CardContent>
           </Card>
@@ -126,7 +125,7 @@ const EventDetailPage = () => {
               <Clock className="w-5 h-5 text-primary" />
               <div>
                 <p className="text-sm text-muted-foreground">Time</p>
-                <p className="font-medium">{formatDate(event.eventDate).time}</p>
+                <p className="font-medium">{formatDate(event.startTime).time}</p>
               </div>
             </CardContent>
           </Card>

@@ -196,19 +196,28 @@ const StudentDashboard = () => {
       },
       body: JSON.stringify(data),
     })
-      .then((res) => {
+      .then(async (res) => {
         if (!res.ok) throw new Error("Failed to submit club request");
-        return res.json();
+        return await res.json();
       })
-      .then(() => {
+      .then((res) => {
+        if(res.message === "Club Request sent successfully") {
         toast({
           title: "Success",
           description:
-            "Club request submitted! Awaiting college admin approval.",
+            res.message,
         });
         setClubRequestOpen(false);
         setClubName("");
         setClubDescription("");
+      }
+      else{
+        toast({
+          title: "Error",
+          description: res.message || "Failed to submit club request",
+          variant: "destructive",
+        });
+      }
       })
       .catch((err) => {
         toast({
@@ -229,7 +238,7 @@ const StudentDashboard = () => {
   };
 
   return (
-    <DashboardLayout navItems={navItems} title="Student Dashboard">
+    <DashboardLayout navItems={navItems} title="Student Dashboard" bell={true}>
       <div className="space-y-6">
         {/* Welcome Section */}
         <div className="bg-gradient-to-r from-primary/10 via-accent/10 to-primary/5 rounded-2xl p-6 border border-primary/20">

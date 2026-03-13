@@ -34,6 +34,31 @@ const EventsPage = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [finishedEvents, setFinishedEvents] = useState([]);
+      const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+  const interval = setInterval(() => {
+    setNow(new Date());
+  }, 1000);
+
+  return () => clearInterval(interval);
+}, []);
+
+//get event status base on current time and event start/end time
+const getEventStatus = (event) => {
+  const start = new Date(event.startTime);
+  const end = new Date(event.endTime);
+
+  if (now >= start && now <= end) return "LIVE";
+  if (now < start) return "UPCOMING";
+  return "FINISHED";
+};
+
+//get is registration open based on current time and registration end time
+const isRegistrationOpen = (event) => {
+  if (!event.registrationEnd) return false;
+  return new Date() < new Date(event.registrationEnd);
+};
 
   // Fetch Upcomming events from API
   const getEvents = async () => {
@@ -90,10 +115,11 @@ const EventsPage = () => {
         },
       })
         .then(async (res) => {
+          const data = await res.json();
           if (res.ok) {
             toast({
               title: "Success",
-              description: "Unregistered from event",
+              description: data.message,
             });
             await getEvents();
           } else {
@@ -116,10 +142,11 @@ const EventsPage = () => {
         },
       })
         .then(async (res) => {
+          const data = await res.json();
           if (res.ok) {
             toast({
               title: "Success",
-              description: "Registered for event",
+              description: data.message,
             });
             await getEvents();
           } else {
@@ -177,7 +204,7 @@ const EventsPage = () => {
   };
 
   return (
-    <DashboardLayout navItems={studentNavItems} title="Events">
+    <DashboardLayout navItems={studentNavItems} title="Events" bell={true}>
       <div className="space-y-6">
         <h1 className="text-3xl font-bold">Events</h1>
 
@@ -220,26 +247,26 @@ const EventsPage = () => {
                     </p>
                     <p>
                       <strong>start Date:</strong>{" "}
-                      {formatDate(selectedEvent.eventDate).date}
+                      {formatDate(selectedEvent.startTime).date}
                     </p>
 
                     <p>
                       <strong>Start Time:</strong>{" "}
-                      {formatDate(selectedEvent.eventDate).time}
+                      {formatDate(selectedEvent.startTime).time}
                     </p>
                     <p>
-                      {selectedEvent.eventDate && selectedEvent.endDate && (
+                      {selectedEvent.endTime && (
                         <span>
                           <strong>End Date:</strong>{" "}
-                          {selectedEvent.endDate.split("T")[0]}
+                          {selectedEvent.endTime.split("T")[0]}
                         </span>
                       )}
                     </p>
                     <p>
-                      {selectedEvent.endDate && (
+                      {selectedEvent.endTime && (
                         <span>
                           <strong>End Time:</strong>{" "}
-                          {selectedEvent.endDate.split("T")[1].substring(0, 5)}
+                          {selectedEvent.endTime.split("T")[1].substring(0, 5)}
                         </span>
                       )}
                     </p>
@@ -247,10 +274,10 @@ const EventsPage = () => {
                       <strong>Registration End:</strong>{" "}
                       {formatDate(selectedEvent.registrationEnd).date}
                     </p>
-                    <p>
+                    {/* <p>
                       <strong>Status:</strong>{" "}
                       {selectedEvent.status.replace(/"/g, "")}
-                    </p>
+                    </p> */}
                     <p>
                       <strong>Registration Count:</strong>{" "}
                       {selectedEvent.registrationsCount}
@@ -289,11 +316,13 @@ const EventsPage = () => {
               </Dialog>
 
               {sortedEvents.map((event) => {
+                  const status = getEventStatus(event);
                 const isRegistered = registeredEvents.some(
                   (re) => re.id === event.id,
                 );
 
                 return (
+                  
                   <Card
                     key={event.id}
                     className="border-border/50 overflow-hidden"
@@ -309,14 +338,14 @@ const EventsPage = () => {
 
                         <Badge
                           variant={
-                            event.status === "LIVE"
+                            status === "LIVE"
                               ? "destructive"
-                              : event.status === "UPCOMING"
+                              : status === "UPCOMING"
                                 ? "secondary"
                                 : "default"
                           }
                         >
-                          {event.status}
+                          {status}
                         </Badge>
                       </div>
 
@@ -327,7 +356,7 @@ const EventsPage = () => {
                       </p>
 
                       <div className="flex gap-2">
-                        {event.registrationOpen ? (
+                        {isRegistrationOpen(event) ? (
                           <Button
                             className="flex-1"
                             variant={isRegistered ? "outline" : "default"}

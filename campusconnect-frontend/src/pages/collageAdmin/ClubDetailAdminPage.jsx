@@ -60,10 +60,11 @@ const ClubDetailAdminPage = () => {
           eventCount: data.eventCount,
           logoUrl: data.logoUrl,
           followerCount: data.followerCount,
-          clubImage:data.imgUrl,
+          clubImage: data.imgUrl,
           adminId: data.clubAdmin.id,
           adminName: data.clubAdmin.name,
-        })
+          adminImage: data.clubAdmin.image,
+        });
         setAnnouncements(data.announcements);
         setEvents(data.events);
         setTeams(data.teams);
@@ -135,7 +136,9 @@ const ClubDetailAdminPage = () => {
         <Card className="pt-5">
           <CardContent className="flex items-center gap-4 p-4">
              <Avatar>
-              <AvatarImage src={`https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQHUndSzxcF1UbSXX3bVILVaUbSIhoc_GEA8g&s`} />
+              {club.clubAdminImage && club.clubAdminImage !== "" && (
+                <AvatarImage src={club.clubAdminImage} />
+              )}
               <AvatarFallback>{club.adminName[0]}</AvatarFallback>
             </Avatar>
             <div>
@@ -176,7 +179,8 @@ const ClubDetailAdminPage = () => {
             <div className="grid md:grid-cols-2 gap-3">
               {clubMembers.map((m) => (
                 <div key={m.studentId} className="flex gap-3 p-3 bg-muted rounded-lg">
-                  <Avatar>
+                 <Avatar>
+                    {m.image && <AvatarImage src={m.image} />}
                     <AvatarFallback>{m.studentName[0]}</AvatarFallback>
                   </Avatar>
                   <div>
@@ -196,7 +200,7 @@ const ClubDetailAdminPage = () => {
                 <CardContent className="p-4">
                   <p className="font-semibold">{e.title}</p>
                   <p className="text-sm text-muted-foreground flex items-center gap-2">
-                    <Clock className="w-4 h-4" /> {e.eventDate.split("T")[0]} at {e.eventDate.split("T")[1].slice(0, 5)}
+                    <Clock className="w-4 h-4" /> {e.startTime.split("T")[0]} at {e.startTime.split("T")[1].slice(0, 5)}
                   </p>
                   <p className="text-sm flex items-center gap-2">
                     <MapPin className="w-4 h-4" /> {e.location}

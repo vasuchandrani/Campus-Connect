@@ -120,7 +120,7 @@ const ClubAdminEventDetailPage = () => {
               <Calendar className="w-5 h-5 text-primary" />
               <div>
                 <p className="text-sm text-muted-foreground">Date</p>
-                <p className="font-medium">{formatDate(event.eventDate).date}</p>
+                <p className="font-medium">{formatDate(event.startTime).date}</p>
               </div>
             </CardContent>
           </Card>
@@ -130,7 +130,7 @@ const ClubAdminEventDetailPage = () => {
               <Clock className="w-5 h-5 text-primary" />
               <div>
                 <p className="text-sm text-muted-foreground">Time</p>
-                <p className="font-medium">{formatDate(event.eventDate).time}</p>
+                <p className="font-medium">{formatDate(event.startTime).time}</p>
               </div>
             </CardContent>
           </Card>

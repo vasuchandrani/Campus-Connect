@@ -260,10 +260,11 @@ const AdminUsersPage = () => {
       },
     })
       .then(async (res) => {
+        const data = await res.json();
         if (res.ok) {
           toast({
             title: "Success",
-            description: "Journalist request approved",
+            description: data.message,
             status: "success",
           });
           await fetchJournalistsRequests();
@@ -291,10 +292,11 @@ const AdminUsersPage = () => {
       },
     })
       .then(async (res) => {
+        const data = await res.json();
         if (res.ok) {
           toast({
             title: "Success",
-            description: "Journalist request rejected",
+            description: data.message,
             status: "success",
           });
           await fetchJournalistsRequests();
@@ -323,10 +325,11 @@ const AdminUsersPage = () => {
       body: JSON.stringify(reviewer),
     })
       .then(async (res) => {
+        const data = await res.json();
         if (res.ok) {
           toast({
             title: "Success",
-            description: "Reviewer added successfully",
+            description: data.message,
             status: "success",
           });
           await fetchReviewers();
@@ -356,6 +359,70 @@ const AdminUsersPage = () => {
     }
   };
 
+  //remove Journalist
+  const removeJournalist = async (id) => {
+    fetch(`${baseUrl}/journalist/${id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (res.ok) {
+          toast({
+            title: "Success",
+            description: data.message,
+            status: "success",
+          });
+          await fetchJournalists();
+        } else {
+          throw new Error("Failed to remove journalist");
+        }
+      })
+      .catch((err) => {
+        toast({
+          title: "Error",
+          description: err.message || "Failed to remove journalist",
+          status: "error",
+        });
+      });
+
+  }
+
+  //remove Reviewr
+  const removeReviewer = async (id) => {
+    fetch(`${baseUrl}/reviewer/${id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (res.ok) {
+          toast({
+            title: "Success",
+            description: data.message,
+            status: "success",
+          });
+          await fetchReviewers();
+        } else {
+          throw new Error("Failed to remove reviewer");
+        }
+      })
+      .catch((err) => {
+        toast({
+          title: "Error",
+          description: err.message || "Failed to remove reviewer",
+          status: "error",
+        });
+      });
+      
+  }
+
   //add multiple students API call
   const addMultipleStudents = async () => {
   const formData = new FormData();
@@ -368,10 +435,11 @@ const AdminUsersPage = () => {
       body: formData,
     })
       .then(async (res) => {
+        const data = await res.json();
         if (res.ok) {
           toast({
             title: "Success",
-            description: "Students added successfully",
+            description: data.message,
             status: "success",
           });
         } else {
@@ -580,7 +648,7 @@ const AdminUsersPage = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem className="text-destructive">
+                              <DropdownMenuItem className="text-destructive" onClick={() => removeJournalist(journalist.id)}>
                                 Remove
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -674,7 +742,7 @@ const AdminUsersPage = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem className="text-destructive">
+                              <DropdownMenuItem className="text-destructive" onClick={()=>removeReviewer(reviewer.id)}>
                                 Remove
                               </DropdownMenuItem>
                             </DropdownMenuContent>
