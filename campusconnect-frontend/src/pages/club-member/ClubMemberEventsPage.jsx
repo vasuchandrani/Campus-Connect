@@ -27,6 +27,7 @@ import { useNavigate } from "react-router-dom";
 import { FileText } from "lucide-react";
 import { marked } from "marked";
 import { Badge } from "../../components/ui/Badge";
+import { set } from "date-fns";
 
 const ClubMemberEventsPage = () => {
   // Get clubId from URL params
@@ -86,6 +87,7 @@ const ClubMemberEventsPage = () => {
   });
   const [now, setNow] = useState(new Date());
   const [existingImages, setExistingImages] = useState([]);
+  const [requesting, setRequesting] = useState(false);
 
   const resetCreateEventForm = () => {
     setNewEvent({
@@ -133,33 +135,33 @@ const ClubMemberEventsPage = () => {
   const fetchClubEvents = async () => {
     const token = localStorage.getItem("authToken");
 
-    fetch(`${baseUrl}/events/finished`, {
+    await fetch(`${baseUrl}/events/finished`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((res) => res.json())
+      .then(async (res) => await res.json())
       .then((data) => {
         setPastEvents(data);
       })
       .catch((err) =>
         toast({
           title: "Error",
-          description: "Failed to fetch events",
-          status: "error",
+          description: err.message || "Failed to fetch events",
+          variant: "destructive",
         }),
       );
 
-    fetch(`${baseUrl}/events/active`, {
+    await fetch(`${baseUrl}/events/active`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((res) => res.json())
+      .then(async (res) => await res.json())
       .then((data) => {
         setUpcomingEvents(data);
       })
       .catch((err) =>
         toast({
           title: "Error",
-          description: "Failed to fetch upcoming events",
-          status: "error",
+          description: err.message || "Failed to fetch upcoming events",
+          variant: "destructive",
         }),
       );
   };
@@ -187,7 +189,7 @@ const ClubMemberEventsPage = () => {
       toast({
         title: "Error",
         description: "Failed to load overview details",
-        status: "error",
+        variant: "destructive",
       });
     }
   };
@@ -200,6 +202,8 @@ const ClubMemberEventsPage = () => {
     if (now < start) return "UPCOMING";
     return "FINISHED";
   };
+
+  //handle create event
   const handleCreateEvent = async () => {
     const token = localStorage.getItem("authToken");
 
@@ -213,6 +217,7 @@ const ClubMemberEventsPage = () => {
     };
 
     try {
+      setRequesting(true);
       const formData = new FormData();
 
       formData.append(
@@ -223,7 +228,11 @@ const ClubMemberEventsPage = () => {
       if (newEvent.image) {
         formData.append("image", newEvent.image);
       } else {
-        alert("Please upload an image for the event.");
+        toast({
+          title: "Error",
+          description: "Please upload an image for the event.",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -244,7 +253,7 @@ const ClubMemberEventsPage = () => {
         toast({
           title: "Success",
           description: data.message,
-          status: "success",
+          variant: "success",
         });
         fetchClubEvents();
         setCreateOpen(false);
@@ -253,15 +262,17 @@ const ClubMemberEventsPage = () => {
         toast({
           title: "error",
           description: data.message,
-          status: "error",
+          variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "Error",
         description: error.message || "Failed to create event",
-        status: "error",
+        variant: "destructive",
       });
+    } finally {
+      setRequesting(false);
     }
   };
 
@@ -300,6 +311,8 @@ const ClubMemberEventsPage = () => {
     }
 
     try {
+      setRequesting(true);
+
       const response = await fetch(
         `${baseUrl}/events/active/${selectedEvent.id}`,
         {
@@ -321,21 +334,23 @@ const ClubMemberEventsPage = () => {
         toast({
           title: "Success",
           description: data.message,
-          status: "success",
+          variant: "success",
         });
       } else {
         toast({
           title: "error",
           description: data.message,
-          status: "error",
+          variant: "destructive",
         });
       }
     } catch (err) {
       toast({
         title: "Error",
         description: err.message || "Failed to update event",
-        status: "error",
+        variant: "destructive",
       });
+    } finally {
+      setRequesting(false);
     }
 
     setDialogType(null);
@@ -343,28 +358,33 @@ const ClubMemberEventsPage = () => {
   };
 
   // Handle delete event
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     const token = localStorage.getItem("authToken");
 
-    fetch(`${baseUrl}/events/active/${id}`, {
+    await fetch(`${baseUrl}/events/active/${id}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(async (response) => {
         const data = await response.json();
-        fetchClubEvents();
-        toast({
-          title: "Success",
-          description: data.message,
-          status: "success",
-        });
+        if (data.message === "Event deleted successfully") {
+          fetchClubEvents();
+          toast({
+            title: "Success",
+            description: data.message,
+            variant: "success",
+          });
+        } else throw new Error(data.message || "Failed to delete event");
       })
       .catch((err) => {
         toast({
           title: "Error",
-          description: "Failed to delete event",
-          status: "error",
+          description: err.message || "Failed to delete event",
+          variant: "destructive",
         });
+      })
+      .finally(() => {
+        setRequesting(false);
       });
   };
 
@@ -398,15 +418,15 @@ const ClubMemberEventsPage = () => {
   }, [upcomingEvents]);
 
   //add photo to photo array for overview
-const handleAddPhoto = () => {
-  if (!newPhoto || existingImages.length + overviewPhotos.length >= 10)
-    return;
+  const handleAddPhoto = () => {
+    if (!newPhoto || existingImages.length + overviewPhotos.length >= 10)
+      return;
 
-  setOverviewPhotos([...overviewPhotos, newPhoto]);
-  setNewPhoto(null);
+    setOverviewPhotos([...overviewPhotos, newPhoto]);
+    setNewPhoto(null);
 
-  document.querySelector('input[type="file"]').value = "";
-};
+    document.querySelector('input[type="file"]').value = "";
+  };
 
   const handleRemoveExistingImage = (index) => {
     setExistingImages(existingImages.filter((_, i) => i !== index));
@@ -434,13 +454,13 @@ const handleAddPhoto = () => {
           toast({
             title: "Success",
             description: "Overview generated successfully",
-            status: "success",
+            variant: "success",
           });
         } else {
           toast({
             title: "Error",
             description: "Failed to generate overview",
-            status: "error",
+            variant: "destructive",
           });
         }
       })
@@ -448,7 +468,7 @@ const handleAddPhoto = () => {
         toast({
           title: "Error",
           description: "Failed to generate overview",
-          status: "error",
+          variant: "destructive",
         });
       });
     setIsGenerating(false);
@@ -495,7 +515,7 @@ const handleAddPhoto = () => {
         toast({
           title: "Success",
           description: data.message,
-          status: "success",
+          variant: "success",
         });
 
         setOverviewMarkdown("");
@@ -513,7 +533,7 @@ const handleAddPhoto = () => {
         toast({
           title: "Error",
           description: data.message,
-          status: "error",
+          variant: "destructive",
         });
 
         setIsSaving(false);
@@ -522,7 +542,7 @@ const handleAddPhoto = () => {
       toast({
         title: "Error",
         description: "Failed to save overview",
-        status: "error",
+        variant: "destructive",
       });
 
       setIsSaving(false);
@@ -625,7 +645,7 @@ const handleAddPhoto = () => {
             }}
           >
             <DialogTrigger asChild>
-              <Button>
+              <Button dissabled={requesting}>
                 <Plus className="w-4 h-4 mr-2" />
                 Create Event
               </Button>
@@ -877,7 +897,11 @@ const handleAddPhoto = () => {
                   )}
                 </div>
 
-                <Button className="w-full" onClick={handleCreateEvent}>
+                <Button
+                  className="w-full"
+                  onClick={handleCreateEvent}
+                  disabled={requesting}
+                >
                   Create Event
                 </Button>
               </div>
@@ -1154,6 +1178,7 @@ const handleAddPhoto = () => {
                         variant="outline"
                         size="sm"
                         onClick={handleAddSpeaker}
+                        disabled={!newSpeaker.name || !newSpeaker.email}
                       >
                         + Add Speaker
                       </Button>
@@ -1209,6 +1234,7 @@ const handleAddPhoto = () => {
                           variant="outline"
                           size="sm"
                           onClick={handleAddSponsor}
+                          disabled={!newSponsor.name || !newSponsor.tagline}
                         >
                           + Add
                         </Button>
@@ -1235,7 +1261,11 @@ const handleAddPhoto = () => {
                       ))}
                     </div>
 
-                    <Button onClick={handleSaveEdit} className="w-full">
+                    <Button
+                      onClick={handleSaveEdit}
+                      className="w-full"
+                      disabled={requesting}
+                    >
                       Save Changes
                     </Button>
                   </>
@@ -1326,48 +1356,46 @@ Write your markdown here..."
                     </Button>
                   </div>
                   {(existingImages.length > 0 || overviewPhotos.length > 0) && (
-  <div className="grid grid-cols-3 gap-2 mt-4">
+                    <div className="grid grid-cols-3 gap-2 mt-4">
+                      {/* Existing images */}
+                      {existingImages.map((url, index) => (
+                        <div key={`existing-${index}`} className="relative">
+                          <img
+                            src={url}
+                            className="w-full h-24 object-cover rounded-lg"
+                          />
 
-    {/* Existing images */}
-    {existingImages.map((url, index) => (
-      <div key={`existing-${index}`} className="relative">
-        <img
-          src={url}
-          className="w-full h-24 object-cover rounded-lg"
-        />
+                          <button
+                            onClick={() => handleRemoveExistingImage(index)}
+                            className="absolute top-1 right-1 bg-red-500 text-white text-xs px-1 rounded"
+                          >
+                            X
+                          </button>
+                        </div>
+                      ))}
 
-        <button
-          onClick={() => handleRemoveExistingImage(index)}
-          className="absolute top-1 right-1 bg-red-500 text-white text-xs px-1 rounded"
-        >
-          X
-        </button>
-      </div>
-    ))}
+                      {/* Newly added photos */}
+                      {overviewPhotos.map((photo, index) => (
+                        <div key={`new-${index}`} className="relative">
+                          <img
+                            src={URL.createObjectURL(photo)}
+                            className="w-full h-24 object-cover rounded-lg"
+                          />
 
-    {/* Newly added photos */}
-    {overviewPhotos.map((photo, index) => (
-      <div key={`new-${index}`} className="relative">
-        <img
-          src={URL.createObjectURL(photo)}
-          className="w-full h-24 object-cover rounded-lg"
-        />
-
-        <button
-          onClick={() =>
-            setOverviewPhotos(
-              overviewPhotos.filter((_, i) => i !== index)
-            )
-          }
-          className="absolute top-1 right-1 bg-red-500 text-white text-xs px-1 rounded"
-        >
-          X
-        </button>
-      </div>
-    ))}
-
-  </div>
-)}
+                          <button
+                            onClick={() =>
+                              setOverviewPhotos(
+                                overviewPhotos.filter((_, i) => i !== index),
+                              )
+                            }
+                            className="absolute top-1 right-1 bg-red-500 text-white text-xs px-1 rounded"
+                          >
+                            X
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {/* WINNERS SECTION */}
                   <div className="space-y-4 mt-8">
@@ -1532,6 +1560,7 @@ Write your markdown here..."
                           <Button
                             variant="ghost"
                             size="icon"
+                            disabled={requesting}
                             onClick={() => {
                               setSelectedEvent(event);
                               setDialogType("view");
@@ -1543,6 +1572,7 @@ Write your markdown here..."
                           <Button
                             variant="ghost"
                             size="icon"
+                            disabled={requesting}
                             onClick={() => {
                               const { date, time } = formatDate(
                                 event.startTime,
@@ -1573,6 +1603,7 @@ Write your markdown here..."
                             variant="ghost"
                             size="icon"
                             className="text-destructive"
+                            disabled={requesting}
                             onClick={() => handleDelete(event.id)}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -1667,6 +1698,7 @@ Write your markdown here..."
                         <Button
                           variant="outline"
                           className="w-auto"
+                          disabled={requesting}
                           onClick={() =>
                             navigate(
                               `/campus-connect/club-admin/${clubId}/events/${event.id}`,
@@ -1679,6 +1711,7 @@ Write your markdown here..."
                         <Button
                           variant="secondary"
                           className="w-auto"
+                          disabled={requesting}
                           onClick={() => {
                             fetchEventOverviewDetails(event.id);
                           }}

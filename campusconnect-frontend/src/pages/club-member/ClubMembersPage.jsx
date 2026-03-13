@@ -27,25 +27,25 @@ const ClubMembersPage = () => {
   const [clubMembers, setClubMembers] = useState([]);
 
   // Fetch club members
-  const fetchClubMembers = () => {
+  const fetchClubMembers =async () => {
     const token = localStorage.getItem("authToken");
 
-    fetch(`${baseUrl}/members`, {
+    await fetch(`${baseUrl}/members`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
     })
-      .then((res) => res.json())
+      .then(async (res) => await res.json())
       .then((data) => {
         setClubMembers(data);
       })
       .catch((err) => {
         toast({
           title: "Error",
-          description: "Failed to fetch members",
-          status: "error",
+          description: err.message || "Failed to fetch members",
+          variant: "destructive",
         });
       });
   };

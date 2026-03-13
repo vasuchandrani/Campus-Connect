@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { studentNavItems } from "../../config/Navigation";
 import { toast } from "../../hooks/use-toast";
+import { useAuth } from "../../contexts/AuthContext";
 
 /* ======================================================================== */
 
@@ -44,6 +45,13 @@ const ClubDetailPage = () => {
   const [isFollowed, setIsFollowed] = useState(true);
   // Base URL for API calls related to student clubs
   const baseUrl = "http://localhost:8080/campus-connect/student";
+
+    const { routeProtection } = useAuth();
+    useEffect(() => {
+      if (!routeProtection("STUDENT")) {
+        navigate("/auth");
+      }
+    },[]);
 
   // Fetch club details
   const fetchClubDetails = () => {
@@ -77,8 +85,11 @@ const ClubDetailPage = () => {
         setIsFollowed(data.isFollowed);
       })
       .catch((err) => {
-        console.error("Error fetching club details:", err);
-        toast.error("Failed to load club details");
+        toast({
+          title: "Error",
+          description: err.message || "Failed to fetch club details",
+          variant: "destructive",
+        });
       });
   };
 
@@ -110,7 +121,7 @@ const ClubDetailPage = () => {
         console.error(err);
         toast({
           title: "Error",
-          description: "Failed to update follow status",
+          description: err.message || "Failed to update follow status",
           variant: "destructive",
         });
       });

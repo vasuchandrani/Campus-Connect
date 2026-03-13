@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { collegeAdminNavItems } from "../../config/Navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/Card";
@@ -8,6 +8,9 @@ import { Textarea } from "../../components/ui/Textarea";
 import { Label } from "../../components/ui/Label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/Tabs";
 import { Globe, CreditCard, Shield } from "lucide-react";
+import { toast } from "../../hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 const AdminSettingsPage = () => {
 
@@ -26,8 +29,17 @@ const AdminSettingsPage = () => {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [requesting,setRequesting] = useState(false);
 
+    const navigate = useNavigate();
+    const { routeProtection } = useAuth();
   
+    useEffect(() => {
+      if (!routeProtection("COLLEGE_ADMIN")) {
+        navigate("/auth");
+      }
+    },[]);
+
   const handleChange = (e) => {
     setProfile({
       ...profile,
@@ -52,6 +64,7 @@ const AdminSettingsPage = () => {
         collegeDescription: profile.description,
         collegeAddress: profile.address
       }
+      setRequesting(true);
       const response = await fetch(
         `${baseUrl}/profile`,
         {
@@ -67,14 +80,28 @@ const AdminSettingsPage = () => {
       const data = await response.json();
 
       if (data.message === "Your profile has been updated successfully!") {
-        alert("Profile changes saved!");
+        toast({
+          title: "Success",
+          description: data.message,
+          variant: "success",
+        });
       } else {
-        alert(data.message || "Failed to save profile");
+        toast({
+          title: "Error",
+          description: data.message || "Failed to update profile. Please try again.",
+          variant: "destructive",
+        });
       }
 
     } catch (error) {
       console.error(error);
-      alert("Something went wrong!");
+      toast({
+        title: "Error",
+        description: "Something went wrong!",
+        variant: "destructive",
+      });
+    } finally {
+      setRequesting(false);
     }
   };
 
@@ -104,18 +131,22 @@ const AdminSettingsPage = () => {
     }
   };
 
-  useState(() => {
+  useEffect(() => {
     getProfile();
    }, []);
 
    //change password
-  const changePassword = () => {
+  const changePassword = async () => {
     if (newPassword !== confirmPassword) {
-      alert("New passwords do not match!");
+      toast ({
+        title: "Error",
+        description: "New password and confirm password do not match.",
+        variant: "destructive",
+      });
       return;
     }
-
-    fetch("http://localhost:8080/campus-connect/security/change-pwd", {
+    setRequesting(true);
+    await fetch("http://localhost:8080/campus-connect/security/change-pwd", {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -127,21 +158,33 @@ const AdminSettingsPage = () => {
         role: "COLLEGE_ADMIN"
       }),
     })
-    .then((res) => res.json())
+    .then(async(res) => await res.json())
       .then((res) => {
         if (res.message === "Your password changed successfully!") {
-          alert("Password updated successfully!");
+          toast({
+            title: "Success",
+            description: res.message,
+            variant: "success",
+          });
           setCurrentPassword("");
           setNewPassword("");
           setConfirmPassword("");
         } else {
-          alert(res.message || "Failed to update password. Please try again.");
+          toast({
+            title: "Error",
+            description: res.message || "Failed to update password. Please try again.",
+            variant: "destructive",
+          });
         }
       })
       .catch((err) => {
         console.error("Error updating password:", err);
-        alert("An error occurred while updating password. Please try again.");
-      });
+        toast({
+          title: "Error",
+          description: "An error occurred while updating password. Please try again.",
+          variant: "destructive",
+        });
+      }).finally(() => setRequesting(false));
   };
 
   return (
@@ -284,7 +327,7 @@ const AdminSettingsPage = () => {
 
                 </div>
 
-                <Button onClick={saveProfile}>
+                <Button onClick={saveProfile} disabled={requesting}>
                   Save Changes
                 </Button>
 
@@ -335,11 +378,11 @@ const AdminSettingsPage = () => {
 
                 <div className="flex gap-4">
 
-                  <Button variant="outline">
+                  <Button variant="outline" disabled={requesting}>
                     View Invoice History
                   </Button>
 
-                  <Button>
+                  <Button disabled={requesting}>
                     Upgrade Plan
                   </Button>
 
@@ -391,7 +434,7 @@ const AdminSettingsPage = () => {
 
                 </div>
 
-                <Button onClick={changePassword}>
+                <Button onClick={changePassword} disabled={requesting}>
                   Update Password
                 </Button>
 

@@ -7,6 +7,8 @@ import { Eye } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/Dialog";
 import { Button } from "../../components/ui/Button";
 import { toast } from "../../hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 
 const StudentNotificationPage = () => {
@@ -16,6 +18,14 @@ const StudentNotificationPage = () => {
   // Base URL for API calls related to student announcements
   const baseUrl = "http://localhost:8080/campus-connect/student";
 
+
+        const navigate = useNavigate();
+      const { routeProtection } = useAuth();
+      useEffect(() => {
+        if (!routeProtection("STUDENT")) {
+          navigate("/auth");
+        }
+      },[]);
   // Fetch announcements 
   const fetchAnnouncements = () => {
     fetch(`${baseUrl}/notifications`, {

@@ -28,6 +28,8 @@ import { toast } from "../../hooks/use-toast";
 
 import { Search, Download, Upload, Clock, User } from "lucide-react";
 import { studentNavItems } from "../../config/Navigation";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 const ResearchPage = () => {
 
@@ -46,9 +48,18 @@ const ResearchPage = () => {
     department: "",
     subject: "",
   });
+  const [requesting,setRequesting]=useState(false);
 
   //baseUrl
   const baseUrl = "http://localhost:8080/campus-connect/student";
+
+      const navigate = useNavigate();
+      const { routeProtection } = useAuth();
+      useEffect(() => {
+        if (!routeProtection("STUDENT")) {
+          navigate("/auth");
+        }
+      },[]);
 
   //cancle submit
   const handleCancelSubmit = () => {
@@ -56,7 +67,26 @@ const ResearchPage = () => {
   };
 
   //confirm submit research paper
-  const handleConfirmSubmit = () => {
+  const handleConfirmSubmit = async () => {
+    if(formData.title.trim()==="" || formData.abstract.trim()==="" || formData.department.trim()==="" || formData.subject.trim()===""){
+      toast({
+        title: "Error",
+        description: "Please fill in all the fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if(!pdfFile){
+      toast({
+        title: "Error",
+        description: "Please upload your research paper in PDF format.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setRequesting(true);
     const token=localStorage.getItem("authToken");
     const dto = {
       title: formData.title,
@@ -76,7 +106,7 @@ const ResearchPage = () => {
     data.append("pdf", pdfFile);
 
 
-    fetch(`${baseUrl}/researches`, {
+    await fetch(`${baseUrl}/researches`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -91,22 +121,37 @@ const ResearchPage = () => {
       })
       .then((data) => {
 
-        setConfirmSubmit(false);
+        if(data.message==="Your Research Paper has been submitted") {
+        
         toast({
           title: "Success",
           description:data.message,
-          status: "success",
         });
+        setFormData({
+          title: "",
+          abstract: "",
+          department: "",
+          subject: "",
+        });
+        setPdfFile(null);
+        fethcMySubmissions();
         fetchResearchPapers();
+      }
+      else{
+        throw new Error(data.message);
+      }
       })
       .catch((err) => {
         console.error("Error submitting research paper:", err);
         toast({
           title: "Error",
-          description: "Failed to submit research paper. Please try again.",
-          status: "error",
+          description: err.message||"Failed to submit research paper. Please try again.",
+          variant: "destructive",
         });
-      })  
+      }).finally(()=>{
+        setConfirmSubmit(false);
+        setRequesting(false);
+      });
   };
 
   // upload file
@@ -131,6 +176,7 @@ const ResearchPage = () => {
 // download pdf 
 const downloadPdf = async (url, title) => {
   try {
+    setRequesting(false);
     const token = localStorage.getItem("authToken");
 
     const response = await fetch(url, {
@@ -153,7 +199,14 @@ const downloadPdf = async (url, title) => {
     link.remove();
     window.URL.revokeObjectURL(downloadUrl);
   } catch (error) {
-    console.error("Download failed:", error);
+    toast({
+      title: "Error",
+      description: error.message || "Failed to download PDF. Please try again.",
+      variant: "destructive",
+    });
+  }
+  finally{
+    setRequesting(false);
   }
 };
 
@@ -288,7 +341,7 @@ const downloadPdf = async (url, title) => {
                           View Details
                         </Button>
 
-                        <Button onClick={() => downloadPdf(paper.pdfUrl,paper.title)}>
+                        <Button disabled={requesting} onClick={() => downloadPdf(paper.pdfUrl,paper.title)}>
                           <Download className="w-4 h-4 mr-2" />
                           Download PDF
                         </Button>
@@ -381,6 +434,7 @@ const downloadPdf = async (url, title) => {
                 <Button
                   className="w-full"
                   size="lg"
+                  disabled={requesting}
                   onClick={() => setConfirmSubmit(true)}
                 >
                   Submit for Review
@@ -404,11 +458,11 @@ const downloadPdf = async (url, title) => {
               </DialogHeader>
 
               <div className="flex justify-end gap-3 pt-4">
-                <Button variant="outline" onClick={handleCancelSubmit}>
+                <Button disabled={requesting} variant="outline" onClick={handleCancelSubmit}>
                   Cancel
                 </Button>
 
-                <Button onClick={handleConfirmSubmit}>Confirm Submit</Button>
+                <Button disabled={requesting} onClick={handleConfirmSubmit}>Confirm Submit</Button>
               </div>
             </DialogContent>
           </Dialog>

@@ -21,6 +21,8 @@ import {
 } from "../../components/ui/Dialog";
 import { reviewerNavItems } from "../../config/Navigation";
 import { toast } from "../../hooks/use-toast";
+import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const navItems = reviewerNavItems;
 
@@ -33,6 +35,8 @@ const ReviewerDashboard = () => {
   const [user, setUser] = useState({
     
   });
+
+  const nevigate = useNavigate();
   
   const [selectedPaper, setSelectedPaper] = useState(null);
   const [feedback, setFeedback] = useState("");
@@ -44,7 +48,17 @@ const ReviewerDashboard = () => {
 
   const [pendingPapers,setPendingPapers] = useState([]);
 
+  const [requesting,setRequesting] = useState(false);
+
   const baseUrl = "http://localhost:8080/campus-connect/reviewer";
+
+        const { routeProtection } = useAuth();
+    
+      useEffect(() => {
+        if (!routeProtection("REVIEWER")) {
+          nevigate("/auth");
+        }
+      },[]);
 
   //fetch stats for dashboard
   const fetchStats = () => {
@@ -162,10 +176,12 @@ const ReviewerDashboard = () => {
 };
 
   const handleApprove = async(paperId) => {
+    setRequesting(true);
     if (!feedback.trim()) {
       toast({
         title: "Please provide feedback",
         description: "Feedback is required before approving a paper.",
+        variant: "destructive",
       });
       return;
     }
@@ -191,25 +207,26 @@ const ReviewerDashboard = () => {
         toast({
           title: "Paper approved successfully",
           description: "The paper has been approved.",
+          variant: "success",
         });
         }
         else{
           toast({
             title: "Failed to approve paper",
             description: data.message || "An error occurred while approving the paper.",
+            variant: "destructive",
           });
         }
       })
       .catch((err) => {
-        console.error("Error submitting review:", err);
         toast({
           title: "Failed to submit review",
-          description: "An error occurred while submitting your review.",
+          description: err.message||"An error occurred while submitting your review.",
+          variant: "destructive",
         });
-      }); 
-
-    
-
+      }).finally(() => {
+        setRequesting(false);
+      });
     setSelectedPaper(null);
     setFeedback("");
   };
@@ -219,11 +236,12 @@ const ReviewerDashboard = () => {
       toast({
         title: "Please provide feedback",
         description: "Feedback is required before rejecting a paper.",
+        variant: "destructive",
       });
 
       return;
     }
-
+    setRequesting(false);
     await fetch(`${baseUrl}/pending/${paperId}/reject`, {
       method: "POST",
       headers: {
@@ -245,22 +263,26 @@ const ReviewerDashboard = () => {
         toast({
           title: "Paper rejected successfully",
           description: "The paper has been rejected.",
+          variant: "success",
         });
       }
       else{
         toast({
           title: "Failed to reject paper",
           description: data.message || "An error occurred while rejecting the paper.",
+          variant: "destructive",
         })
       }
     })
       .catch((err) => {
-        console.error("Error submitting review:", err);
         toast({
           title: "Failed to submit review",
-          description: "An error occurred while submitting your review.",
+          description: err.message||"An error occurred while submitting your review.",
+          variant: "destructive",
         });
-      }); 
+      }).finally(() => {
+        setRequesting(false);
+      });
       
     setSelectedPaper(null);
     setFeedback("");
@@ -351,12 +373,13 @@ const ReviewerDashboard = () => {
                   <div className="flex gap-2">
                         <Button
                           variant="outline"
+                          disabled={requesting}
                           onClick={() => setSelectedPaper(paper)}
                         >
                           View Details
                         </Button>
 
-                        <Button onClick={() => downloadPdf(paper.pdfUrl,paper.title)}>
+                        <Button disabled={requesting} onClick={() => downloadPdf(paper.pdfUrl,paper.title)}>
                           <Download className="w-4 h-4 mr-2" />
                           Download PDF
                         </Button>
@@ -434,13 +457,14 @@ const ReviewerDashboard = () => {
 
                     <div className="flex gap-2 justify-end">
                       <Button
+                      disabled={requesting}
                         variant="destructive"
                         onClick={() => handleReject(selectedPaper.id)}
                       >
                         Reject
                       </Button>
 
-                      <Button onClick={() => handleApprove(selectedPaper.id)}>
+                      <Button disabled={requesting} onClick={() => handleApprove(selectedPaper.id)}>
                         Approve
                       </Button>
                     </div>

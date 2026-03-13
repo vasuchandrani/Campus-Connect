@@ -7,6 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/Ta
 import { Shield, User } from "lucide-react";
 import { reviewerNavItems } from "../../config/Navigation";
 import { useEffect, useState } from "react";
+import { toast } from "../../hooks/use-toast";
+import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const ReviewerSetting = () => {
   //stat variables
@@ -18,6 +21,16 @@ const ReviewerSetting = () => {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [requesting,setRequesting] = useState(false);
+  const navigate=useNavigate();
+
+        const { routeProtection } = useAuth();
+    
+      useEffect(() => {
+        if (!routeProtection("REVIEWER")) {
+          navigate("/auth");
+        }
+      },[]);
 
 
   //fetch profile
@@ -39,7 +52,11 @@ const ReviewerSetting = () => {
         email: data.email || ""
       });
     } catch (error) {
-      console.error("Failed to fetch profile:", error);
+      toast({
+        title: "Failed to fetch profile",
+        description: error.message || "An error occurred while fetching profile information.",
+        variant: "destructive",
+      });
     }
   }
 
@@ -57,6 +74,7 @@ const ReviewerSetting = () => {
 
   //update profile
   const saveChanges = async () => {
+    setRequesting(true);
     await fetch("http://localhost:8080/campus-connect/reviewer/profile", {
       method: "PUT",
       headers: {
@@ -68,24 +86,44 @@ const ReviewerSetting = () => {
     .then((res) => res.json())
     .then((res) => {
       if (res.message === "Your profile has been updated successfully!") {
-        alert("Profile updated successfully!");
+        toast({
+          title: "Profile Updated",
+          description: "Your profile has been updated successfully!",
+          variant: "success",
+        });
+        fetchProfile();
+        
       } else {
-        alert(res.message || "Failed to update profile. Please try again.");
+        toast({
+          title: "Failed to update profile",
+          description: res.message || "An error occurred while updating profile.",
+          variant: "destructive",
+        });
       }
     })
     .catch((error) => {
-      console.error("Error updating profile:", error);
-      alert("An error occurred while updating profile.");
+      toast({
+        title: "Error",
+        description: error.message || "An error occurred while updating profile. Please try again.",
+        variant: "destructive",
+      });
+    }).finally(() => {
+      setRequesting(false);
     });
   }
 
   //save new password
   const updatePassword = async () => {
     if(newPassword !== confirmPassword) {
-      alert("New password and confirm password do not match.");
+      toast({
+        title: "Password Mismatch",
+        description: "New password and confirm password do not match.",
+        variant: "destructive",
+      });
       return;
     }
 
+    setRequesting(true);
     await fetch("http://localhost:8080/campus-connect/security/change-pwd", {
       method: "PATCH",
       headers: {
@@ -101,19 +139,34 @@ const ReviewerSetting = () => {
       .then((res) => res.json())
       .then((res) => {
         if (res.message === "Your password changed successfully!") {
-          alert("Password updated successfully!");
+          toast({
+            title: "Password Updated",
+            description: "Your password has been updated successfully!",
+            variant: "success",
+          });
           setCurrentPassword("");
           setNewPassword("");
           setConfirmPassword("");
         } else if (res.status === 400) {
-          alert("Current password is incorrect. Please try again.");
+          toast({
+            title: "Incorrect Password",
+            description: "Current password is incorrect. Please try again.",
+            variant: "destructive",
+          });
         } else {
-          alert(res.message || "Failed to update password. Please try again.");
+          toast({
+            title: "Failed to update password",
+            description: res.message || "Failed to update password. Please try again.",
+            variant: "destructive",
+          });
         }
       })
       .catch((err) => {
-        console.error("Error updating password:", err);
-        alert("An error occurred while updating password. Please try again.");
+        toast({
+          title: "Error",
+          description: err.message||"An error occurred while updating password. Please try again.",
+          variant: "destructive",
+        });
       }); 
   }
 
@@ -174,7 +227,7 @@ const ReviewerSetting = () => {
 
                 </div>
 
-                <Button onClick={() => saveChanges()}>
+                <Button disabled={requesting} onClick={() => saveChanges()}>
                   Save Changes
                 </Button>
 
@@ -215,7 +268,7 @@ const ReviewerSetting = () => {
 
                 </div>
 
-                <Button onClick={() => updatePassword()}>
+                <Button onClick={() => updatePassword()} disabled={requesting}>
                   Update Password
                 </Button>
 

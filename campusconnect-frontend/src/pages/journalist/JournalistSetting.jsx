@@ -7,6 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/Ta
 import { Shield, User } from "lucide-react";
 import { journalistNavItems } from "../../config/Navigation";
 import {  useEffect, useState } from "react";
+import { toast } from "../../hooks/use-toast";
+import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const JournalistSetting = () => {
 
@@ -17,9 +20,20 @@ const JournalistSetting = () => {
     portfolio: ""
   })
 
+  const navigate = useNavigate();
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [requesting,setRequesting] = useState(false);
+
+        const { routeProtection } = useAuth();
+    
+      useEffect(() => {
+        if (!routeProtection("JOURNALIST")) {
+          navigate("/auth");
+        }
+      },[]);
 
   //baseurl
   const baseUrl= "http://localhost:8080/campus-connect/journalist";
@@ -68,7 +82,7 @@ const saveChanges = async () => {
         about: user.about,
         portfolio: user.portfolio
       }
-
+      setRequesting(true);
       const response = await fetch(
         `${baseUrl}/profile`,
         {
@@ -84,14 +98,29 @@ const saveChanges = async () => {
       const data = await response.json();
 
       if (data.message==="Your profile has been updated successfully!") {
-        alert("Changes saved!");
+        toast({
+          title: "Success",
+          description: data.message,
+          variant: "success",
+        });
+        getProfile();
       } else {
-        alert(data.message || "Failed to update profile. Please try again.");
+        toast({
+          title: "Error",
+          description: data.message || "Failed to update profile. Please try again.",
+          variant: "destructive",
+        });
       }
 
     } catch (error) {
-      console.error(error);
-      alert("Something went wrong!");
+      toast({
+        title: "Error",
+        description: error.message || "An error occurred while updating profile. Please try again.",
+        variant: "destructive",
+      })
+    }
+    finally{
+      setRequesting(false);
     }
   };
 
@@ -99,11 +128,16 @@ const saveChanges = async () => {
   //change password
   const updatePassword = async () => {
     if (newPassword !== confirmPassword) {
-      alert("New passwords do not match");
+     toast({
+        title: "Error",
+        description: "New password and confirm password do not match.",
+        variant: "destructive",
+      });
       return;
     }
 
     try {
+      setRequesting(true);
       const response = await fetch("http://localhost:8080/campus-connect/security/change-pwd", {
         method: "PATCH",
         headers: {
@@ -120,15 +154,32 @@ const saveChanges = async () => {
       const data=await response.json();
       
       if (data.message === "Your password changed successfully!") {
-        alert("Password updated successfully!");
+        toast({
+          title: "Success",
+          description: data.message,
+          variant: "success",
+        });
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
       } else {
-        alert(data.message || "Failed to update password. Please try again.");
+        toast({
+          title: "Error",
+          description: data.message || "Failed to update password. Please try again.",
+          variant: "destructive",
+        });
       }
 
     } catch (error) {
-      console.error("Failed to update password:", error);
-      alert("An error occurred while updating password. Please try again.");
+      
+      toast({
+        title: "Error",
+        description: "An error occurred while updating password. Please try again.",
+        variant: "destructive",
+      });
     }
+    
+      setRequesting(false);
   }
 
 
@@ -205,7 +256,7 @@ const saveChanges = async () => {
 
                 </div>
 
-                <Button onClick={() => saveChanges()}>
+                <Button onClick={() => saveChanges()} disabled={requesting}>
                   Save Changes
                 </Button>
 
@@ -246,7 +297,7 @@ const saveChanges = async () => {
 
                 </div>
 
-                <Button onClick={() => updatePassword()}>
+                <Button onClick={() => updatePassword()} disabled={requesting}>
                   Update Password
                 </Button>
 

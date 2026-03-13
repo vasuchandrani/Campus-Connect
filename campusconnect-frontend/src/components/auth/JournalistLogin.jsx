@@ -13,6 +13,7 @@ import {
 import { ArrowLeft, Newspaper, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "../ui/Alert";
 import { useNavigate } from "react-router-dom";
+import { toast } from "../../hooks/use-toast";
 
 const JournalistLogin = ({ onBack }) => {
 
@@ -21,7 +22,7 @@ const JournalistLogin = ({ onBack }) => {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
+  const [requesting,setRequesting] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -35,13 +36,24 @@ const JournalistLogin = ({ onBack }) => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
-
+    setRequesting(true);
     const success = await login(email, password, "journalist");
+    setRequesting(false);
     
     if (typeof success === "string" && success !== "Invalid credentials") {
+      toast({
+        title: "Success",
+        description: "Login successful!",
+        variant: "success",
+      });
+
       navigate(success);
     } else {
-      setError("Invalid credentials");
+      toast({
+        title: "Login Failed",
+        description: success || "Invalid email or password. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -49,39 +61,58 @@ const JournalistLogin = ({ onBack }) => {
   const baseUrl = "http://localhost:8080/campus-connect/security";
 
   //handle send otp for forgot password
-  const handleSendOtp = (e) => {
+  const handleSendOtp = async(e) => {
     e.preventDefault();
-    fetch(`${baseUrl}/send-code`, {
+    await fetch(`${baseUrl}/send-code`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ email: resetEmail , codeFor:"EMAIL_VERIFICATION FOR RESET_PASSWORD" })
+      body: JSON.stringify({ email: resetEmail , codeFor:"Email Verification for reset password" })
     })
       .then((response) => response.json())
       .then((data) => {
         if(data.message === "Verification code sent successfully") {
-          alert("OTP sent to " + resetEmail);
+          toast({
+            title: "Success",
+            description: "OTP sent to " + resetEmail,
+            variant: "success",
+          });
           setStep("reset");
         } else {
-          alert(data.message || "Failed to send OTP.");
+          toast({
+            title: "Error",
+            description: data.message || "Failed to send OTP.",
+            variant: "destructive",
+          });
         }
       })
       .catch((error) => {
-        console.error("Error sending OTP:", error);
-        alert("An error occurred while sending OTP.");
+        
+        toast({
+          title: "Error",
+          description: error.message || "An error occurred while sending OTP. Please try again.",
+          variant: "destructive",
+        });
+      }).finally(() => {
+        setRequesting(false);
       });
   };
 
   //handle changing password
-  const handleForgot = (e) => {
+  const handleForgot = async (e) => {
     e.preventDefault();
-
+    setRequesting(true);
     if (newPassword !== confirmPassword) {
-      alert("Passwords do not match");
+      toast({
+        title: "Error",
+        description: "Passwords do not match.",
+        variant: "destructive",
+      });
+      setRequesting(false);
       return;
     }
-    fetch(`${baseUrl}/reset-pwd`, {
+    await fetch(`${baseUrl}/reset-pwd`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json"
@@ -91,15 +122,28 @@ const JournalistLogin = ({ onBack }) => {
       .then((response) => response.json())
       .then((data) => {
         if (data.message === "Your password changed successfully!") {
-          alert("Password reset successful!");
+          toast({
+            title: "Success",
+            description: data.message,
+            variant: "success",
+          });
           navigate("/");
         } else {
-          alert(data.message || "Failed to reset password.");
+          toast({
+            title: "Error",
+            description: data.message || "Failed to reset password.",
+            variant: "destructive",
+          });
         }
       })
       .catch((error) => {
-        console.error("Error resetting password:", error);
-        alert("An error occurred while resetting password.");
+        toast({
+          title: "Error",
+          description: error.message || "An error occurred while resetting password.",
+          variant: "destructive",
+        });
+      }).finally(() => {
+        setRequesting(false);
       });
   };
 
@@ -115,6 +159,7 @@ const JournalistLogin = ({ onBack }) => {
               size="sm"
               className="absolute left-4 top-4"
               onClick={onBack}
+              desabled={requesting}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
@@ -125,6 +170,7 @@ const JournalistLogin = ({ onBack }) => {
               size="sm"
               className="absolute left-4 top-4"
               onClick={() => setStep("login")}
+              desabled={requesting}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
@@ -196,7 +242,7 @@ const JournalistLogin = ({ onBack }) => {
                   </button>
                 </div>
 
-                <Button type="submit" className="w-full">
+                <Button type="submit" className="w-full" disabled={requesting}>
                   Login as Journalist
                 </Button>
 
@@ -218,7 +264,7 @@ const JournalistLogin = ({ onBack }) => {
                 />
               </div>
 
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" disabled={requesting}>
                 Send OTP
               </Button>
 
@@ -261,7 +307,7 @@ const JournalistLogin = ({ onBack }) => {
                 />
               </div>
 
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" disabled={requesting}>
                 Reset Password
               </Button>
 

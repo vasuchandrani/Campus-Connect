@@ -18,6 +18,7 @@ import { Megaphone, Plus, Eye, Edit, Trash2 } from "lucide-react";
 import { clubMemberNavItems } from "../../config/Navigation";
 import { useParams } from "react-router-dom";
 import { toast } from "../../hooks/use-toast";
+import { set } from "date-fns";
 
 const ClubMemberAnnouncementsPage = () => {
   
@@ -34,6 +35,7 @@ const ClubMemberAnnouncementsPage = () => {
   const [newContent, setNewContent] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [editingId, setEditingId] = useState(null); 
+  const [requesting, setRequesting] = useState(false);
 
   /* ---------------- NAV ITEMS ---------------- */
 
@@ -64,7 +66,8 @@ const ClubMemberAnnouncementsPage = () => {
   };
 
   // Create or update an announcement
-  const handleSubmit = () => {
+  const handleSubmit = async() => {
+    setRequesting(true);
     const payload = {
       title: newTitle,
       content: newContent,
@@ -83,32 +86,46 @@ const ClubMemberAnnouncementsPage = () => {
       },
       body: JSON.stringify(payload),
     })
-      .then((res) => {
+      .then(async (res) => {
         if (!res.ok) {
           throw new Error("Failed request");
         }
-        return res.json();
+        return await res.json();
       })
       .then((res) => {
+        if((!editingId && res.message==="Announcement created successfully")||
+      (editingId && res.message==="Announcement updated successfully")){
         toast({
           title: "Success",
           description: res.message,
-          status: "success",
+          variant: "success",
         });
         fetchAnnouncements();
         resetForm();
+      } else {
+        toast({
+          title: "Error",
+          description: res.message || "Operation failed",
+          variant: "destructive",
+        });
+      }
+
       })
       .catch((err) => {
         toast({
           title: "Error",
-          description: "Operation failed",
-          status: "error",
+          description: err.message || "Operation failed",
+          variant: "destructive",
         });
+      })
+      .finally(() => {
+        setRequesting(false);
       });
   };
 
   // Delete an announcement
-  const deleteAnnouncement = (id) => {
+  const deleteAnnouncement = async (id) => {
+    setRequesting(true);
     fetch(`${baseurl}/announcements/${id}`, {
       method: "DELETE",
       headers: {
@@ -117,23 +134,25 @@ const ClubMemberAnnouncementsPage = () => {
       },
     })
       .then(async (res) => {
-        if (res.ok){
-          const data = await res.json();
+        const data = await res.json();
+        if(data.message === "Announcement deleted successfully") {
           toast({
             title: "Success",
             description: data.message,
-            status: "success",
+            variant: "success",
           });
           fetchAnnouncements();
         }
-        else throw new Error();
+        else throw new Error(data.message || "Failed to delete announcement");
       })
-      .catch(() => {
+      .catch((err) => {
         toast({
           title: "Error",
-          description: "Failed to delete announcement",
-          status: "error",
+          description: err.message || "Failed to delete announcement",
+          variant: "destructive",
         });
+      }).finally(() => {
+        setRequesting(false);
       });
   };
 
@@ -176,7 +195,7 @@ const ClubMemberAnnouncementsPage = () => {
           {/* Create Announcement Button */}
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => setEditingId(null)}>
+              <Button onClick={() => setEditingId(null)} disabled={requesting}>
                 <Plus className="w-4 h-4 mr-2" />
                 New Announcement
               </Button>
@@ -208,7 +227,7 @@ const ClubMemberAnnouncementsPage = () => {
                   />
                 </div>
 
-                <Button className="w-full" onClick={handleSubmit}>
+                <Button className="w-full" onClick={handleSubmit} disabled={requesting}>
                   {editingId ? "Update Announcement" : "Publish Announcement"}
                 </Button>
               </div>
@@ -277,6 +296,7 @@ const ClubMemberAnnouncementsPage = () => {
                       <Button
                         variant="ghost"
                         size="icon"
+                        disabled={requesting}
                         onClick={() => setViewAnnouncement(announcement)}
                       >
                         <Eye className="w-4 h-4" />
@@ -285,6 +305,7 @@ const ClubMemberAnnouncementsPage = () => {
                       <Button
                         variant="ghost"
                         size="icon"
+                        disabled={requesting}
                         onClick={() => editAnnouncement(announcement)}
                       >
                         <Edit className="w-4 h-4" />
@@ -294,6 +315,7 @@ const ClubMemberAnnouncementsPage = () => {
                         variant="ghost"
                         size="icon"
                         className="text-destructive"
+                        disabled={requesting}
                         onClick={() => deleteAnnouncement(announcement.id)}
                       >
                         <Trash2 className="w-4 h-4" />

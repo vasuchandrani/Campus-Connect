@@ -32,6 +32,7 @@ import {
   DialogDescription
 } from "../../components/ui/Dialog";
 import { useRef } from "react";
+import { toast } from "../../hooks/use-toast";
 
 const ClubSettingsPage = () => {
   let { clubId } = useParams();
@@ -43,11 +44,12 @@ const ClubSettingsPage = () => {
   const [logoPreview, setLogoPreview] = useState(null);
   const [logoFile, setLogoFile] = useState(null);
   const navigate = useNavigate();
+  const [requesting, setRequesting] = useState(false);
 
   const [clubData, setClubData] = useState({
-    name:"Tech Club",
-    description:"A community of technology enthusiasts exploring the latest innovations and building cool projects together.",
-    website:"https://techclub.example.com",
+    name:"",
+    description:"",
+    website:"",
   });
 
   //upload logo
@@ -80,44 +82,74 @@ const handleDialogChange = (open) => {
 
   //send otp
   const handleEmailSubmit = async () => {
-
+    if(!email) {
+      toast({
+        title: "Email Required",
+        description: "Please enter your email to receive verification code.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setRequesting(true);
     await fetch(`http://localhost:8080/campus-connect/security/send-code`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
-      body: JSON.stringify({ email, codeFor:"EMAIL_VERIFICATION FOR HANDOVER_LEADERSHIP" }),
+      body: JSON.stringify({ email, codeFor:"Email verification for handover leadership" }),
     })
-      .then((res) => res.json())
+      .then(async (res) => await res.json())
       .then((data) => {
         if (data.message === "Verification code sent successfully") {
-          alert("Verification code sent to " + email);
+          toast({
+            title: "Verification Code Sent",
+            description: `Verification code sent to ${email}`,
+            variant: "success",
+          });
           setEmail("");  
           setStep(2);
         } else {
-          alert(data.message || "Failed to send verification code. Please try again.");
+          toast({
+            title: "Error",
+            description: data.message || "Failed to send verification code. Please try again.",
+            variant: "destructive",
+          });
         }
       })
       .catch((err) => {
-        console.error("Error sending verification code:", err);
-        alert("An error occurred while sending verification code. Please try again.");
-      });   
+        toast({
+          title: "Error",
+          description: err.message || "An error occurred while sending verification code. Please try again.",
+          variant: "destructive",
+        });
+        
+      }).finally(() => {
+        setRequesting(false);
+      });  
 
   };
 
   //verify otp and change leadership
   const handleOtpSubmit = async() => {
     if (!otp) {
-      alert("Enter verification code");
+      toast({
+        title: "Verification Code Required",
+        description: "Please enter the verification code sent to your email.",
+        variant: "destructive",
+      });
       return;
     }
 
     if(!email) {
-      alert("Email is missing. Please restart the transfer process.");
+      toast({
+        title: "Email Required",
+        description: "Email is missing. Please restart the transfer process.",
+        variant: "destructive",
+      });
       return;
     }
-
+    setRequesting(true);
     await fetch(`http://localhost:8080/campus-connect/clubs/${clubId}/admin/details/handover`, {
       method: "PATCH",
       headers: {
@@ -126,23 +158,36 @@ const handleDialogChange = (open) => {
       },
       body: JSON.stringify({ newAdminEmail:email, verificationCode: otp }),
     })
-      .then((res) => res.json())
+      .then(async (res) => await res.json())
       .then((data) => {
         if (data.message.startsWith("You handover the leadership")) {
-          alert("Ownership transferred successfully!");
+          toast({
+            title: "Success",
+            description: data.message,
+            variant: "success",
+          });
           setOpenTransferDialog(false);
           setEmail("");
           setOtp("");
           setStep(1);
           navigate("/");
         } else {
-          alert(data.message || "Failed to transfer ownership. Please try again.");
+          toast({
+            title: "Error",
+            description: data.message || "Failed to transfer ownership. Please try again.",
+            variant: "destructive",
+          });
         }
       })
       .catch((err) => {
-        console.error("Error transferring ownership:", err);
-        alert("An error occurred while transferring ownership. Please try again.");
-      }); 
+        toast({
+          title: "Error",
+          description: "An error occurred while transferring ownership. Please try again.",
+          variant: "destructive",
+        });
+      }).finally(() => {
+        setRequesting(false);
+      });
   };
 
   //save changes
@@ -169,7 +214,9 @@ const handleSaveChanges = async () => {
     formData.append("image", null);
   }
 
+
   try {
+    setRequesting(true);
     const response = await fetch(
       `http://localhost:8080/campus-connect/clubs/${clubId}/admin/details`,
       {
@@ -183,37 +230,69 @@ const handleSaveChanges = async () => {
 
     const data = await response.json();
 
-    if (!response.ok) throw new Error(data.message);
+    if(data.message==="Club Profile updated successfully!"){
+      toast({
+        title: "Success",
+        description: data.message,
+        variant: "success",
+      });
+    }
+    else{
+      toast({
+        title: "Error",
+        description: data.message || "Failed to update club profile. Please try again.",
+        variant: "destructive",
+      });
+    }
 
-    alert("Changes saved successfully!");
   } catch (err) {
-    console.error(err);
-    alert("Failed to save changes.");
+    toast({
+      title: "Error",
+      description: err.message || "An error occurred while updating club profile. Please try again.",
+      variant: "destructive",
+    });
+  }finally {    
+    setRequesting(false);
   }
+
 };
 
 //delete club
 const deleteClub = async () => {
-  fetch(`http://localhost:8080/campus-connect/clubs/${clubId}/admin/details/delete`, {
+  setRequesting(true);
+  await fetch(`http://localhost:8080/campus-connect/clubs/${clubId}/admin/details/delete`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${localStorage.getItem("authToken")}`,
     },
   })
-    .then((res) => res.json())
+    .then(async(res) => await res.json())
     .then((data) => {
       if (data.message === "Club deleted successfully") {
-        alert("Club deleted successfully!");
+        toast({
+          title: "Success",
+          description: data.message,
+          variant: "success",
+        });
         navigate("/");
         
       } else {
-        alert(data.message || "Failed to delete club. Please try again.");
+        toast({
+          title: "Error",
+          description: data.message || "Failed to delete club. Please try again.",
+          variant: "destructive",
+        });
       }
     })
     .catch((err) => {
-      console.error("Error deleting club:", err);
-      alert("An error occurred while deleting the club. Please try again.");
+      toast({
+        title: "Error",
+        description: "An error occurred while deleting the club. Please try again.",
+        variant: "destructive",
+      });
+    }).finally(() => {
+      setRequesting(false);
     });
 };  
 
@@ -241,8 +320,12 @@ const getDetails = async () => {
     });
     setLogoPreview(data.logoUrl);
   } catch (err) {
-    console.error(err);
-    alert("Failed to fetch club details.");
+    toast({
+      title: "Error",
+      description: err.message || "An error occurred while fetching club details. Please try again.",
+      variant: "destructive",
+    });
+    
   }
 };
 
@@ -310,6 +393,7 @@ useState(() => {
                     />
                     <Button
                       variant="outline"
+                      disabled={requesting}
                       onClick={() => fileInputRef.current.click()}
                     >
                       <Upload className="w-4 h-4 mr-2" />
@@ -347,7 +431,9 @@ useState(() => {
 
                 </div>
 
-                <Button onClick={handleSaveChanges}>Save Changes</Button>
+                <Button onClick={handleSaveChanges} disabled={requesting}>
+                  Save Changes
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -367,16 +453,17 @@ useState(() => {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div>
-                    <p className="font-medium">Transfer Ownership</p>
+                    <p className="font-medium">Handover Ownership</p>
 
                     <p className="text-sm text-muted-foreground">
-                      Transfer club to another admin
+                      Handover club to another admin
                     </p>
                   </div>
 
                   <Button
                     variant="outline"
                     onClick={() => setOpenTransferDialog(true)}
+                    disabled={requesting}
                   >
                     Transfer
                   </Button>
@@ -391,7 +478,7 @@ useState(() => {
                     </p>
                   </div>
 
-                  <Button variant="destructive" onClick={() => deleteClub()}>
+                  <Button variant="destructive" onClick={() => deleteClub()} disabled={requesting}>
                     Delete
                   </Button>
                 </div>
@@ -417,7 +504,9 @@ useState(() => {
                     onChange={(e) => setEmail(e.target.value)}
                   />
 
-                  <Button onClick={handleEmailSubmit}>Submit</Button>
+                  <Button onClick={handleEmailSubmit} disabled={requesting}>
+                    Submit
+                  </Button>
                 </div>
               )}
 
@@ -442,7 +531,9 @@ useState(() => {
                     onChange={(e) => setEmail(e.target.value)}
                   />
 
-                  <Button onClick={handleOtpSubmit}>Verify Verification Code</Button>
+                  <Button onClick={handleOtpSubmit} disabled={requesting}>
+                    Verify Verification Code
+                  </Button>
                 </div>
               )}
             </DialogContent>

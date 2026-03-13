@@ -29,6 +29,8 @@ import {
 import { collegeAdminNavItems } from "../../config/Navigation";
 import { toast } from "../../hooks/use-toast";
 import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 const navItems = collegeAdminNavItems;
 
@@ -73,6 +75,16 @@ const AdminUsersPage = () => {
   });
   const [reviewerOpen, setReviewerOpen] = useState(false);
   const [studentOpen, setStudentOpen] = useState(false);
+  const [requesting, setRequesting] = useState(false); 
+  
+    const navigate = useNavigate();
+    const { routeProtection } = useAuth();
+  
+    useEffect(() => {
+      if (!routeProtection("COLLEGE_ADMIN")) {
+        navigate("/auth");
+      }
+    },[]);
 
   //fetch journalist requests
   const fetchJournalistsRequests = async () => {
@@ -93,7 +105,7 @@ const AdminUsersPage = () => {
         toast({
           title: "Error",
           description: "Failed to fetch journalist requests",
-          status: "error",
+          variant: "destructive",
         });
       });
   };
@@ -116,7 +128,7 @@ const AdminUsersPage = () => {
         toast({
           title: "Error",
           description: "Failed to fetch journalists",
-          status: "error",
+          variant: "destructive",
         });
       });
   };
@@ -139,7 +151,7 @@ const AdminUsersPage = () => {
         toast({
           title: "Error",
           description: "Failed to fetch reviewers",
-          status: "error",
+          variant: "destructive",
         });
       });
   };
@@ -162,7 +174,7 @@ const AdminUsersPage = () => {
         toast({
           title: "Error",
           description: "Failed to fetch students",
-          status: "error",
+          variant: "destructive",
         });
       });
   };
@@ -184,6 +196,7 @@ const AdminUsersPage = () => {
 
   //Add student API call
   const addStudent = async (student) => {
+    setRequesting(true);
     await fetch(`${baseUrl}/student/add-one`, {
       method: "POST",
       headers: {
@@ -193,13 +206,14 @@ const AdminUsersPage = () => {
       body: JSON.stringify(student),
     })
       .then(async (res) => {
-        if (res.ok) {
+        const data=await res.json();
+        if (data.message==="Student registered successfully!") {
           toast({
             title: "Success",
             description: "Student added successfully",
-            status: "success",
+            variant: "success",
           });
-          // await fetchStudents();
+           fetchStudents();
         } else {
           throw new Error("Failed to add student");
         }
@@ -208,9 +222,9 @@ const AdminUsersPage = () => {
         toast({
           title: "Error",
           description: err.message || "Failed to add student",
-          status: "error",
+          variant: "destructive",
         });
-      });
+      }).finally(() => setRequesting(false));
   };
 
   //change in data of student
@@ -252,7 +266,8 @@ const AdminUsersPage = () => {
 
   //Approve Journalist Api call
   const handleApproveJournalist = async (id) => {
-    fetch(`${baseUrl}/journalist-req/${id}`, {
+    setRequesting(true);
+    await fetch(`${baseUrl}/journalist-req/${id}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -261,30 +276,31 @@ const AdminUsersPage = () => {
     })
       .then(async (res) => {
         const data = await res.json();
-        if (res.ok) {
+        if (data.message==="Journalist Request accepted successfully") {
           toast({
             title: "Success",
             description: data.message,
-            status: "success",
+            variant: "success",
           });
-          await fetchJournalistsRequests();
-          await fetchJournalists();
+           fetchJournalistsRequests();
+           fetchJournalists();
         } else {
-          throw new Error("Failed to approve journalist request");
+          throw new Error(data.message);
         }
       })
       .catch((err) => {
         toast({
           title: "Error",
           description: err.message || "Failed to approve journalist request",
-          status: "error",
+          variant: "destructive",
         });
-      }); 
+      }).finally(() => setRequesting(false));
   };
 
   // Reject Journalist api call
   const handleRejectJournalist = async (id) => {
-    fetch(`${baseUrl}/journalist-req/${id}`, {
+    setRequesting(true);
+    await fetch(`${baseUrl}/journalist-req/${id}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
@@ -293,30 +309,31 @@ const AdminUsersPage = () => {
     })
       .then(async (res) => {
         const data = await res.json();
-        if (res.ok) {
+        if (data.message==="Journalist Request rejected successfully") {
           toast({
             title: "Success",
             description: data.message,
-            status: "success",
+            variant: "success",
           });
-          await fetchJournalistsRequests();
-          await fetchJournalists();
+           fetchJournalistsRequests();
+           fetchJournalists();
         } else {
-          throw new Error("Failed to reject journalist request");
+          throw new Error(data.message);
         }
       })
       .catch((err) => {
         toast({
           title: "Error",
           description: err.message || "Failed to reject journalist request",
-          status: "error",
+          variant: "destructive",
         });
-      });
+      }).finally(() => setRequesting(false));
   };
 
   //Add reviewer API call
   const addReviewer = async (reviewer) => {
-    fetch(`${baseUrl}/reviewer`, {
+    setRequesting(true);
+    await fetch(`${baseUrl}/reviewer`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -326,24 +343,24 @@ const AdminUsersPage = () => {
     })
       .then(async (res) => {
         const data = await res.json();
-        if (res.ok) {
+        if (data.message==="Reviewer added successfully") {
           toast({
             title: "Success",
             description: data.message,
-            status: "success",
+            variant: "success",
           });
-          await fetchReviewers();
+           fetchReviewers();
         } else {
-          throw new Error("Failed to add reviewer");
+          throw new Error(data.message);
         }
       })
       .catch((err) => {
         toast({
           title: "Error",
           description: err.message || "Failed to add reviewer",
-          status: "error",
+          variant: "destructive",
         });
-      });
+      }).finally(() => setRequesting(false));
   };
 
   //Add Reviwer Handler
@@ -361,7 +378,8 @@ const AdminUsersPage = () => {
 
   //remove Journalist
   const removeJournalist = async (id) => {
-    fetch(`${baseUrl}/journalist/${id}`, {
+    setRequesting(true);
+    await fetch(`${baseUrl}/journalist/${id}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
@@ -370,30 +388,31 @@ const AdminUsersPage = () => {
     })
       .then(async (res) => {
         const data = await res.json();
-        if (res.ok) {
+        if (data.message==="Journalist removed successfully") {
           toast({
             title: "Success",
             description: data.message,
-            status: "success",
+            variant: "success",
           });
-          await fetchJournalists();
+          fetchJournalists();
         } else {
-          throw new Error("Failed to remove journalist");
+          throw new Error(data.message);
         }
       })
       .catch((err) => {
         toast({
           title: "Error",
           description: err.message || "Failed to remove journalist",
-          status: "error",
+          variant: "destructive",
         });
-      });
+      }).finally(() => setRequesting(false));
 
   }
 
   //remove Reviewr
   const removeReviewer = async (id) => {
-    fetch(`${baseUrl}/reviewer/${id}`, {
+    setRequesting(true);
+    await fetch(`${baseUrl}/reviewer/${id}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
@@ -402,24 +421,24 @@ const AdminUsersPage = () => {
     })
       .then(async (res) => {
         const data = await res.json();
-        if (res.ok) {
+        if (data.message=="Reviewer removed successfully") {
           toast({
             title: "Success",
             description: data.message,
-            status: "success",
+            variant: "success",
           });
           await fetchReviewers();
         } else {
-          throw new Error("Failed to remove reviewer");
+          throw new Error(data.message);
         }
       })
       .catch((err) => {
         toast({
           title: "Error",
           description: err.message || "Failed to remove reviewer",
-          status: "error",
+          variant: "destructive",
         });
-      });
+      }).finally(() => setRequesting(false));
       
   }
 
@@ -427,6 +446,7 @@ const AdminUsersPage = () => {
   const addMultipleStudents = async () => {
   const formData = new FormData();
   formData.append("file", excelFile);
+  setRequesting(true);
    await fetch(`${baseUrl}/student/add-multiple`, {
       method: "POST",
       headers: {
@@ -436,23 +456,23 @@ const AdminUsersPage = () => {
     })
       .then(async (res) => {
         const data = await res.json();
-        if (res.ok) {
+        if (data.message==="All Students registered successfully!") {
           toast({
             title: "Success",
             description: data.message,
-            status: "success",
+            variant: "success",
           });
         } else {
-          throw new Error("Failed to add students");
+          throw new Error(data.message);
         }
       })
       .catch((err) => {
         toast({
           title: "Error",
           description: err.message || "Failed to add students",
-          status: "error",
+          variant: "destructive",
         });
-      });
+      }).finally(() => {setRequesting(false);});
 
       setExcelFile(null);
       setStudentOpen(false);
@@ -510,6 +530,7 @@ const AdminUsersPage = () => {
 
               <div className="flex justify-end gap-2 mt-4">
                 <Button
+                  disabled={requesting}
                   variant="outline"
                   onClick={() =>
                     setConfirmDialog({
@@ -523,6 +544,7 @@ const AdminUsersPage = () => {
                 </Button>
 
                 <Button
+                  disabled={requesting}
                   className={
                     confirmDialog.type === "reject" ? "bg-destructive" : ""
                   }
@@ -577,6 +599,7 @@ const AdminUsersPage = () => {
 
                       <div className="flex gap-2">
                         <Button
+                        disabled={requesting}
                           variant="outline"
                           className="text-destructive"
                           onClick={() =>
@@ -590,6 +613,7 @@ const AdminUsersPage = () => {
                           Reject
                         </Button>
                         <Button
+                        disabled={requesting}
                           onClick={() =>
                             setConfirmDialog({
                               open: true,
@@ -643,7 +667,7 @@ const AdminUsersPage = () => {
                           <Badge variant="outline">Journalist</Badge>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
+                              <Button variant="ghost" size="icon" disabled={requesting}>
                                 <MoreVertical className="w-4 h-4" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -668,7 +692,7 @@ const AdminUsersPage = () => {
             <div className="flex justify-end">
               <Dialog open={reviewerOpen} onOpenChange={setReviewerOpen}>
                 <DialogTrigger asChild>
-                  <Button onClick={() => setReviewerOpen(true)}>
+                  <Button onClick={() => setReviewerOpen(true)} disabled={requesting}>
                     <UserPlus className="w-4 h-4 mr-2" />
                     Add Reviewer
                   </Button>
@@ -695,7 +719,7 @@ const AdminUsersPage = () => {
                         onChange={(e) => setNewReviewerEmail(e.target.value)}
                       />
                     </div>
-                    <Button className="w-full" onClick={handleAddReviewer}>
+                    <Button className="w-full" onClick={handleAddReviewer} disabled={requesting}>
                       Add Reviewer
                     </Button>
                   </div>
@@ -737,7 +761,7 @@ const AdminUsersPage = () => {
                           <Badge variant="outline">Reviewer</Badge>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
+                              <Button variant="ghost" size="icon" disabled={requesting}>
                                 <MoreVertical className="w-4 h-4" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -762,7 +786,7 @@ const AdminUsersPage = () => {
             <div className="flex justify-end">
               <Dialog open={studentOpen} onOpenChange={setStudentOpen}>
                 <DialogTrigger asChild>
-                  <Button onClick={() => setStudentOpen(true)}>
+                  <Button onClick={() => setStudentOpen(true)} disabled={requesting}>
                     <UserPlus className="w-4 h-4 mr-2" />
                     Add Student
                   </Button>
@@ -835,7 +859,7 @@ const AdminUsersPage = () => {
                         <option value="OTHER">Other</option>
                       </select>
 
-                      <Button className="w-full" onClick={handleAddStudent}>
+                      <Button className="w-full" onClick={handleAddStudent} disabled={requesting}>
                         Add Student
                       </Button>
                     </TabsContent>
@@ -853,7 +877,7 @@ const AdminUsersPage = () => {
                         onChange={(e) => setExcelFile(e.target.files[0])}
                       />
 
-                      <Button className="w-full" onClick={addMultipleStudents}>Upload & Add Students</Button>
+                      <Button className="w-full" onClick={addMultipleStudents} disabled={requesting}>Upload & Add Students</Button>
                     </TabsContent>
                   </Tabs>
                 </DialogContent>
@@ -868,7 +892,7 @@ const AdminUsersPage = () => {
                   {students.length === 0 ? (
                     <div className="p-6 text-center">
                       <p className="text-muted-foreground">
-                        <Button variant="outline" className="mb-2" onClick={() => setExploreStudents(true)}>
+                        <Button variant="outline" className="mb-2" onClick={() => setExploreStudents(true)} disabled={requesting}>
                           Explore students
                         </Button>
                       </p>

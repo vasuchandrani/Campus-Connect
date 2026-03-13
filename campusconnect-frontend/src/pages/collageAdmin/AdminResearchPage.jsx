@@ -27,6 +27,9 @@ import {
   UserCheck,
 } from "lucide-react";
 import { collegeAdminNavItems } from "../../config/Navigation";
+import { toast } from "../../hooks/use-toast";
+import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 /* ---------------- MOCK DATA ---------------- */
 
@@ -45,7 +48,16 @@ const AdminResearchPage = () => {
   const [publishedPapers, setPublishedPapers] = useState([]);
   const [notReviewedPapers, setNotReviewedPapers] = useState([]);
   const [query, setQuery] = useState("");
+  const [requesting, setRequesting] = useState(false); 
 
+    const navigate = useNavigate();
+    const { routeProtection } = useAuth();
+  
+    useEffect(() => {
+      if (!routeProtection("COLLEGE_ADMIN")) {
+        navigate("/auth");
+      }
+    },[]);
   
   //handel assign reviewer
   const handleAssign = () => {
@@ -144,9 +156,10 @@ const AdminResearchPage = () => {
   } 
 
   
-  const assignReviewer = (paperId, reviewerId) => {
+  const assignReviewer =async (paperId, reviewerId) => {
+    setRequesting(true);
     const token = localStorage.getItem("authToken");
-    fetch(`${baseUrl}/researches/review/${paperId}`, {
+    await fetch(`${baseUrl}/researches/review/${paperId}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -161,16 +174,29 @@ const AdminResearchPage = () => {
         return await res.json();
       })
       .then((data) => {
-        alert("Reviewer assigned successfully");
-        getUnderReviewPapers();
+        if(data.message ==="Reviewer assigned successfully"){
+          getUnderReviewPapers();
         fetchNotReviewedPapers();
         fetchPublishedPapers();
         fetchReviewers();
+          toast({
+            title: "Success",
+            description: data.message,
+            variant: "success",
+          });
+        }
+        else{
+          throw new Error(data.message || "Failed to assign reviewer");
+        }
+        
       })
       .catch((err) => {
-        console.error("Error assigning reviewer:", err);
-        alert("Error assigning reviewer");
-      });
+        toast({
+          title: "Error",
+          description: err.message || "Failed to assign reviewer",
+          variant: "destructive",
+        });
+      }).finally(() => {setRequesting(false)});
   };
 
 
@@ -283,6 +309,7 @@ const AdminResearchPage = () => {
                     <div className="flex flex-col gap-2">
                       <Button
                         variant="outline"
+                        disabled={requesting}
                         onClick={() => setViewPaper(paper)}
                       >
                         <Eye className="w-4 h-4 mr-2" />
@@ -290,6 +317,7 @@ const AdminResearchPage = () => {
                       </Button>
 
                       <Button
+                        disabled={requesting}
                         variant="outline"
                         onClick={() => {
                           setAssignPaper(paper);
@@ -347,6 +375,7 @@ const AdminResearchPage = () => {
 
                     <div className="flex flex-col gap-2">
                       <Button
+                        disabled={requesting}
                         variant="outline"
                         onClick={() => setViewPaper(paper)}
                       >
@@ -458,6 +487,7 @@ const AdminResearchPage = () => {
 
                       <div className="flex gap-2">
                         <Button
+                          disabled={requesting}
                           variant="outline"
                           size="sm"
                           onClick={() => setViewPaper(paper)}
@@ -466,7 +496,12 @@ const AdminResearchPage = () => {
                           View
                         </Button>
 
-                        <Button variant="outline" size="sm" onClick={()=>downloadPdf(paper.pdfUrl, paper.title)}>
+                        <Button
+                          disabled={requesting}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => downloadPdf(paper.pdfUrl, paper.title)}
+                        >
                           <Download className="w-4 h-4 mr-2" />
                           Download
                         </Button>

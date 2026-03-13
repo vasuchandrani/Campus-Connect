@@ -18,6 +18,8 @@ import {
 } from "../ui/Card";
 import { Textarea } from "../ui/Textarea";
 import { ArrowLeft, Building2, Check, Crown, Zap, Star, CheckCircle  } from "lucide-react";
+import {toast} from "../../hooks/use-toast"
+import { set } from "date-fns";
 
 // Get the raw string, or an empty array string if undefined
 const rawPlans = import.meta.env.VITE_SUBSCRIPTION_PLANS || "[]";
@@ -48,6 +50,7 @@ subscriptionPlans.forEach((plan) => {
 const CollegeSignup = ({ onBack }) => {
   const navigate = useNavigate();
   const { collegeSignup } = useAuth();
+  const [requesting,setRequesting]=useState(false);
 
   const [step, setStep] = useState(1);
   const [otp, setOtp] = useState("");
@@ -70,13 +73,17 @@ const CollegeSignup = ({ onBack }) => {
   };
 
   // SEND OTP
-  const handleSendOtp = () => {
+  const handleSendOtp =async () => {
     if (!formData.email) {
-      alert("Please enter email first");
+      toast({
+        title: "Error",
+        description: "Please enter your email address to receive OTP.",
+        variant: "destructive",
+      });
       return;
     }
-
-    fetch("http://localhost:8080/campus-connect/security/send-code", {
+    setRequesting(true);
+    await fetch("http://localhost:8080/campus-connect/security/send-code", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -89,25 +96,43 @@ const CollegeSignup = ({ onBack }) => {
       .then((response) => response.json())
       .then((data) => {
         if (data.message === "Verification code sent successfully") {
-          alert("OTP sent to " + formData.email);
+          toast({
+            title: "Success",
+            description: "OTP sent to " + formData.email,
+            variant: "success",
+          });
           setStep(2);
         } else {
-          alert(data.message || "Failed to send OTP.");
+          toast({
+            title: "Error",
+            description: data.message || "Failed to send OTP.",
+            variant: "destructive",
+          });
         }
       })
       .catch((error) => {
-        console.error("Error sending OTP:", error);
+        toast({
+          title: "Error",
+          description: error.message || "An error occurred while sending OTP. Please try again.",
+          variant: "destructive",
+        });
+      }).finally(() => {
+        setRequesting(false);
       });
   };
 
   // VERIFY OTP
-  const handleVerifyOtp = () => {
+  const handleVerifyOtp = async () => {
     if (!otp) {
-      alert("Enter OTP");
+      toast({
+        title: "Error",
+        description: "Please enter the OTP sent to your email.",
+        variant: "destructive",
+      });
       return;
     }
-
-    fetch("http://localhost:8080/campus-connect/security/verify-code", {
+    setRequesting(true);
+    await fetch("http://localhost:8080/campus-connect/security/verify-code", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -119,14 +144,21 @@ const CollegeSignup = ({ onBack }) => {
         if (data.message === "Code verified successfully") {
           setStep(3);
         } else {
-          alert("Invalid OTP");
+          throw new Error(data.message);
         }
       })
-      .catch((error) => console.error(error));
+      .catch((error) => toast({
+        title: "Error",
+        description: error.message || "Invalid OTP. Please try again.",
+        variant: "destructive",
+      })).finally(() => {
+      setRequesting(false);
+    });
   };
 
   //Resend OTP
   const resendOtp = async () => {
+    setRequesting(true);
     const response = await fetch(
       "http://localhost:8080/campus-connect/security/send-code",
       {
@@ -141,10 +173,19 @@ const CollegeSignup = ({ onBack }) => {
       },
     ).then((res) => res.json());
     if (response) {
-      alert("OTP resent successfully");
+      toast({
+            title: "Success",
+            description: "OTP sent to " + formData.email,
+            variant: "success",
+          });
     } else {
-      alert("please try again");
+      toast({
+            title: "Error",
+            description: response.message,
+            variant: "destractive",
+          });
     }
+    setRequesting(false);
   };
 
   // RAZORPAY PAYMENT
@@ -214,9 +255,11 @@ const CollegeSignup = ({ onBack }) => {
             paid: true,
             subscription:{
               planName: plan.name,
-              ammount: plan.amount,
+              amount: plan.amount,
               durationInMonths: plan.durationInMonths,
               isLimited: plan.isLimited,
+              paymentId: response.razorpay_payment_id,
+              orderId: response.razorpay_order_id,
             }
           });
 
@@ -483,14 +526,14 @@ const CollegeSignup = ({ onBack }) => {
             <Button
               onClick={handleVerifyOtp}
               className="w-full"
-              disabled={otp.length !== 6}
+              disabled={otp.length !== 6 || requesting}
             >
               Verify Code
             </Button>
 
             <p className="text-center text-sm text-muted-foreground">
               Didn't receive the code?{" "}
-              <Button variant="link" className="p-0 h-auto" onClick={resendOtp}>
+              <Button disabled={requesting} variant="link" className="p-0 h-auto" onClick={resendOtp}>
                 Resend
               </Button>
             </p>
@@ -538,7 +581,7 @@ const CollegeSignup = ({ onBack }) => {
             onChange={handleInputChange}
           />
 
-          <Button className="w-full" onClick={handleSendOtp}>
+          <Button disabled={requesting} className="w-full" onClick={handleSendOtp}>
             Send OTP
           </Button>
 

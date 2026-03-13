@@ -34,6 +34,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { collegeAdminNavItems } from "../../config/Navigation";
 import { toast } from "../../hooks/use-toast";
+import { useAuth } from "../../contexts/AuthContext";
 
 const navItems = collegeAdminNavItems;
 
@@ -53,10 +54,20 @@ const AdminClubsPage = () => {
   const [completedEvents, setCompletedEvents] = useState([]);
   const [viewAnnouncement, setViewAnnouncement] = useState(null);
   const [viewEvent, setViewEvent] = useState(null);
+  const [requesting, setRequesting] = useState(false);
+
+  const { routeProtection } = useAuth();
+
+  useEffect(() => {
+    if (!routeProtection("COLLEGE_ADMIN")) {
+      navigate("/auth");
+    }
+  },[]);
 
   //Approve club request
-  const approveClub = (clubId) => {
-    fetch(`${baseUrl}/club-request/${clubId}`, {
+  const approveClub = async (clubId) => {
+    setRequesting(true);
+    await fetch(`${baseUrl}/club-request/${clubId}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -65,23 +76,28 @@ const AdminClubsPage = () => {
     })
       .then(async (res) => {
         const data = await res.json();
-        if (res.ok) {
+        if (data.message==="Club-request approved successfully") {
           toast({
             title: "Club approved",
             description: data.message,
-            status: "success",
+            variant: "destructive",
           });
           fetchClubRequest(); // Refresh pending clubs list
           fetchClubs(); // Refresh active clubs list
+        }
+        else{
+          throw new Error(data.message || "Failed to approve club request");
         }
       })
       .catch((err) =>
         toast({
           title: "Error",
-          description: "Failed to approve club request",
-          status: "error",
+          description: err.message || "Failed to approve club request",
+          variant: "destructive",
         }),
-      );
+      ).finally(()=>{
+        setRequesting(false);
+      })
   };
 
   //get event status based on current time
@@ -105,30 +121,31 @@ const AdminClubsPage = () => {
   }, []);
 
   //fetch Announcements
-  const fetchAnnouncements = () => {
-    fetch(`${baseUrl}/announcements`, {
+  const fetchAnnouncements = async () => {
+    await fetch(`${baseUrl}/announcements`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
     })
-      .then((res) => res.json())
+      .then(async (res) =>await res.json())
       .then((data) => {
         setAnnouncements(data);
       })
       .catch((err) =>
         toast({
           title: "Error",
-          description: "Failed to fetch announcements",
-          status: "error",
+          description: err.message||"Failed to fetch announcements",
+          variant: "destructive",
         }),
       );
   };
 
   //Delete club request
-  const deleteClubRequest = (clubId) => {
-    fetch(`${baseUrl}/club-request/${clubId}`, {
+  const deleteClubRequest = async (clubId) => {
+    setRequesting(true);
+    await fetch(`${baseUrl}/club-request/${clubId}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
@@ -138,34 +155,38 @@ const AdminClubsPage = () => {
       .then(async (res) => {
         const data = await res.json();
 
-        if (res.ok) {
-          fetchClubRequest();
+        if (data.message==="Club-request rejected successfully") {
+          
           toast({
             title: "Club request rejected",
             description: data.message,
-            status: "success",
+            variant: "destructive",
           });
         }
+        else throw new Error(data.message || "Failed to reject club request");
       })
       .catch((err) =>
         toast({
           title: "Error",
-          description: "Failed to reject club request",
-          status: "error",
+          description: err.message || "Failed to reject club request",
+          variant: "destructive",
         }),
-      );
+      ).finally(()=>{
+        fetchClubRequest();
+        setRequesting(false);
+      });
   };
 
   //fetch pending club requests
-  const fetchClubRequest = () => {
-    fetch(`${baseUrl}/club-request`, {
+  const fetchClubRequest = async () => {
+    await fetch(`${baseUrl}/club-request`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
     })
-      .then((res) => res.json())
+      .then(async (res) => await res.json())
       .then((data) => {
         setPendingClubs(data);
       })
@@ -173,73 +194,73 @@ const AdminClubsPage = () => {
         toast({
           title: "Error",
           description: "Failed to fetch club requests",
-          status: "error",
+          variant: "destructive",
         }),
       );
   };
 
   //fetch Upcomming events
-  const fetchUpcomingEvents = () => {
-    fetch(`${baseUrl}/events/active`, {
+  const fetchUpcomingEvents = async () => {
+    await fetch(`${baseUrl}/events/active`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
     })
-      .then((res) => res.json())
+      .then(async (res) => await res.json())
       .then((data) => {
         setUpcomingEvents(data);
       })
       .catch((err) =>
         toast({
           title: "Error",
-          description: "Failed to fetch upcoming events",
-          status: "error",
+          description: err.message||"Failed to fetch upcoming events",
+          variant: "destructive",
         }),
       );
   };
 
   //fetch completed events
-  const fetchCompletedEvents = () => {
-    fetch(`${baseUrl}/events/finished`, {
+  const fetchCompletedEvents = async() => {
+    await fetch(`${baseUrl}/events/finished`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
     })
-      .then((res) => res.json())
+      .then(async (res) => await res.json())
       .then((data) => {
         setCompletedEvents(data);
       })
       .catch((err) =>
         toast({
           title: "Error",
-          description: "Failed to fetch completed events",
-          status: "error",
+          description: err.message || "Failed to fetch completed events",
+          variant: "destructive",
         }),
       );
   };
 
   //fetch clubs
-  const fetchClubs = () => {
-    fetch(`${baseUrl}/clubs`, {
+  const fetchClubs = async () => {
+    await fetch(`${baseUrl}/clubs`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
     })
-      .then((res) => res.json())
+      .then(async (res) => await res.json())
       .then((data) => {
         setClubs(data);
       })
       .catch((err) =>
         toast({
           title: "Error",
-          description: "Failed to fetch clubs",
-          status: "error",
+          description: err.message || "Failed to fetch clubs",
+          variant: "destructive",
         }),
       );
   };
@@ -348,6 +369,7 @@ const AdminClubsPage = () => {
                           <Button
                             variant="ghost"
                             size="icon"
+                            disabled={requesting}
                             className="bg-white/80 hover:bg-white"
                             onClick={(e) => e.stopPropagation()}
                           >
@@ -400,6 +422,7 @@ const AdminClubsPage = () => {
                     <Button
                       variant="outline"
                       className="w-full"
+                      disabled={requesting}
                       onClick={(e) => {
                         e.stopPropagation();
                         navigate(
@@ -461,6 +484,7 @@ const AdminClubsPage = () => {
                     <div className="flex gap-2 pt-2">
                       <Button
                         variant="outline"
+                        disabled={requesting}
                         className="flex-1 text-destructive"
                         onClick={() => {
                           deleteClubRequest(reviewClub.id);
@@ -473,6 +497,7 @@ const AdminClubsPage = () => {
 
                       <Button
                         className="flex-1"
+                        disabled={requesting}
                         onClick={() => {
                           approveClub(reviewClub.id);
                           setReviewClub(null);
@@ -505,6 +530,7 @@ const AdminClubsPage = () => {
 
                       <div className="flex gap-2">
                         <Button
+                          disabled={requesting}
                           variant="outline"
                           onClick={() => {
                             setReviewClub(club);
@@ -514,6 +540,7 @@ const AdminClubsPage = () => {
                           Review
                         </Button>
                         <Button
+                          disabled={requesting}
                           variant="outline"
                           className="text-destructive"
                           onClick={() => {
@@ -523,7 +550,10 @@ const AdminClubsPage = () => {
                           <XCircle className="w-4 h-4 mr-2" />
                           Reject
                         </Button>
-                        <Button onClick={() => approveClub(club.id)}>
+                        <Button
+                          disabled={requesting}
+                          onClick={() => approveClub(club.id)}
+                        >
                           <CheckCircle className="w-4 h-4 mr-2" />
                           Approve
                         </Button>
@@ -600,8 +630,9 @@ const AdminClubsPage = () => {
                         </p>
                       </div>
 
-                      {/* 👁 Eye Button */}
+                      {/*  Eye Button */}
                       <Button
+                        disabled={requesting}
                         variant="ghost"
                         size="icon"
                         onClick={() => setViewAnnouncement(announcement)}
@@ -722,6 +753,7 @@ const AdminClubsPage = () => {
                       )}
 
                       <Button
+                        disabled={requesting}
                         variant="outline"
                         className="w-full"
                         onClick={() => setViewEvent(event)}
@@ -760,6 +792,7 @@ const AdminClubsPage = () => {
                     </p>
 
                     <Button
+                      disabled={requesting}
                       variant="outline"
                       className="w-full"
                       onClick={() =>

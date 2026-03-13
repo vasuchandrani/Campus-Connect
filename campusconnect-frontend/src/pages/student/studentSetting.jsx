@@ -18,6 +18,9 @@ import {
 import { Shield, User } from "lucide-react";
 import { studentNavItems } from "../../config/Navigation";
 import { useEffect, useState } from "react";
+import { toast } from "../../hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 const StudentSetting = () => {
   //state variables
@@ -30,17 +33,30 @@ const StudentSetting = () => {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [requesting,setRequesting]=useState(false);
 
   //baseUrl
   const baseUrl= "http://localhost:8080/campus-connect/student";
 
+        const navigate = useNavigate();
+      const { routeProtection } = useAuth();
+      useEffect(() => {
+        if (!routeProtection("STUDENT")) {
+          navigate("/auth");
+        }
+      },[]);
+
   //update password
   const updatePassword = async () => {
     if (newPassword !== confirmPassword) {
-      alert("New password and confirm password do not match.");
+      toast({
+        title: "Error",
+        description: "New password and confirm password do not match",
+        variant: "destructive",
+      });
       return;
     }
-
+    setRequesting(false);
     await fetch("http://localhost:8080/campus-connect/security/change-pwd", {
       method: "PATCH",
       headers: {
@@ -56,20 +72,48 @@ const StudentSetting = () => {
     .then((res) => res.json())
       .then((res) => {
         if (res.ok) {
-          
-          alert("Password updated successfully!");
-          setCurrentPassword("");
+          const data=res.json();
+          if(data.message==="Your password changed successfully!"){
+            toast({
+              title: "Success",
+              description: data.message,
+              variant: "success",
+            });
+            setCurrentPassword("");
           setNewPassword("");
           setConfirmPassword("");
+          }
+          else{
+            toast({
+              title: "Error",
+              description: data.message || "Failed to update password. Please try again.",
+              variant: "destructive",
+            });
+          }
+         
+          
         } else if (res.status === 400) {
-          alert("Current password is incorrect. Please try again.");
+          toast({
+            title: "Error",
+            description: res.message || "Incorrect current password.",
+            variant: "destructive",
+          });
         } else {
-          alert(res.message || "Failed to update password. Please try again.");
+          toast({
+            title: "Error",
+            description: res.message || "Failed to update password. Please try again.",
+            variant: "destructive",
+          });
         }
       })
       .catch((err) => {
-        console.error("Error updating password:", err);
-        alert("An error occurred while updating password. Please try again.");
+        toast({
+          title: "Error",
+          description: err.message || "An error occurred while updating password. Please try again.",
+          variant: "destructive",
+        });
+      }).finally(() => {
+        setRequesting(false);
       });
 
   };
@@ -96,6 +140,7 @@ const StudentSetting = () => {
 
   //update profile
   const saveChanges = async () => {
+    setRequesting(true);
     await fetch(`${baseUrl}/profile`, {
       method: "PUT",
       headers: {
@@ -104,16 +149,31 @@ const StudentSetting = () => {
       },
       body: JSON.stringify({ fullName,  gender }),
     })
-      .then((res) => {
-        if (res.ok) {
-          alert("Profile updated successfully!");
+      .then(async (res) => {
+        const data=await res.json();
+        if(data.message==="Your profile has been updated successfully!"){
+          toast({
+            title: "Success",
+            description: data.message,
+            variant: "success",
+          });
         } else {
-          alert(res.message || "Failed to update profile. Please try again.");
+          toast({
+            title: "Error",
+            description: data.message || "Failed to update profile. Please try again.",
+            variant: "destructive",
+          });
         }
       })
       .catch((err) => {
-        console.error("Error updating profile:", err);
-        alert("An error occurred while updating profile. Please try again.");
+        toast({
+          title: "Error",
+          description: err.message || "An error occurred while updating profile. Please try again.",
+          variant: "destructive",
+        });
+      })
+      .finally(() => {
+        setRequesting(false);
       });
   };
 
@@ -177,7 +237,9 @@ const StudentSetting = () => {
                   </div>
                 </div>
 
-                <Button onClick={() => saveChanges()}>Save Changes</Button>
+                <Button onClick={() => saveChanges()} disabled={requesting}>
+                  Save Changes
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -220,7 +282,7 @@ const StudentSetting = () => {
                   </div>
                 </div>
 
-                <Button onClick={() => updatePassword()}>
+                <Button onClick={() => updatePassword()} disabled={requesting}>
                   Update Password
                 </Button>
               </CardContent>

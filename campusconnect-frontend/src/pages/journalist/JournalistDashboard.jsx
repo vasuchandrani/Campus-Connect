@@ -3,6 +3,9 @@ import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
 import { CheckCircle, FileText } from "lucide-react";
 import { journalistNavItems } from "../../config/Navigation";
+import { toast } from "../../hooks/use-toast";
+import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 /* ---------------- NAV ITEMS ---------------- */
 const navItems = journalistNavItems;
@@ -21,6 +24,15 @@ const JournalistDashboard = () => {
 
   // Base URL for API calls related to journalist
   const baseUrl="http://localhost:8080/campus-connect/journalist";
+
+      const { routeProtection } = useAuth();
+      const navigate = useNavigate();
+  
+    useEffect(() => {
+      if (!routeProtection("JOURNALIST")) {
+        navigate("/auth");
+      }
+    },[]);
 
 
   // Fetch dashboard stats

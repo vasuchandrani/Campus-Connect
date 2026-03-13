@@ -16,6 +16,7 @@ import {
 import { clubMemberNavItems } from "../../config/Navigation";
 import { marked } from "marked";
 import { useMemo,useEffect,useState } from "react";
+import { toast } from "../../hooks/use-toast";
 
 const ClubMemberEventDetailPage = () => {
   const { clubId, id } = useParams();
@@ -34,25 +35,25 @@ const ClubMemberEventDetailPage = () => {
   };
 
   //fetch Event Details
-  const fetchEventDetails = () => {
+  const fetchEventDetails = async () => {
     const token = localStorage.getItem("authToken");
 
-    fetch(baseUrl, {
+    await fetch(baseUrl, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
     })
-      .then((res) => res.json())
+      .then(async (res) => await res.json())
       .then((data) => {
         setEvent(data);
       })
       .catch((err) => {
         toast({
           title: "Error",
-          description: "Failed to fetch event details",
-          status: "error",
+          description: err.message||"Failed to fetch event details",
+          variant:"destructive",
         });
       });
   };

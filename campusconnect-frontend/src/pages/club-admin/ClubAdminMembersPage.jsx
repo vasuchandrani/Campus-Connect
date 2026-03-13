@@ -34,6 +34,7 @@ import { clubAdminNavItems } from "../../config/Navigation";
 import { useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { toast } from "../../hooks/use-toast";
+import { set } from "date-fns";
 
 /* ================= COMPONENT ================= */
 
@@ -59,11 +60,12 @@ const ClubAdminMembersPage = () => {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("member");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [requesting, setRequesting] = useState(false);
 
   //1) Fetch club members
-  const fetchClubMembers = () => {
+  const fetchClubMembers = async () => {
     const token = localStorage.getItem("authToken");
-    fetch(`${baseUrl}/members`, {
+    await fetch(`${baseUrl}/members`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -78,15 +80,16 @@ const ClubAdminMembersPage = () => {
         toast({
           title: "Error",
           description: "Failed to fetch club members",
-          status: "error",
+          variant: "destructive",
         });
       });
   };
 
   //2) Add member
-  const addMember = (email, role) => {
+  const addMember = async (email, role) => {
     const token = localStorage.getItem("authToken");
-    fetch(`${baseUrl}/members/add`, {
+    setRequesting(true);
+    await fetch(`${baseUrl}/members/add`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -94,43 +97,53 @@ const ClubAdminMembersPage = () => {
       },
       body: JSON.stringify({ email, role: role.toUpperCase() }),
     })
-      .then((res) => res.json())
+      .then(async (res) => await res.json())
       .then((data) => {
+        if(data.message==="ClubMember added successfully"){
         toast({
           title: "Success",
           description: data.message,
-          status: "success",
+          variant: "success",
         });
         fetchClubMembers();
         setEmail("");
         setRole("member");
         setIsDialogOpen(false);
+      } else {
+        toast({
+          title: "Error",
+          description: data.message || "Failed to add member",
+          variant: "destructive",
+        });
+      }
       })
       .catch((err) => {
         toast({
           title: "Error",
-          description: "Failed to add member",
-          status: "error",
+          description: err.message || "Failed to add member",
+          variant: "destructive",
         });
       });
+      setRequesting(false);
   };
 
   //3) Remove member
-  const removeMember = (memberId) => {
+  const removeMember = async (memberId) => {
     const token = localStorage.getItem("authToken");
-    fetch(`${baseUrl}/members/remove/${memberId}`, {
+    setRequesting(true);
+    await fetch(`${baseUrl}/members/remove/${memberId}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
     })
-      .then((res) => res.json())
+      .then(async (res) => await res.json())
       .then((data) => {
         toast({
           title: "Success",
           description: data.message,
-          status: "success",
+          variant: "success",
         });
         fetchClubMembers();
       })
@@ -138,9 +151,10 @@ const ClubAdminMembersPage = () => {
         toast({
           title: "Error",
           description: "Failed to remove member",
-          status: "error",
+          variant: "destructive",
         });
       });
+      setRequesting(false);
   };
 
   //load members on component mount and whenever clubId changes
@@ -163,7 +177,7 @@ const ClubAdminMembersPage = () => {
           {/* Invite Member Dialog */}
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button disabled={requesting}>
                 <UserPlus className="w-4 h-4 mr-2" />
                 Invite Member
               </Button>
@@ -202,6 +216,7 @@ const ClubAdminMembersPage = () => {
 
                 <Button
                   className="w-full"
+                  disabled={requesting}
                   onClick={() => addMember(email, role)}
                 >
                   Send Invitation
@@ -254,15 +269,11 @@ const ClubAdminMembersPage = () => {
                     {/* Remove Member or Change Role Dropdown */}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" disabled={requesting}>
                           <MoreVertical className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <Shield className="w-4 h-4 mr-2" />
-                          Change Role
-                        </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive"
                           onClick={() => removeMember(member.studentId)}

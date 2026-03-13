@@ -3,6 +3,7 @@ import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Label } from "../ui/Label";
 import { useNavigate } from "react-router-dom";
+import { toast } from "../../hooks/use-toast";
 
 const CollegeAdminLogin = ({
   email,
@@ -19,6 +20,7 @@ const CollegeAdminLogin = ({
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [requesting, setRequesting] = useState(false);
 
   //baseUrl
   const baseUrl = "http://localhost:8080/campus-connect/security";
@@ -29,10 +31,14 @@ const CollegeAdminLogin = ({
     e.preventDefault();
 
     if (newPassword !== confirmPassword) {
-      alert("Passwords do not match");
+      toast({
+        title: "Error",
+        description: "New password and confirm password do not match",
+        variant: "destructive",
+      });
       return;
     }
-
+    setRequesting(true);
     await fetch(`${baseUrl}/reset-pwd`, {
       method: "PATCH",
       headers: {
@@ -43,41 +49,65 @@ const CollegeAdminLogin = ({
       .then((response) => response.json())
       .then((data) => {
         if (data.message === "your password changed successfully") {
-          alert("Password reset successful!");
+          toast({
+            title: "Success",
+            description: "Your password has been reset successfully. Please login with your new password.",
+            variant: "success",
+          });
           navigate("/");
         } else {
-          alert(data.message || "Failed to reset password.");
+          toast({
+            title: "Error",
+            description: data.message || "Failed to reset password. Please try again.",
+            variant: "destructive",
+          });
         }
       })
-      .catch((error) => {
-        console.error("Error resetting password:", error);
-        alert("An error occurred while resetting password.");
-      }); 
+      .catch((err) => {
+        toast({
+          title: "Error",
+          description: err.message||"An error occurred while resetting password.",
+          variant: "destructive",
+        });
+      }).finally(()=>setRequesting(false));
   };
 
   //send otp
   const handleSendOtp = async (e) => {
     e.preventDefault();
+    setRequesting(true);
     await fetch(`${baseUrl}/send-code`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ email: resetEmail , codeFor:"EMAIL_VERIFICATION FOR RESET_PASSWORD"})
+      body: JSON.stringify({ email: resetEmail , codeFor:"Email verification for reset password"})
     })
       .then((response) => response.json())
       .then((data) => {
         if(data.message === "verification code sent successfully"){ 
-          alert("OTP sent to " + resetEmail);
+          toast({
+            title: "Success",
+            description: "OTP sent to " + resetEmail,
+            variant: "success",
+          });
           setStep("reset");
         } else {
-          alert("Failed to send OTP.");
+          toast({
+            title: "Error",
+            description: data.message || "Failed to send OTP.",
+            variant: "destructive",
+          });
+
         }
       })
       .catch((error) => {
-        console.error("Error sending OTP:", error);
-        alert("An error occurred while sending OTP.");
-      });
+        toast({
+          title: "Error",
+          description: error.message || "An error occurred while sending OTP. Please try again.",
+          variant: "destructive",
+        });
+      }).finally(()=>setRequesting(false));
   };
 
   //normal login
@@ -118,7 +148,7 @@ const CollegeAdminLogin = ({
           </button>
         </div>
 
-        <Button type="submit" className="w-full">
+        <Button disabled={requesting} type="submit" className="w-full">
           Login as College Admin
         </Button>
       </form>
@@ -145,7 +175,7 @@ const CollegeAdminLogin = ({
           />
         </div>
 
-        <Button type="submit" className="w-full" >
+        <Button disable={requesting} type="submit" className="w-full" >
           Send OTP
         </Button>
       </form>
@@ -188,7 +218,7 @@ const CollegeAdminLogin = ({
           />
         </div>
 
-        <Button type="submit" className="w-full">
+        <Button disabled={requesting} type="submit" className="w-full">
           Reset Password
         </Button>
       </form>

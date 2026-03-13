@@ -14,15 +14,28 @@ import { Search, Eye } from "lucide-react";
 import { collegeAdminNavItems } from "../../config/Navigation";
 import { toast } from "../../hooks/use-toast";
 import { marked } from "marked";
+import { set } from "date-fns";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 const AdminNewspaperPage = () => {
   // State variables
   const [publishedArticles, setPublishedArticles] =useState([]);
   const [viewArticle, setViewArticle] = useState(null);
   const [query, setQuery] = useState("");
+  const [requesting, setRequesting] = useState(false); 
+  const navigate = useNavigate();
 
   // Base URL for API calls related to college admin
   const baseUrl = "http://localhost:8080/campus-connect/college-admin";
+
+    const { routeProtection } = useAuth();
+  
+    useEffect(() => {
+      if (!routeProtection("COLLEGE_ADMIN")) {
+        navigate("/auth");
+      }
+    },[]);
 
   // Fetch published articles
   const fetchPublishedArticles = async () => {
@@ -48,34 +61,36 @@ const AdminNewspaperPage = () => {
   }, []); 
 
   // Handle Unpublish Article
-  const handleUnpublish = (articleId) => {
-    fetch(`${baseUrl}/news-papers/${articleId}`, {
+  const handleUnpublish = async (articleId) => {
+    setRequesting(true);
+    await fetch(`${baseUrl}/news-papers/${articleId}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
       },
     })
-      .then((res) => {
-        if (res.ok) {
+      .then(async (res) => {
+        const data=await res.json();
+        if (data.message==="News Paper Unpublished!") {
           toast({
             title: "Success",
-            description: "Article unpublished successfully",
+            description: data.message,
+            veriant: "success",
           });
           // Refresh the list of published articles
           fetchPublishedArticles();
         } else {
-          throw new Error("Failed to unpublish article");
+          throw new Error(data.message || "Failed to unpublish article");
         }
       })
       .catch((err) => {
-        console.error("Error unpublishing article:", err);
         toast({
           title: "Error",
-          description: "Failed to unpublish article",
+          description: err.message || "Failed to unpublish article",
           variant: "destructive",
         });
-      }); 
+      }).finally(() => setRequesting(false));
   };
 
   //  Compile Markdown When Article Changes
@@ -149,6 +164,7 @@ const AdminNewspaperPage = () => {
                     variant="outline"
                     size="sm"
                     className="flex-1"
+                    disabled={requesting}
                     onClick={() => setViewArticle(article)}
                   >
                     <Eye className="w-4 h-4 mr-1" />
@@ -159,6 +175,7 @@ const AdminNewspaperPage = () => {
                     variant="outline"
                     size="sm"
                     className="text-destructive"
+                    disabled={requesting}
                     onClick={() =>
                       handleUnpublish(article.id)
                     }

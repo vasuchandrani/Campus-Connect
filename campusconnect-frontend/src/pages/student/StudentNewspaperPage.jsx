@@ -17,6 +17,8 @@ import { PenTool } from "lucide-react";
 import { Textarea } from "../../components/ui/Textarea";
 import { Label } from "../../components/ui/Label";
 import { toast } from "../../hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 const StudentNewspaperPage = () => {
   // State variables
@@ -30,6 +32,14 @@ const StudentNewspaperPage = () => {
 
   // Base URL for API calls related to student
   const baseUrl = "http://localhost:8080/campus-connect/student";
+
+      const navigate = useNavigate();
+      const { routeProtection } = useAuth();
+      useEffect(() => {
+        if (!routeProtection("STUDENT")) {
+          navigate("/auth");
+        }
+      },[]);
 
   //  Compile Markdown
   const renderedContent = useMemo(() => {
@@ -51,7 +61,11 @@ const StudentNewspaperPage = () => {
         setNewspaper(data);
       })
       .catch((err) => {
-        console.error("Error fetching newspaper:", err);
+        toast({
+          title: "Error",
+          description: err.message || "Failed to fetch newspaper articles",
+          variant: "destructive",
+        });
       });
   };
 
@@ -62,7 +76,11 @@ const StudentNewspaperPage = () => {
 // become journalist request
   const handleSubmitRequest = async() => {
     if (!reason.trim() || !experience.trim()) {
-      alert("Please fill all required fields");
+      toast({
+        title: "Error",
+        description: "Please fill all required fields",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -80,18 +98,18 @@ const StudentNewspaperPage = () => {
       })
       .then(async (res) => {
         const data = await res.json();
-        if(res.ok){
+        if(data.message==="Your journalist has been sent successfully"){
           toast({
             title: "Request Submitted",
             description: data.message || "Your request to become a journalist has been submitted successfully!",
-            status: "success",
+            variant: "success",
           });
         }
         else{
           toast({
             title: "Request Failed",
             description: data.message,
-            status: "error",
+            variant: "destructive",
           });
         }
         setReason("");
@@ -100,8 +118,11 @@ const StudentNewspaperPage = () => {
         setRequestOpen(false);
       })
       .catch((err) => {
-        console.error("Error submitting journalist request:", err);
-        alert("Failed to submit journalist request");
+        toast({
+          title: "Error",
+          description: "Failed to submit journalist request",
+          variant: "destructive",
+        });
       });
   };
 
