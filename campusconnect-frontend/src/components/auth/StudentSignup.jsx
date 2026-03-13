@@ -102,7 +102,7 @@ const StudentSignup = ({ onBack }) => {
 
     // send otp
     const response = await fetch(
-      "http://localhost:8080/campus-connect/email/send-code",
+      "http://localhost:8080/campus-connect/security/send-code",
       {
         method: "POST",
         headers: {
@@ -110,10 +110,10 @@ const StudentSignup = ({ onBack }) => {
         },
         body: JSON.stringify({
           email: formData.email,
-          role: "STUDENT",
+          codeFor: "STUDENT_EMAIL_VERIFICATION",
         }),
       },
-    ).then((res) => res.json());
+    ).then(async (res) => await res.json());
 
     if (response) {
       alert("OTP sent successfully");
@@ -127,7 +127,7 @@ const StudentSignup = ({ onBack }) => {
   const handleVerifyOTP = async () => {
     if (otp.length === 6) {
       const response = await fetch(
-        "http://localhost:8080/campus-connect/email/verify-code",
+        "http://localhost:8080/campus-connect/security/verify-code",
         {
           method: "POST",
           headers: {
@@ -136,6 +136,7 @@ const StudentSignup = ({ onBack }) => {
           body: JSON.stringify({
             email: formData.email,
             code: otp,
+
           }),
         },
       ).then((res) => res.json());
@@ -168,7 +169,7 @@ const StudentSignup = ({ onBack }) => {
   //resend otp
   const resendOtp = async () => {
     const response = await fetch(
-      "http://localhost:8080/campus-connect/email/send-code",
+      "http://localhost:8080/campus-connect/security/send-code",
       {
         method: "POST",
         headers: {
@@ -176,7 +177,7 @@ const StudentSignup = ({ onBack }) => {
         },
         body: JSON.stringify({
           email: formData.email,
-          role: "STUDENT",
+          codeFor: "STUDENT_EMAIL_VERIFICATION",
         }),
       },
     ).then((res) => res.json());
