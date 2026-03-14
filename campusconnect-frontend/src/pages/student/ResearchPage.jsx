@@ -51,7 +51,7 @@ const ResearchPage = () => {
   const [requesting,setRequesting]=useState(false);
 
   //baseUrl
-  const baseUrl = "http://localhost:8080/campus-connect/student";
+  const baseUrl = "https://campus-connect-nzc9.onrender.com/campus-connect/student";
 
       const navigate = useNavigate();
       const { routeProtection } = useAuth();

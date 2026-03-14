@@ -42,7 +42,7 @@ const AdminClubsPage = () => {
   const navigate = useNavigate();
 
   // Base URL for all API calls in this page
-  const baseUrl = "http://localhost:8080/campus-connect/college-admin";
+  const baseUrl = "https://campus-connect-nzc9.onrender.com/campus-connect/college-admin";
 
   // State variables
   const [searchQuery, setSearchQuery] = useState("");

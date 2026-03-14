@@ -36,7 +36,7 @@ const StudentSetting = () => {
   const [requesting,setRequesting]=useState(false);
 
   //baseUrl
-  const baseUrl= "http://localhost:8080/campus-connect/student";
+  const baseUrl= "https://campus-connect-nzc9.onrender.com/campus-connect/student";
 
         const navigate = useNavigate();
       const { routeProtection } = useAuth();
@@ -57,7 +57,7 @@ const StudentSetting = () => {
       return;
     }
     setRequesting(false);
-    await fetch("http://localhost:8080/campus-connect/security/change-pwd", {
+    await fetch("https://campus-connect-nzc9.onrender.com/campus-connect/security/change-pwd", {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",

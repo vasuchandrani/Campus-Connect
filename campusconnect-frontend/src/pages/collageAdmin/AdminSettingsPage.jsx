@@ -68,7 +68,7 @@ const AdminSettingsPage = () => {
   };
 
   //baseurl
-  const baseUrl = "http://localhost:8080/campus-connect/college-admin";
+  const baseUrl = "https://campus-connect-nzc9.onrender.com/campus-connect/college-admin";
 
 
   // call API for subscription
@@ -247,7 +247,7 @@ const AdminSettingsPage = () => {
       return;
     }
     setRequesting(true);
-    await fetch("http://localhost:8080/campus-connect/security/change-pwd", {
+    await fetch("https://campus-connect-nzc9.onrender.com/campus-connect/security/change-pwd", {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",

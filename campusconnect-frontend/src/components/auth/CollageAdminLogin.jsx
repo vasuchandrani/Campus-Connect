@@ -23,7 +23,7 @@ const CollegeAdminLogin = ({
   const [requesting, setRequesting] = useState(false);
 
   //baseUrl
-  const baseUrl = "http://localhost:8080/campus-connect/security";
+  const baseUrl = "https://campus-connect-nzc9.onrender.com/campus-connect/security";
 
 
   //change password

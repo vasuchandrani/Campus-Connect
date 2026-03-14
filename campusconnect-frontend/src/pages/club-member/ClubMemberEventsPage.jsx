@@ -34,7 +34,7 @@ const ClubMemberEventsPage = () => {
   const { clubId } = useParams();
 
   // Base URL for API calls related to this club
-  const baseUrl = `http://localhost:8080/campus-connect/clubs/${clubId}/member`;
+  const baseUrl = `https://campus-connect-nzc9.onrender.com/campus-connect/clubs/${clubId}/member`;
 
   const navigate = useNavigate();
 
@@ -237,7 +237,7 @@ const ClubMemberEventsPage = () => {
       }
 
       const response = await fetch(
-        `http://localhost:8080/campus-connect/clubs/${clubId}/member/events/active`,
+        `https://campus-connect-nzc9.onrender.com/campus-connect/clubs/${clubId}/member/events/active`,
         {
           method: "POST",
           headers: {

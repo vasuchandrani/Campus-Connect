@@ -50,7 +50,7 @@ const ReviewerDashboard = () => {
 
   const [requesting,setRequesting] = useState(false);
 
-  const baseUrl = "http://localhost:8080/campus-connect/reviewer";
+  const baseUrl = "https://campus-connect-nzc9.onrender.com/campus-connect/reviewer";
 
         const { routeProtection } = useAuth();
     

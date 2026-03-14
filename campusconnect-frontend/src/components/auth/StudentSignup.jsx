@@ -58,7 +58,7 @@ const StudentSignup = ({ onBack }) => {
     const fetchColleges = async () => {
       try {
         const response = await fetch(
-          "http://localhost:8080/campus-connect/colleges",
+          "https://campus-connect-nzc9.onrender.com/campus-connect/colleges",
         );
         const data = await response.json();
         setColleges(data);
@@ -111,7 +111,7 @@ const StudentSignup = ({ onBack }) => {
     setRequesting(true);
     try {
       const response = await fetch(
-        "http://localhost:8080/campus-connect/security/send-code",
+        "https://campus-connect-nzc9.onrender.com/campus-connect/security/send-code",
         {
           method: "POST",
           headers: {
@@ -154,7 +154,7 @@ const StudentSignup = ({ onBack }) => {
     setRequesting(true);
     if (otp.length === 6) {
       const response = await fetch(
-        "http://localhost:8080/campus-connect/security/verify-code",
+        "https://campus-connect-nzc9.onrender.com/campus-connect/security/verify-code",
         {
           method: "POST",
           headers: {
@@ -215,7 +215,7 @@ const StudentSignup = ({ onBack }) => {
   const resendOtp = async () => {
     setRequesting(true);
     const response = await fetch(
-      "http://localhost:8080/campus-connect/security/send-code",
+      "https://campus-connect-nzc9.onrender.com/campus-connect/security/send-code",
       {
         method: "POST",
         headers: {

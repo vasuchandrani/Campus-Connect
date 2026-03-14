@@ -23,7 +23,7 @@ const JournalistArticlesPage = () => {
 
   const navigate = useNavigate();
   // Base URL for API calls related to journalist
-  const baseUrl = "http://localhost:8080/campus-connect/journalist";
+  const baseUrl = "https://campus-connect-nzc9.onrender.com/campus-connect/journalist";
 
   //stat variables
   const [viewArticle, setViewArticle] = useState(null);

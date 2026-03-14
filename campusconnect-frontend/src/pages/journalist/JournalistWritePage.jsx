@@ -28,7 +28,7 @@ const JournalistWritePage = () => {
 
   const navigate = useNavigate();
 
-  const baseUrl = "http://localhost:8080/campus-connect/journalist";
+  const baseUrl = "https://campus-connect-nzc9.onrender.com/campus-connect/journalist";
 
   // Form states
   const [title, setTitle] = useState("");

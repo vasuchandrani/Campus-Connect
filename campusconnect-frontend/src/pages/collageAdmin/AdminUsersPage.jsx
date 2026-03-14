@@ -37,7 +37,7 @@ const navItems = collegeAdminNavItems;
 const AdminUsersPage = () => {
 
   //base URL for API calls related to users
-  const baseUrl = "http://localhost:8080/campus-connect/college-admin/users";
+  const baseUrl = "https://campus-connect-nzc9.onrender.com/campus-connect/college-admin/users";
 
   // states
   const [journalists, setJournalists] = useState([]);
