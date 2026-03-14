@@ -17,10 +17,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 @Service
 @RequiredArgsConstructor
@@ -89,12 +91,15 @@ public class StudentRepoService {
     @Transactional
     public MessageResponseDto processExcel(MultipartFile file, Long collegeId) {
 
+        ExecutorService executor = Executors.newFixedThreadPool(5);
+        List<Future<Boolean>> futures = new ArrayList<>();
+
         try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
 
             Sheet sheet = workbook.getSheetAt(0);
 
-            // collect info from each row and register student
-            for (int i = 1; i <= sheet.getLastRowNum(); i++) { // skip header
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+
                 Row row = sheet.getRow(i);
                 if (row == null) continue;
 
@@ -116,25 +121,33 @@ public class StudentRepoService {
                 dto.setPassword(password);
                 dto.setCollegeId(collegeId);
 
-                // save in db
-                boolean isSaved = studentAuth.createStudentAccount(dto);
-                // send mail
-                boolean mailSent = emailDispatcherService.sendStudentRegistrationMail(email, password);
+                futures.add(
+                        executor.submit(() -> {
 
-                Thread.sleep(2000);
-                if (!isSaved || !mailSent) {
-                    return new MessageResponseDto("Student registration failed for " + name);
+                            boolean isSaved = studentAuth.createStudentAccount(dto);
+                            boolean mailSent = emailDispatcherService
+                                    .sendStudentRegistrationMail(email, password);
+
+                            return isSaved && mailSent;
+                        })
+                );
+            }
+
+            for (Future<Boolean> future : futures) {
+                if (!future.get()) {
+                    executor.shutdown();
+                    return new MessageResponseDto("Student registration failed");
                 }
             }
+
+            executor.shutdown();
             return new MessageResponseDto("All Students registered successfully!");
         }
-        catch (IOException e) {
+
+        catch (Exception e) {
             throw new RuntimeException(e.getMessage());
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
         }
     }
-
     // register single student
     @Transactional
     public MessageResponseDto registerStudent(StudentRegisterRequestDto request, Long collegeId) {
