@@ -16,11 +16,14 @@ public class CorsConfig {
 
         CorsConfiguration config = new CorsConfiguration();
 
+        // Allowed Frontend Origins
         config.setAllowedOrigins(List.of(
                 "http://localhost:5173",
-                "http://127.0.0.1:5173"
+                "http://127.0.0.1:5173",
+                "https://campus-connect-frontend-2ch7.onrender.com"
         ));
 
+        // Allowed HTTP Methods
         config.setAllowedMethods(List.of(
                 "GET",
                 "POST",
@@ -30,6 +33,7 @@ public class CorsConfig {
                 "OPTIONS"
         ));
 
+        // Allowed Headers
         config.setAllowedHeaders(List.of(
                 "Authorization",
                 "Content-Type",
@@ -37,13 +41,15 @@ public class CorsConfig {
                 "Origin"
         ));
 
+        // Allow cookies / auth headers
         config.setAllowCredentials(true);
+
+        // Cache CORS preflight response for 1 hour
         config.setMaxAge(3600L);
 
-        UrlBasedCorsConfigurationSource source =
-                new UrlBasedCorsConfigurationSource();
-
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
+
         return source;
     }
 }
