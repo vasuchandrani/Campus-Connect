@@ -1,17 +1,14 @@
-# Use lightweight Java image
-FROM eclipse-temurin:17-jdk-jammy
-
-# Set working directory
+# Stage 1: Build the jar
+FROM maven:3.9.6-eclipse-temurin-17 AS build
 WORKDIR /app
+COPY . .
+RUN mvn clean package -DskipTests
 
-# Copy built jar from target
-COPY target/*.jar app.jar
+# Stage 2: Run the jar
+FROM eclipse-temurin:17-jdk-jammy
+WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
 
-# Render assigns PORT automatically
-ENV PORT=8080
-
-# Expose the port
 EXPOSE 8080
 
-# Run Spring Boot application
 ENTRYPOINT ["java","-Dserver.port=${PORT}","-jar","app.jar"]
