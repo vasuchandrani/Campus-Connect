@@ -36,7 +36,7 @@ const JournalistSetting = () => {
       },[]);
 
   //baseurl
-  const baseUrl= "http://localhost:8080/campus-connect/journalist";
+  const baseUrl= "https://campus-connect-nzc9.onrender.com/campus-connect/journalist";
 
 const handleChange = (e) => {
     setUser({
@@ -138,7 +138,7 @@ const saveChanges = async () => {
 
     try {
       setRequesting(true);
-      const response = await fetch("http://localhost:8080/campus-connect/security/change-pwd", {
+      const response = await fetch("https://campus-connect-nzc9.onrender.com/campus-connect/security/change-pwd", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",

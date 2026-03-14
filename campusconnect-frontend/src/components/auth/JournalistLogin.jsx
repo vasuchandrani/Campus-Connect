@@ -65,7 +65,7 @@ const JournalistLogin = ({ onBack }) => {
   };
 
   //baseUrl
-  const baseUrl = "http://localhost:8080/campus-connect/security";
+  const baseUrl = "https://campus-connect-nzc9.onrender.com/campus-connect/security";
 
   //handle send otp for forgot password
   const handleSendOtp = async(e) => {

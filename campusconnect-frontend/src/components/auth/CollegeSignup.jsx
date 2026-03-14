@@ -83,7 +83,7 @@ const CollegeSignup = ({ onBack }) => {
       return;
     }
     setRequesting(true);
-    await fetch("http://localhost:8080/campus-connect/security/send-code", {
+    await fetch("https://campus-connect-nzc9.onrender.com/campus-connect/security/send-code", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -132,7 +132,7 @@ const CollegeSignup = ({ onBack }) => {
       return;
     }
     setRequesting(true);
-    await fetch("http://localhost:8080/campus-connect/security/verify-code", {
+    await fetch("https://campus-connect-nzc9.onrender.com/campus-connect/security/verify-code", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -160,7 +160,7 @@ const CollegeSignup = ({ onBack }) => {
   const resendOtp = async () => {
     setRequesting(true);
     const response = await fetch(
-      "http://localhost:8080/campus-connect/security/send-code",
+      "https://campus-connect-nzc9.onrender.com/campus-connect/security/send-code",
       {
         method: "POST",
         headers: {
@@ -196,7 +196,7 @@ const CollegeSignup = ({ onBack }) => {
 
     try {
       const orderRes = await fetch(
-        "http://localhost:8080/campus-connect/college-admin/create-order",
+        "https://campus-connect-nzc9.onrender.com/campus-connect/college-admin/create-order",
         {
           method: "POST",
           headers: {
@@ -221,7 +221,7 @@ const CollegeSignup = ({ onBack }) => {
         handler: async function (response) {
 
           const verifyRes = await fetch(
-            "http://localhost:8080/campus-connect/college-admin/verify",
+            "https://campus-connect-nzc9.onrender.com/campus-connect/college-admin/verify",
             {
               method: "POST",
               headers: {

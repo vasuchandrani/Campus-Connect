@@ -15,7 +15,7 @@ import { useParams } from "react-router-dom";
 const ClubMemberTeamsPage = () => {
   let { clubId } = useParams();
 
-  const baseUrl = `http://localhost:8080/campus-connect/clubs/${clubId}/member`;
+  const baseUrl = `https://campus-connect-nzc9.onrender.com/campus-connect/clubs/${clubId}/member`;
   const token = localStorage.getItem("authToken");
 
   const updateNavItems = () => {

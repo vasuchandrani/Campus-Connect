@@ -16,19 +16,19 @@ export const AuthProvider = ({ children }) => {
   let roleName = "";
 
   if (role === "journalist") {
-    url = "http://localhost:8080/campus-connect/journalist/login";
+    url = "https://campus-connect-nzc9.onrender.com/campus-connect/journalist/login";
     roleName = "JOURNALIST";
   } 
   else if (role === "reviewer") {
-    url = "http://localhost:8080/campus-connect/reviewer/login";
+    url = "https://campus-connect-nzc9.onrender.com/campus-connect/reviewer/login";
     roleName = "REVIEWER";
   } 
   else if (role === "student") {
-    url = "http://localhost:8080/campus-connect/student/login";
+    url = "https://campus-connect-nzc9.onrender.com/campus-connect/student/login";
     roleName = "STUDENT";
   } 
   else if (role === "collegeAdmin") {
-    url = "http://localhost:8080/campus-connect/college-admin/login";
+    url = "https://campus-connect-nzc9.onrender.com/campus-connect/college-admin/login";
     roleName = "COLLEGE_ADMIN";
   }
   // call backend API for login
@@ -74,7 +74,7 @@ export const AuthProvider = ({ children }) => {
   // collage admin signup
   const collegeSignup = async (payload) => {
     try{
-      const res = await fetch("http://localhost:8080/campus-connect/college-admin/signup", {
+      const res = await fetch("https://campus-connect-nzc9.onrender.com/campus-connect/college-admin/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -95,7 +95,7 @@ export const AuthProvider = ({ children }) => {
 // student signup
 const studentSignup = async (formData) => {
   try {
-    const response = await fetch("http://localhost:8080/campus-connect/student/signup", {
+    const response = await fetch("https://campus-connect-nzc9.onrender.com/campus-connect/student/signup", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

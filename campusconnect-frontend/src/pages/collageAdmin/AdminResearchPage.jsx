@@ -36,7 +36,7 @@ import { useNavigate } from "react-router-dom";
 
 const AdminResearchPage = () => {
   //baseUrl
-  const baseUrl= "http://localhost:8080/campus-connect/college-admin";
+  const baseUrl= "https://campus-connect-nzc9.onrender.com/campus-connect/college-admin";
 
   //state variables
   const [reviewers, setReviewers] = useState([]);

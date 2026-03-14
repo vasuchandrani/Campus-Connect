@@ -16,7 +16,7 @@ const AnnouncementsPage = () => {
   const [announcements, setAnnouncements] = useState([]);
   const [viewAnnouncement, setViewAnnouncement] = useState(null);
   // Base URL for API calls related to student announcements
-  const baseUrl = "http://localhost:8080/campus-connect/student";
+  const baseUrl = "https://campus-connect-nzc9.onrender.com/campus-connect/student";
   const navigate=useNavigate();
   const { routeProtection } = useAuth();
   useEffect(() => {

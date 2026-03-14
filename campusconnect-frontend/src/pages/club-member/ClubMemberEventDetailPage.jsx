@@ -22,7 +22,7 @@ const ClubMemberEventDetailPage = () => {
   const { clubId, id } = useParams();
   const navigate = useNavigate();
 
-  const baseUrl = `http://localhost:8080/campus-connect/clubs/${clubId}/member/events/finished/${id}`;
+  const baseUrl = `https://campus-connect-nzc9.onrender.com/campus-connect/clubs/${clubId}/member/events/finished/${id}`;
 
   // state variables
   const [event, setEvent] = useState({});

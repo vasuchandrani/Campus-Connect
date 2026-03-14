@@ -24,7 +24,7 @@ export default function CollegeAdminDashboard() {
   const [collegeName, setCollegeName] = useState("");
 
   // Base URL for API calls related to college admin
-  const baseUrl = "http://localhost:8080/campus-connect/college-admin";
+  const baseUrl = "https://campus-connect-nzc9.onrender.com/campus-connect/college-admin";
 
     const { routeProtection } = useAuth();
 
