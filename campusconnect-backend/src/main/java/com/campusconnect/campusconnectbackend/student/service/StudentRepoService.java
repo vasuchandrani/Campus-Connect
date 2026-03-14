@@ -121,6 +121,7 @@ public class StudentRepoService {
                 // send mail
                 boolean mailSent = emailDispatcherService.sendStudentRegistrationMail(email, password);
 
+                Thread.sleep(2000);
                 if (!isSaved || !mailSent) {
                     return new MessageResponseDto("Student registration failed for " + name);
                 }
@@ -129,6 +130,8 @@ public class StudentRepoService {
         }
         catch (IOException e) {
             throw new RuntimeException(e.getMessage());
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 
