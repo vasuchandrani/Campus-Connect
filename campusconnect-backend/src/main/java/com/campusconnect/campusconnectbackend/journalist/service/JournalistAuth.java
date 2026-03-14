@@ -130,4 +130,11 @@ public class JournalistAuth {
 
         return new MessageResponseDto("Your password changed successfully!");
     }
+
+    public Journalist getJournalistByEmail(String email) {
+
+        return journalistRepository.findByStudent_Email(email).orElseThrow(
+                () -> new RuntimeException("Journalist not found, Try again!")
+        );
+    }
 }

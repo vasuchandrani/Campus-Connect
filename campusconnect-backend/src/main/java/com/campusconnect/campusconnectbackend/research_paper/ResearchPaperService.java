@@ -102,7 +102,8 @@ public class ResearchPaperService {
         College college = student.getCollege();
 
         // store pdf on cloudinary
-        String pdfUrl = cloudinaryService.uploadPdf(pdf, studentId);
+        String path = "Research_papers" + studentId;
+        String pdfUrl = cloudinaryService.uploadPdf(pdf, path);
 
         // create
         ResearchPaper paper = new ResearchPaper();

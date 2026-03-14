@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Payment Successful – Campus-Connect</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f4fdf9; font-family:Arial, Helvetica, sans-serif;">
+
+<table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+        <td align="center" style="padding:40px 0;">
+
+            <table width="600" cellpadding="0" cellspacing="0"
+                   style="background:#ffffff; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.08); overflow:hidden;">
+
+                <!-- Header -->
+                <tr>
+                    <td style="background:#16a34a; padding:22px; text-align:center;">
+                        <h1 style="color:#ffffff; margin:0;">Campus-Connect</h1>
+                        <p style="color:#dcfce7; margin:6px 0 0;">
+                            Payment Successful
+                        </p>
+                    </td>
+                </tr>
+
+                <!-- Body -->
+                <tr>
+                    <td style="padding:32px;">
+
+                        <h2 style="color:#111827; margin-top:0;">
+                            Subscription Payment Confirmed
+                        </h2>
+
+                        <p style="color:#374151; font-size:15px; line-height:1.6;">
+                            Hello <strong>{{ADMIN_NAME}}</strong>,
+                        </p>
+
+                        <p style="color:#374151; font-size:15px; line-height:1.6;">
+                            Your payment for the <strong>{{PLAN_NAME}}</strong> subscription has been
+                            <strong>successfully processed</strong>.
+                        </p>
+
+                        <p style="color:#374151; font-size:15px; line-height:1.6;">
+                            For your records, we have attached the official
+                            <strong>invoice</strong> for this transaction.
+                        </p>
+
+                        <!-- Payment Info -->
+                        <table width="100%" cellpadding="6" cellspacing="0"
+                               style="margin-top:20px; border-collapse:collapse;">
+
+                            <tr>
+                                <td style="font-size:14px; color:#6b7280;">Payment ID</td>
+                                <td style="font-size:14px; color:#111827;">{{PAYMENT_ID}}</td>
+                            </tr>
+
+                            <tr>
+                                <td style="font-size:14px; color:#6b7280;">Order ID</td>
+                                <td style="font-size:14px; color:#111827;">{{ORDER_ID}}</td>
+                            </tr>
+
+                            <tr>
+                                <td style="font-size:14px; color:#6b7280;">Amount Paid</td>
+                                <td style="font-size:14px; color:#111827;">₹ {{AMOUNT}}</td>
+                            </tr>
+
+                        </table>
+
+                        <p style="color:#6b7280; font-size:13px; margin-top:30px;">
+                            If you have any questions regarding this payment or invoice,
+                            please contact our support team.
+                        </p>
+
+                        <hr style="border:none; border-top:1px solid #e5e7eb; margin:28px 0;">
+
+                        <p style="font-size:12px; color:#9ca3af;">
+                            Campus-Connect Support:
+                            <a href="mailto:campusconnector.team@gmail.com"
+                               style="color:#16a34a; text-decoration:none;">
+                                campusconnector.team@gmail.com
+                            </a>
+                        </p>
+
+                    </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                    <td style="background:#f0fdf4; text-align:center; padding:15px;">
+                        <p style="margin:0; font-size:12px; color:#6b7280;">
+                            © 2026 Campus-Connect • College Administration
+                        </p>
+                    </td>
+                </tr>
+
+            </table>
+
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>

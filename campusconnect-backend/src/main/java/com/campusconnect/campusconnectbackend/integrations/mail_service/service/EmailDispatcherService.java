@@ -7,6 +7,7 @@ import com.campusconnect.campusconnectbackend.integrations.mail_service.dto.jour
 import com.campusconnect.campusconnectbackend.integrations.mail_service.dto.reviewer.ReviewerAssignmentDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -112,16 +113,29 @@ public class EmailDispatcherService {
         );
     }
 
-    // send otp email (for reset password)
-    public boolean sendResetPasswordOtp(String email, String otp) {
-        String html = emailSenderService
-                .loadEmailTemplate("reset_password_otp.html")
-                .replace("{{OTP_CODE}}", otp);
+    public void sendInvoiceMail(
+            String email,
+            String adminName,
+            String planName,
+            String paymentId,
+            String orderId,
+            int amount,
+            MultipartFile invoiceFile
+    ) {
 
-        return emailSenderService.sendHtmlEmail(
+        String html = emailSenderService
+                .loadEmailTemplate("payment_invoice.html")
+                .replace("{{ADMIN_NAME}}", adminName)
+                .replace("{{PLAN_NAME}}", planName)
+                .replace("{{PAYMENT_ID}}", paymentId)
+                .replace("{{ORDER_ID}}", orderId)
+                .replace("{{AMOUNT}}", String.valueOf(amount));
+
+        emailSenderService.sendHtmlEmailWithAttachment(
                 email,
-                "RESET PASSWORD OTP - Campus-Connect",
-                html
+                "Payment Invoice – Campus-Connect",
+                html,
+                invoiceFile
         );
     }
 }

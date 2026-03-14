@@ -114,13 +114,13 @@ public class JournalistController {
     /* Settings */
 
     // get journalist profile
-    @GetMapping("/journalist/profile")
+    @GetMapping("/profile")
     public JournalistProfileDto getJournalist() {
         return journalistAuth.getProfile(authService.getCurrentUserId());
     }
 
     // update journalist profile
-    @PutMapping("/journalist/profile")
+    @PutMapping("/profile")
     public MessageResponseDto updateJournalist(@RequestBody JournalistProfileDto request) {
         return journalistAuth.updateProfile(authService.getCurrentUserId(), request);
     }

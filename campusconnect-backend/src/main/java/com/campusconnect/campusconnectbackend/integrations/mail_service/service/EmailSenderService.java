@@ -9,10 +9,12 @@ import org.springframework.core.io.ResourceLoader;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -102,6 +104,41 @@ public class EmailSenderService {
         catch (Exception e) {
             System.out.println(e.getMessage());
             return new MessageResponseDto("Failed to send verification code, please try again.");
+        }
+    }
+
+    public boolean sendHtmlEmailWithAttachment(
+            String to,
+            String subject,
+            String htmlContent,
+            MultipartFile attachment
+    ) {
+        try {
+
+            MimeMessage message = mailSender.createMimeMessage();
+
+            MimeMessageHelper helper =
+                    new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom("Campus-Connect <campusconnector.team@gmail.com>");
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(htmlContent, true);
+
+            if (attachment != null) {
+                helper.addAttachment(
+                        Objects.requireNonNull(attachment.getOriginalFilename()),
+                        attachment
+                );
+            }
+
+            mailSender.send(message);
+
+            return true;
+
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return false;
         }
     }
 }

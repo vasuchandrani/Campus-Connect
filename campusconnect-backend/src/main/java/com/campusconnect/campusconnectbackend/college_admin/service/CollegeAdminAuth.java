@@ -4,6 +4,9 @@ import com.campusconnect.campusconnectbackend.college.College;
 import com.campusconnect.campusconnectbackend.college.entity.CollegeSubscription;
 import com.campusconnect.campusconnectbackend.college.repository.CollegeSubscriptionRepository;
 import com.campusconnect.campusconnectbackend.college_admin.CollegeAdmin;
+import com.campusconnect.campusconnectbackend.integrations.cloudinary.service.CloudinaryService;
+import com.campusconnect.campusconnectbackend.integrations.mail_service.service.EmailDispatcherService;
+import com.campusconnect.campusconnectbackend.integrations.razorpay.service.GenerateInvoice;
 import com.campusconnect.campusconnectbackend.security.security_management.dto.req.ChangePasswordRequestDto;
 import com.campusconnect.campusconnectbackend.security.security_management.dto.res.CollegeAdminProfileDto;
 import com.campusconnect.campusconnectbackend.dto.request.LoginRequestDto;
@@ -20,6 +23,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 
@@ -33,6 +37,9 @@ public class CollegeAdminAuth {
     private final PasswordEncoder passwordEncoder;
     private final CollegeRepository collegeRepository;
     private final CollegeSubscriptionRepository collegeSubscriptionRepository;
+    private final GenerateInvoice generateInvoice;
+    private final EmailDispatcherService emailDispatcherService;
+    private final CloudinaryService cloudinaryService;
 
     // college-admin signup
     @Transactional
@@ -59,6 +66,17 @@ public class CollegeAdminAuth {
         // save college in db
         College savedCollege = collegeRepository.save(college);
 
+        // create college-admin
+        CollegeAdmin admin = new CollegeAdmin();
+        admin.setFullName(request.getFullName());
+        admin.setEmail(request.getEmail());
+        admin.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        admin.setPhoneNumber(request.getPhoneNumber());
+
+        admin.setCollege(savedCollege);
+        // save college-admin in db
+        CollegeAdmin savedAdmin = collegeAdminRepository.save(admin);
+
         // create college-subscription
         CollegeSubscription subscription = new CollegeSubscription();
 
@@ -70,19 +88,35 @@ public class CollegeAdminAuth {
         subscription.setStartDate(now);
         subscription.setEndDate(endDate);
         subscription.setCollege(savedCollege);
+        subscription.setAdminName(savedAdmin.getFullName());
+        subscription.setAdminEmail(savedAdmin.getEmail());
+        subscription.setPaymentId(plan.getPaymentId());
+        subscription.setOrderId(plan.getOrderId());
+
         // save subscription in db
-        collegeSubscriptionRepository.save(subscription);
+        CollegeSubscription savedSubscription = collegeSubscriptionRepository.save(subscription);
 
-        // create college-admin
-        CollegeAdmin admin = new CollegeAdmin();
-        admin.setFullName(request.getFullName());
-        admin.setEmail(request.getEmail());
-        admin.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        admin.setPhoneNumber(request.getPhoneNumber());
+        // generate invoice
+        MultipartFile invoice = generateInvoice.generateInvoice(savedSubscription);
 
-        admin.setCollege(savedCollege);
-        // save college-admin in db
-        CollegeAdmin savedAdmin = collegeAdminRepository.save(admin);
+        // send mail to college-admin
+        emailDispatcherService.sendInvoiceMail(
+                savedAdmin.getEmail(),
+                savedAdmin.getFullName(),
+                savedSubscription.getPlanName(),
+                savedSubscription.getPaymentId(),
+                savedSubscription.getOrderId(),
+                savedSubscription.getAmount(),
+                invoice
+        );
+
+        // store invoice on cloudinary and get url
+        String path = "Invoices" + college.getId();
+        String invoiceUrl = cloudinaryService.uploadPdf(invoice, path);
+
+        // save invoice-download url
+        savedSubscription.setInvoiceUrl(invoiceUrl);
+        collegeSubscriptionRepository.save(savedSubscription);
 
         // generate jwt-token
         String token = jwtTokenProvider.generateToken(
@@ -229,5 +263,12 @@ public class CollegeAdminAuth {
         collegeAdminRepository.save(admin);
 
         return new MessageResponseDto("Your password changed successfully!");
+    }
+
+    public CollegeAdmin getCollegeAdminByEmail(String email) {
+
+        return collegeAdminRepository.findByEmail(email).orElseThrow(
+                () -> new RuntimeException("College-admin not found, Try again!")
+        );
     }
 }

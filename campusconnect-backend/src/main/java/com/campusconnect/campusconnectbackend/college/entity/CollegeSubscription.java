@@ -27,6 +27,20 @@ public class CollegeSubscription {
     @Column(name = "amount", nullable = false)
     private int amount;
 
+    @Column(name = "admin_name", nullable = false)
+    private String adminName;
+
+    @Column(name = "admin_email", nullable = false)
+    private String adminEmail;
+
+    @Column(name = "payment_id", nullable = false)
+    private String paymentId;
+
+    @Column(name = "order_id", nullable = false)
+    private String orderId;
+
+    private String invoiceUrl;
+
     @Column(name = "start_date", nullable = false)
     private LocalDateTime startDate;
 
