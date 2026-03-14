@@ -131,4 +131,11 @@ public class ReviewerAuth {
 
         return new MessageResponseDto("Your password changed successfully!");
     }
+
+    public Reviewer getReviewerByEmail(String email) {
+
+        return reviewerRepository.findByEmail(email).orElseThrow(
+                () -> new RuntimeException("Reviewer not found, Try again!")
+        );
+    }
 }

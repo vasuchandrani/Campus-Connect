@@ -296,5 +296,8 @@ public class CollegeAdminController {
         return collegeSubscriptionService.getSubscription(authService.getCurrentCollegeId());
     }
 
-
+    @GetMapping("/subscription/history")
+    public List<CollegeSubscriptionResponseDto> getSubscriptionHistory() {
+        return collegeSubscriptionService.getSubscriptionHistory(authService.getCurrentCollegeId());
+    }
 }

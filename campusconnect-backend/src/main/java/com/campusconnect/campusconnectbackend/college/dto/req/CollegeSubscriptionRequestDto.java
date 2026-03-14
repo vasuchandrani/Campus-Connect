@@ -18,5 +18,11 @@ public class CollegeSubscriptionRequestDto {
     @NotNull
     private int durationInMonths;
 
+    @NotBlank
+    private String paymentId;
+
+    @NotBlank
+    private String orderId;
+
     private boolean isLimited = false;
 }

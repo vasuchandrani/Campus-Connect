@@ -16,4 +16,14 @@ public class CollegeSubscriptionResponseDto {
     private LocalDateTime startDate;
 
     private LocalDateTime endDate;
+
+    private String adminName;
+
+    private String adminEmail;
+
+    private String paymentId;
+
+    private String orderId;
+
+    private String invoiceUrl;
 }

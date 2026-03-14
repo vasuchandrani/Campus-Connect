@@ -37,7 +37,7 @@ public class CloudinaryService {
 
 
     // upload pdf
-    public String uploadPdf(MultipartFile file, Long studentId) {
+    public String uploadPdf(MultipartFile file, String path) {
 
         try {
 
@@ -46,7 +46,7 @@ public class CloudinaryService {
                     file.getBytes(),
                     ObjectUtils.asMap(
                             "resource_type", "raw",
-                            "folder", "research-papers" + studentId
+                            "folder", path
                     )
             );
 

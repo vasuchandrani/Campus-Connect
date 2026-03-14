@@ -107,6 +107,12 @@ public class EventOverviewService {
         event.setOverview(request.getOverview());
         eventRepository.save(event);
 
+        // delete old data
+        eventImagesRepository.deleteAllByEvent_Id(eventId);
+        eventSpeakerRepository.deleteAllByEvent_Id(eventId);
+        eventSponsorRepository.deleteAllByEvent_Id(eventId);
+        eventWinnerRepository.deleteAllByEvent_Id(eventId);
+
         // store images on cloudinary
         List<String> imageUrls = new ArrayList<>(request.getOldImages());
         if (images != null && !images.isEmpty()) {
