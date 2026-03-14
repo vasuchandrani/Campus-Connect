@@ -43,13 +43,6 @@ const AdminUsersPage = () => {
   const [journalists, setJournalists] = useState([]);
   const [reviewers, setReviewers] = useState([]);
   const [journalistRequests, setJournalistRequests] = useState([
-    {
-      id: 1,
-      studentName: "Alice Johnson",
-      studentId: "ituos039",
-      reason: "I want to share campus news and events.",
-      experience: "I have experience writing for the college newsletter.",
-    },
   ]);
 
   const [students, setStudents] = useState([]);
@@ -877,7 +870,7 @@ const AdminUsersPage = () => {
                         onChange={(e) => setExcelFile(e.target.files[0])}
                       />
 
-                      <Button className="w-full" onClick={addMultipleStudents} disabled={requesting}>Upload & Add Students</Button>
+                      {requesting ? (<Button className="w-full" onClick={addMultipleStudents} disabled={requesting}>Processing your excel Don't exit</Button>): (<Button className="w-full" onClick={addMultipleStudents} disabled={requesting}>Upload & Add Students</Button>)}
                     </TabsContent>
                   </Tabs>
                 </DialogContent>
