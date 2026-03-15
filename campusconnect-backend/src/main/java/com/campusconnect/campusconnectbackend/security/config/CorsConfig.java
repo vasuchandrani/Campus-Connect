@@ -20,8 +20,8 @@ public class CorsConfig {
         config.setAllowedOrigins(List.of(
                 "http://localhost:5173",
                 "http://127.0.0.1:5173",
-                "https://campus-connect-frontend-2ch7.onrender.com",
-                "https://campus-connect-seven-alpha.vercel.app"
+                "https://campus-connect-seven-alpha.vercel.app",
+                "https://campus-conect.xyz"
         ));
 
         // Allowed HTTP Methods
