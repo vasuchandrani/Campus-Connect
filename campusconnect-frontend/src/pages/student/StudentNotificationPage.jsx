@@ -16,7 +16,7 @@ const StudentNotificationPage = () => {
   const [announcements, setAnnouncements] = useState([]);
   const [viewAnnouncement, setViewAnnouncement] = useState(null);
   // Base URL for API calls related to student announcements
-  const baseUrl = "https://campus-connect-nzc9.onrender.com/campus-connect/student";
+  const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/student`;
 
 
         const navigate = useNavigate();
@@ -43,7 +43,7 @@ const StudentNotificationPage = () => {
         toast({
           title: "Error",
           description: "Failed to fetch announcements",
-          status: "error",
+          variant: "destructive",
         });
       });
   };

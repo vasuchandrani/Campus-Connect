@@ -28,7 +28,7 @@ const ClubDetailAdminPage = () => {
   const navigate = useNavigate();
 
   // Base URL for API calls related to this club
-  const baseUrl = `https://campus-connect-nzc9.onrender.com/campus-connect/college-admin/clubs/${clubId}`;
+  const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/college-admin/clubs/${clubId}`;
 
 
   // State variables

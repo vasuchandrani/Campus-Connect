@@ -27,7 +27,7 @@ const AdminNewspaperPage = () => {
   const navigate = useNavigate();
 
   // Base URL for API calls related to college admin
-  const baseUrl = "https://campus-connect-nzc9.onrender.com/campus-connect/college-admin";
+  const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/college-admin`;
 
     const { routeProtection } = useAuth();
   

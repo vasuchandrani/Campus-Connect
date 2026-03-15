@@ -26,7 +26,7 @@ import { useAuth } from "../../contexts/AuthContext";
 
 const EventsPage = () => {
   // Base URL for API calls related to student events
-  const baseUrl = "https://campus-connect-nzc9.onrender.com/campus-connect/student";
+  const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/student`;
 
   const navigate = useNavigate();
 

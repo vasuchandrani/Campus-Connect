@@ -37,7 +37,7 @@ const ReviewerSetting = () => {
   const fetchProfile = async () => {
     try {
       const response = await fetch(
-        "https://campus-connect-nzc9.onrender.com/campus-connect/reviewer/profile",
+        `${import.meta.env.VITE_BACKEND_URL}/campus-connect/reviewer/profile`,
         {
           headers: {
             "Content-Type": "application/json",
@@ -75,7 +75,7 @@ const ReviewerSetting = () => {
   //update profile
   const saveChanges = async () => {
     setRequesting(true);
-    await fetch("https://campus-connect-nzc9.onrender.com/campus-connect/reviewer/profile", {
+    await fetch(`${import.meta.env.VITE_BACKEND_URL}/campus-connect/reviewer/profile`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -124,7 +124,7 @@ const ReviewerSetting = () => {
     }
 
     setRequesting(true);
-    await fetch("https://campus-connect-nzc9.onrender.com/campus-connect/security/change-pwd", {
+    await fetch(`${import.meta.env.VITE_BACKEND_URL}/campus-connect/security/change-pwd`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",

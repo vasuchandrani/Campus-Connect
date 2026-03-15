@@ -13,7 +13,7 @@ const ClubMembersPage = () => {
   const { clubId } = useParams();
 
   // Base URL for API calls related to this club
-  const baseUrl = `https://campus-connect-nzc9.onrender.com/campus-connect/clubs/${clubId}/member`;
+  const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/member`;
 
   //---------------------------Nav----------------------------//
   const updateNavItems = () => {

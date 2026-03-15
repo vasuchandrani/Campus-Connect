@@ -50,7 +50,7 @@ const ReviewerDashboard = () => {
 
   const [requesting,setRequesting] = useState(false);
 
-  const baseUrl = "https://campus-connect-nzc9.onrender.com/campus-connect/reviewer";
+  const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/reviewer`;
 
         const { routeProtection } = useAuth();
     
