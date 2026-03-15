@@ -23,7 +23,7 @@ const StudentLogin = ({
   const [confirmPassword, setConfirmPassword] = useState("");
   const navigate = useNavigate();
 
-  const baseUrl = "https://campus-connect-nzc9.onrender.com/campus-connect/security";
+  const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/security`;
   //send otp
   const handleSendOtp = async (e) => {
     e.preventDefault();

@@ -25,7 +25,7 @@ const AdminEventDetailPage = () => {
   const navigate = useNavigate();
 
   //base URL for API calls related to this event
-  const baseUrl = `https://campus-connect-nzc9.onrender.com/campus-connect/college-admin/events/finished/${id}`;
+  const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/college-admin/events/finished/${id}`;
 
   //state variables
   const [event, setEvent] = useState({});

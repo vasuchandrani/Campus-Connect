@@ -27,7 +27,7 @@ const EventDetailPage = () => {
   const navigate = useNavigate();
 
   // Base URL for API calls related to student events
-  const baseUrl = `https://campus-connect-nzc9.onrender.com/campus-connect/student/events/finished/${id}`;
+  const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/student/events/finished/${id}`;
 
 
     const { routeProtection } = useAuth();

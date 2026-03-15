@@ -50,7 +50,7 @@ const StudentDashboard = () => {
   const [userName, setUserName] = useState("");
 
   // Base URL for API calls related to student dashboard
-  const baseUrl = "https://campus-connect-nzc9.onrender.com/campus-connect/student";
+  const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/student`;
 
     const { routeProtection } = useAuth();
     useEffect(() => {

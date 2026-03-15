@@ -44,7 +44,7 @@ const ClubDetailPage = () => {
   const [clubMembers, setClubMembers] = useState([]);
   const [isFollowed, setIsFollowed] = useState(true);
   // Base URL for API calls related to student clubs
-  const baseUrl = "https://campus-connect-nzc9.onrender.com/campus-connect/student";
+  const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/student`;
 
     const { routeProtection } = useAuth();
     useEffect(() => {

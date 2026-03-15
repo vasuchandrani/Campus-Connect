@@ -23,7 +23,7 @@ const ClubAdminAnnouncementsPage = () => {
   //Take clubId from URL params
   const { clubId } = useParams();
   //Base URL for API calls
-  const baseurl = `https://campus-connect-nzc9.onrender.com/campus-connect/clubs/${clubId}/admin`;
+  const baseurl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/admin`;
 
   // State for announcements list and currently viewed announcement
   const [clubAnnouncements, setClubAnnouncements] = useState([]);

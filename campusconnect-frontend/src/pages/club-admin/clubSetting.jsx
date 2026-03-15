@@ -91,7 +91,7 @@ const handleDialogChange = (open) => {
       return;
     }
     setRequesting(true);
-    await fetch(`https://campus-connect-nzc9.onrender.com/campus-connect/security/send-code`, {
+    await fetch(`${import.meta.env.VITE_BACKEND_URL}/campus-connect/security/send-code`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -150,7 +150,7 @@ const handleDialogChange = (open) => {
       return;
     }
     setRequesting(true);
-    await fetch(`https://campus-connect-nzc9.onrender.com/campus-connect/clubs/${clubId}/admin/details/handover`, {
+    await fetch(`${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/admin/details/handover`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -218,7 +218,7 @@ const handleSaveChanges = async () => {
   try {
     setRequesting(true);
     const response = await fetch(
-      `https://campus-connect-nzc9.onrender.com/campus-connect/clubs/${clubId}/admin/details`,
+      `${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/admin/details`,
       {
         method: "PUT",
         headers: {
@@ -260,7 +260,7 @@ const handleSaveChanges = async () => {
 //delete club
 const deleteClub = async () => {
   setRequesting(true);
-  await fetch(`https://campus-connect-nzc9.onrender.com/campus-connect/clubs/${clubId}/admin/details/delete`, {
+  await fetch(`${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/admin/details/delete`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
@@ -300,7 +300,7 @@ const deleteClub = async () => {
 const getDetails = async () => {
   try {
     const response = await fetch(
-      `https://campus-connect-nzc9.onrender.com/campus-connect/clubs/${clubId}/admin/details`,
+      `${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/admin/details`,
       {
         method: "GET",
         headers: {
