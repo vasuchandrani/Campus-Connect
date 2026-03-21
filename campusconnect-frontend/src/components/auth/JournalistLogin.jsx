@@ -70,6 +70,26 @@ const JournalistLogin = ({ onBack }) => {
   //handle send otp for forgot password
   const handleSendOtp = async(e) => {
     e.preventDefault();
+    setRequesting(true);
+    if(resetEmail.trim()===""){
+      toast({
+        title: "Error",
+        description: "Email cannot be empty.",
+        variant: "destructive",
+      });
+        setRequesting(false);
+      return;
+     }
+     if(!resetEmail.includes("@") || !resetEmail.includes(".")){
+      toast({
+        title: "Error",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+        setRequesting(false);
+      return;
+     }
+    
     await fetch(`${baseUrl}/send-code`, {
       method: "POST",
       headers: {
@@ -109,6 +129,23 @@ const JournalistLogin = ({ onBack }) => {
   //handle changing password
   const handleForgot = async (e) => {
     e.preventDefault();
+    if(otp.trim()===""||otp.length!==6){
+      toast({
+        title: "Error",
+        description: "OTP must be a 6-digit number.",
+        variant: "destructive",
+      });
+      return;
+     }
+     if(newPassword.trim()===""||newPassword.length<6){
+      toast({
+        title: "Error",
+        description: "New password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      return;
+     }
+    
     setRequesting(true);
     if (newPassword !== confirmPassword) {
       toast({
@@ -166,7 +203,7 @@ const JournalistLogin = ({ onBack }) => {
               size="sm"
               className="absolute left-4 top-4"
               onClick={onBack}
-              desabled={requesting}
+              disabled={requesting}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
@@ -177,7 +214,7 @@ const JournalistLogin = ({ onBack }) => {
               size="sm"
               className="absolute left-4 top-4"
               onClick={() => setStep("login")}
-              desabled={requesting}
+              disabled={requesting}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back

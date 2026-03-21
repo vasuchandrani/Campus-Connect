@@ -89,6 +89,15 @@ const StudentSignup = ({ onBack }) => {
   //send otp to verify email
   const handleSendOTP = async (e) => {
     e.preventDefault();
+    if(collegeEmail.trim()===""){
+      toast({
+        title: "Error",
+        description: "Email cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+     }
+    e.preventDefault();
     // veryfy domain
     let domain = "";
     colleges.forEach((element) => {
@@ -194,7 +203,40 @@ const StudentSignup = ({ onBack }) => {
 
   // final submission
   const handleFinalSubmit = async (e) => {
-    e.preventDefault();
+     e.preventDefault();
+    if(formData.fullName.trim()===""){
+      toast({
+        title: "Error",
+        description: "Full name cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if(formData.id.trim()===""){
+      toast({
+        title: "Error",
+        description: "Student ID cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if(formData.password.trim()===""||formData.password.length<6){
+      toast({
+        title: "Error",
+        description: "Password cannot be empty and must be at least 6 characters long.",
+        variant: "destructive",
+      });
+       return;
+     }
+     if(formData.gender.trim()===""){
+      toast({
+        title: "Error",
+        description: "Please select a gender.",
+        variant: "destructive",
+      });
+       return;
+    }
+   
     setRequesting(true);
     formData.collegeId = selectedCollegeId;
     const redirectUrl = await studentSignup(formData);

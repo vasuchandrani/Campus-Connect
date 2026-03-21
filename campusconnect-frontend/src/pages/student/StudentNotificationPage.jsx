@@ -1,33 +1,39 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
-import { Badge } from "../../components/ui/Badge";
 import { studentNavItems } from "../../config/Navigation";
-import { Eye } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/Dialog";
-import { Button } from "../../components/ui/Button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/ui/Dialog";
 import { toast } from "../../hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-
+import Loading from "../../components/ui/Loading";
+import AnnouncementCard from "../../components/ui/AnnouncementCard";
+import EmptyState from "../../components/ui/EmptyState";
+import {BellOff} from "lucide-react";
 
 const StudentNotificationPage = () => {
   // State variables
   const [announcements, setAnnouncements] = useState([]);
   const [viewAnnouncement, setViewAnnouncement] = useState(null);
+  const [loading, setLoading] = useState(true);
   // Base URL for API calls related to student announcements
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/student`;
 
-
-        const navigate = useNavigate();
-      const { routeProtection } = useAuth();
-      useEffect(() => {
-        if (!routeProtection("STUDENT")) {
-          navigate("/auth");
-        }
-      },[]);
-  // Fetch announcements 
+  const navigate = useNavigate();
+  const { routeProtection } = useAuth();
+  useEffect(() => {
+    if (!routeProtection("STUDENT")) {
+      navigate("/auth");
+    }
+  }, [navigate, routeProtection]);
+  // Fetch announcements
   const fetchAnnouncements = () => {
+    setLoading(true);
     fetch(`${baseUrl}/notifications`, {
       method: "GET",
       headers: {
@@ -42,47 +48,68 @@ const StudentNotificationPage = () => {
       .catch((err) => {
         toast({
           title: "Error",
-          description: "Failed to fetch announcements",
+          description: "Failed to fetch notifications",
           variant: "destructive",
         });
+      })
+      .finally(() => {
+        setLoading(false);
       });
   };
 
-  // Load announcements on component mount
+  // Load notifications on component mount
   useEffect(() => {
     fetchAnnouncements();
   }, []);
 
+  if (loading) {
+    return (
+      <DashboardLayout
+        navItems={studentNavItems}
+        title="Notifications"
+        bell={true}
+      >
+        <Card>
+          <CardContent className="p-6 text-center">
+            <Loading />
+          </CardContent>
+        </Card>
+      </DashboardLayout>
+    );
+  }
+
   return (
-    <DashboardLayout navItems={studentNavItems} title="Announcements" bell={true}>
+    <DashboardLayout
+      navItems={studentNavItems}
+      title="Notifications"
+      bell={true}
+    >
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold">Announcements</h1>
+          <h1 className="text-2xl font-bold">Notifications</h1>
           <p className="text-muted-foreground">
-            Stay updated with club announcements
+            Stay updated with notifications
           </p>
         </div>
-        {/* Announcements List */}
-        {/* If no announcements, show empty state */}
+        {/* Notifications List */}
+        {/* If no notifications, show empty state */}
         {announcements.length === 0 ? (
           <EmptyState
-            icon={<i className="ph ph-megaphone-simple text-4xl" />}
-            title="No Announcements"
-            desc="There are no announcements at the moment."
+            icon={<BellOff className="text-4xl" />}
+            title="No Notifications"
+            desc="There are no notifications at the moment."
           />
         ) : (
           <div>
-
-            {/* Announcement details dialog */}
+            {/* Notification details dialog */}
             <Dialog
               open={!!viewAnnouncement}
               onOpenChange={(open) => !open && setViewAnnouncement(null)}
             >
               <DialogContent className="max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Announcement Details</DialogTitle>
-                  
+                  <DialogTitle>Notification Details</DialogTitle>
                 </DialogHeader>
 
                 {viewAnnouncement && (
@@ -100,7 +127,10 @@ const StudentNotificationPage = () => {
                       <p className="text-sm font-medium text-muted-foreground">
                         Date
                       </p>
-                      <p>{viewAnnouncement.createdAt.split("T")[0]} at {viewAnnouncement.createdAt.split("T")[1].split(".")[0]}</p>
+                      <p>
+                        {viewAnnouncement.createdAt.split("T")[0]} at{" "}
+                        {viewAnnouncement.createdAt.split("T")[1].split(".")[0]}
+                      </p>
                     </div>
 
                     <div>
@@ -113,11 +143,14 @@ const StudentNotificationPage = () => {
                 )}
               </DialogContent>
             </Dialog>
-            
-          
-          {announcements.map((a) => (
-            <AnnouncementCard key={a.id} announcement={a} onView={() => setViewAnnouncement(a)} />
-          ))}
+
+            {announcements.map((a) => (
+              <AnnouncementCard
+                key={a.id}
+                announcement={a}
+                onView={() => setViewAnnouncement(a)}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -125,49 +158,6 @@ const StudentNotificationPage = () => {
   );
 };
 
-
 //-----------------------------HELPER COMPONENTS----------------------------//
 
-const EmptyState = ({ icon, title, desc }) => (
-  <Card className="border-dashed ">
-    <CardContent className="p-8 text-center">
-      {icon}
-      <h4 className="font-medium mt-4">{title}</h4>
-      <p className="text-sm text-muted-foreground">{desc}</p>
-    </CardContent>
-  </Card>
-);
-
-const AnnouncementCard = ({ announcement, onView }) => (
-  <Card className="mb-3 pt-4">
-    <CardContent className="p-4 flex justify-between items-start gap-4">
-      {/* Left side: Text */}
-      <div>
-        <div className="flex gap-2 mb-1">
-          <Badge variant="outline">{announcement.clubName}</Badge>
-        </div>
-        <h4 className="font-medium">{announcement.title}</h4>
-        
-        <p className="text-sm text-muted-foreground line-clamp-2">
-          {announcement.content.substring(0, 35) + (announcement.content.length > 35 ? '...' : '')}
-        </p>
-      </div>
-
-      {/* Right side: Eye button and date */}
-      <div className="flex flex-col items-end gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onView} 
-        >
-          <Eye className="w-4 h-4" />
-        </Button>
-        <span className="text-xs text-muted-foreground">{announcement.createdAt.split("T")[0]} at {announcement.createdAt.split("T")[1].split(".")[0]}</span>
-      </div>
-    </CardContent>
-  </Card>
-);
-
-
 export default StudentNotificationPage;
-

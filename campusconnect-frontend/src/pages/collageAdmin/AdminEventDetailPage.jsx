@@ -15,9 +15,10 @@ import {
 } from "lucide-react";
 import { collegeAdminNavItems } from "../../config/Navigation";
 import { marked } from "marked";
-import { useMemo,useEffect,useState } from "react";
+import { useMemo,useEffect,useState, useCallback } from "react";
 import { toast } from "../../hooks/use-toast";
 import { useAuth } from "../../contexts/AuthContext";
+import Loading from "../../components/ui/Loading";
 
 const AdminEventDetailPage = () => {
   // Get event ID from URL params
@@ -29,6 +30,7 @@ const AdminEventDetailPage = () => {
 
   //state variables
   const [event, setEvent] = useState({});
+  const [loading, setLoading] = useState(true);
 
     const { routeProtection } = useAuth();
   
@@ -36,20 +38,20 @@ const AdminEventDetailPage = () => {
       if (!routeProtection("COLLEGE_ADMIN")) {
         navigate("/auth");
       }
-    },[]);
+    },[navigate,routeProtection]);
 
 
   //formatDate function
-  const formatDate = (dateTime) => {
+  const formatDate = useCallback((dateTime) => {
     if (!dateTime) return { date: "", time: "" };
     const [date, time] = dateTime.split("T");
     return { date, time: time.substring(0, 5) };
-  };
+  }, []);
 
   //fetch event details
   const fetchEventDetails = () => {
     const token = localStorage.getItem("authToken");
-
+    setLoading(true);
     fetch(baseUrl, {
       method: "GET",
       headers: {
@@ -57,16 +59,23 @@ const AdminEventDetailPage = () => {
         Authorization: `Bearer ${token}`,
       },
     })
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to fetch event details");
+        }
+        return res.json();
+      })
       .then((data) => {
         setEvent(data);
       })
       .catch((err) => {
         toast({
           title: "Error",
-          description: "Failed to fetch event details",
+          description: err.message || "Failed to fetch event details",
           status: "error",
         });
+      }).finally(() => {
+        setLoading(false);
       });
   };
 
@@ -83,6 +92,17 @@ const AdminEventDetailPage = () => {
     return marked.parse(event.overview.trim());
   }, [event?.overview]);
 
+  if(loading){
+    return (
+      <DashboardLayout navItems={navItems} title="Event Details">
+        <Card>
+          <CardContent className="p-6 text-center">
+            <Loading />
+          </CardContent>
+        </Card>
+      </DashboardLayout>
+    );
+  }
   // If event is not found, show a message
   if (!event) {
     return (

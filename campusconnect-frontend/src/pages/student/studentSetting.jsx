@@ -44,7 +44,7 @@ const StudentSetting = () => {
         if (!routeProtection("STUDENT")) {
           navigate("/auth");
         }
-      },[]);
+      },[navigate,routeProtection]);
 
   //update password
   const updatePassword = async () => {
@@ -52,6 +52,14 @@ const StudentSetting = () => {
       toast({
         title: "Error",
         description: "New password and confirm password do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+    if(newPassword.length<6||newPassword.trim()===""){
+      toast({
+        title: "Error",
+        description: "New password must be at least 6 characters long",
         variant: "destructive",
       });
       return;
@@ -140,6 +148,22 @@ const StudentSetting = () => {
 
   //update profile
   const saveChanges = async () => {
+    if(fullName.trim()===""){
+      toast({
+        title: "Error",
+        description: "Full name cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if(gender.trim()===""){
+      toast({
+        title: "Error",
+        description: "Please select a gender.",
+        variant: "destructive",
+      });
+      return;
+    }
     setRequesting(true);
     await fetch(`${baseUrl}/profile`, {
       method: "PUT",

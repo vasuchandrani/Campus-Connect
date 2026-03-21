@@ -13,7 +13,7 @@ import {
   DialogTrigger,
   DialogDescription,
 } from "../../components/ui/Dialog";
-import { Plus, Clock, MapPin, Edit, Trash2, Eye } from "lucide-react";
+import { Plus, Clock, MapPin, Edit, Trash2, Eye,Calendar } from "lucide-react";
 import { clubAdminNavItems } from "../../config/Navigation";
 import { useParams } from "react-router-dom";
 import { toast } from "../../hooks/use-toast";
@@ -27,6 +27,8 @@ import { useNavigate } from "react-router-dom";
 import { FileText } from "lucide-react";
 import { marked } from "marked";
 import { Badge } from "../../components/ui/Badge";
+import Loading from "../../components/ui/Loading";
+import EmptyState from "../../components/ui/EmptyState";
 
 const ClubAdminEventsPage = () => {
   // Get clubId from URL params
@@ -85,9 +87,12 @@ const ClubAdminEventsPage = () => {
     sponsors: [],
   });
   const [now, setNow] = useState(new Date());
+  const [loading, setLoading] = useState({
+    upcoming: true,
+    past: true,
+  });
 
-
-//cleaning form data
+  //cleaning form data
   const resetCreateEventForm = () => {
     setNewEvent({
       title: "",
@@ -160,7 +165,7 @@ const ClubAdminEventsPage = () => {
 
     setNewImages((prev) => [...prev, ...files]);
 
-    e.target.value = null; 
+    e.target.value = null;
   };
 
   //all image
@@ -183,42 +188,55 @@ const ClubAdminEventsPage = () => {
     return "FINISHED";
   };
 
-  // Fetch club events
-  const fetchClubEvents = async () => {
-    const token = localStorage.getItem("authToken");
+  const fetchPastEvents = async () => {
+    try {
+      setLoading((prev) => ({ ...prev, past: true }));
+      const res = await fetch(`${baseUrl}/events/finished`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
 
-    await fetch(`${baseUrl}/events/finished`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setPastEvents(data);
-      })
-      .catch((err) =>
-        toast({
-          title: "Error",
-          description: "Failed to fetch events",
-          variant: "destructive",
-        }),
-      );
-
-    await fetch(`${baseUrl}/events/active`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setUpcomingEvents(data);
-      })
-      .catch((err) =>
-        toast({
-          title: "Error",
-          description: "Failed to fetch upcoming events",
-          variant: "destructive",
-        }),
-      );
+      const data = await res.json();
+      setPastEvents(data);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch events",
+        variant: "destructive",
+      });
+    }
+    finally {      setLoading((prev) => ({ ...prev, past: false }));  }
   };
 
-  //remove Image 
+  const fetchUpcomingEvents = async () => {
+    try {
+      setLoading((prev) => ({ ...prev, upcoming: true }));
+      const res = await fetch(`${baseUrl}/events/active`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+
+      const data = await res.json();
+      setUpcomingEvents(data);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch upcoming events",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading((prev) => ({ ...prev, upcoming: false }));
+    }
+  };
+
+  // Fetch club events
+  const fetchClubEvents = async () => {
+    await Promise.all([fetchPastEvents(), fetchUpcomingEvents()]);
+  };
+
+  //remove Image
   const removeImage = (index) => {
     if (index < existingImages.length) {
       setExistingImages((prev) => prev.filter((_, i) => i !== index));
@@ -243,7 +261,6 @@ const ClubAdminEventsPage = () => {
     };
 
     try {
-
       const formData = new FormData();
 
       formData.append(
@@ -293,9 +310,8 @@ const ClubAdminEventsPage = () => {
         title: "Error",
         description: error.message || "Failed to create event",
         variant: "destructive",
-      })
-    }
-    finally {    
+      });
+    } finally {
       setRequesting(false);
     }
   };
@@ -372,11 +388,10 @@ const ClubAdminEventsPage = () => {
         description: err.message || "Failed to update event",
         variant: "destructive",
       });
-    }
-    finally{
-    setDialogType(null);
-    setSelectedEvent(null);
-    setRequesting(false);
+    } finally {
+      setDialogType(null);
+      setSelectedEvent(null);
+      setRequesting(false);
     }
   };
 
@@ -412,7 +427,8 @@ const ClubAdminEventsPage = () => {
           description: "Failed to delete event",
           variant: "destructive",
         });
-      }).finally(() => {
+      })
+      .finally(() => {
         setRequesting(false);
       });
   };
@@ -421,7 +437,6 @@ const ClubAdminEventsPage = () => {
   useEffect(() => {
     fetchClubEvents();
   }, [clubId]);
-
 
   //sort events - live events first, then upcoming sorted by registration status and date
   const sortedEvents = useMemo(() => {
@@ -446,7 +461,6 @@ const ClubAdminEventsPage = () => {
       return 0;
     });
   }, [upcomingEvents]);
-
 
   // Generate overview using AI
   const handleGenerateOverview = async () => {
@@ -808,7 +822,9 @@ const ClubAdminEventsPage = () => {
                     variant="outline"
                     size="sm"
                     onClick={handleAddSpeaker}
-                    disabled={!newSpeaker.name || !newSpeaker.email||requesting}
+                    disabled={
+                      !newSpeaker.name || !newSpeaker.email || requesting
+                    }
                   >
                     + Add Speaker
                   </Button>
@@ -871,7 +887,9 @@ const ClubAdminEventsPage = () => {
                       variant="outline"
                       size="sm"
                       onClick={handleAddSponsor}
-                      disabled={!newSponsor.name || !newSponsor.tagline || requesting}
+                      disabled={
+                        !newSponsor.name || !newSponsor.tagline || requesting
+                      }
                     >
                       + Add
                     </Button>
@@ -903,7 +921,11 @@ const ClubAdminEventsPage = () => {
                   )}
                 </div>
 
-                <Button className="w-full" onClick={handleCreateEvent} disabled={requesting}>
+                <Button
+                  className="w-full"
+                  onClick={handleCreateEvent}
+                  disabled={requesting}
+                >
                   Create Event
                 </Button>
               </div>
@@ -1181,7 +1203,9 @@ const ClubAdminEventsPage = () => {
                         variant="outline"
                         size="sm"
                         onClick={handleAddSpeaker}
-                        disabled={!newSpeaker.name || !newSpeaker.email || requesting}
+                        disabled={
+                          !newSpeaker.name || !newSpeaker.email || requesting
+                        }
                       >
                         + Add Speaker
                       </Button>
@@ -1264,7 +1288,11 @@ const ClubAdminEventsPage = () => {
                       ))}
                     </div>
 
-                    <Button onClick={handleSaveEdit} className="w-full" disabled={requesting}>
+                    <Button
+                      onClick={handleSaveEdit}
+                      className="w-full"
+                      disabled={requesting}
+                    >
                       Save Changes
                     </Button>
                   </>
@@ -1390,7 +1418,9 @@ Write your markdown here..."
                         variant="outline"
                         size="sm"
                         onClick={handleAddWinner}
-                        disabled={!newWinner.name || !newWinner.email || requesting}
+                        disabled={
+                          !newWinner.name || !newWinner.email || requesting
+                        }
                       >
                         + Add
                       </Button>
@@ -1496,11 +1526,24 @@ Write your markdown here..."
           {/* ================= UPCOMING TAB ================= */}
           <TabsContent value="upcoming" className="mt-6">
             <div className="grid md:grid-cols-3 gap-4">
-              {sortedEvents.map((event) => {
-                const formatted = formatDate(event.startTime);
-                const status = getEventStatus(event);
-                return (
-                  <Card key={event.id} className="border-border/50">
+              {loading.upcoming ? (
+                <div className="col-span-full text-center py-8">
+                  <Loading />
+                </div>
+              ):(
+                sortedEvents.length === 0 ? (
+                  <EmptyState
+                    icon={<Calendar className="w-12 h-12" />}
+                    title="No Active Events"
+                    description="You don't have any active events. Click the button above to create your first event!"
+                  />
+              
+              ) : (
+                sortedEvents.map((event) => {
+                  const formatted = formatDate(event.startTime);
+                  const status = getEventStatus(event);
+                  return (
+                    <Card key={event.id} className="border-border/50">
                     {event.image && (
                       <img
                         src={event.image}
@@ -1610,15 +1653,27 @@ Write your markdown here..."
                     </CardContent>
                   </Card>
                 );
-              })}
+              })))}
             </div>
           </TabsContent>
 
           {/* ================= FINISHED TAB (CHANGED UI) ================= */}
           <TabsContent value="finished" className="mt-6">
             <div className="grid md:grid-cols-3 gap-4">
-              {pastEvents.map((event) => {
-                const formatted = formatDate(event.startTime);
+              {loading.past ? (
+                <div className="col-span-full text-center py-8">
+                  <Loading />
+                </div>
+              ) : (
+                pastEvents.length === 0 ? (
+                  <EmptyState
+                    icon={<Calendar className="w-12 h-12" />}
+                    title="No Finished Events"
+                    description="Your past events will appear here once they are finished."
+                  />
+                ) : (
+                pastEvents.map((event) => {
+                  const formatted = formatDate(event.startTime);
 
                 return (
                   <Card
@@ -1687,7 +1742,7 @@ Write your markdown here..."
                     </CardContent>
                   </Card>
                 );
-              })}
+              })))}
             </div>
           </TabsContent>
         </Tabs>

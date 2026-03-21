@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import {
   Card,
@@ -30,8 +30,7 @@ import { Plus, Trash2, UsersRound } from "lucide-react";
 import { clubAdminNavItems } from "../../config/Navigation";
 import { toast } from "../../hooks/use-toast";
 import { useParams } from "react-router-dom";
-import { set } from "date-fns";
-
+import Loading from "../../components/ui/Loading";
 
 const ClubAdminTeamsPage = () => {
   // Get clubId from URL params
@@ -42,12 +41,12 @@ const ClubAdminTeamsPage = () => {
   const token = localStorage.getItem("authToken");
 
   //---------Navs------------//
-  const updatenavItems = () => {
+  const updatenavItems = useCallback(() => {
     return clubAdminNavItems.map((item) => ({
       ...item,
       href: item.href.replace(":clubId", clubId),
     }));
-  };
+  }, [clubId]);
 
   // State variables
   const [teams, setTeams] = useState([]);
@@ -57,44 +56,45 @@ const ClubAdminTeamsPage = () => {
   const [selectedMember, setSelectedMember] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [requesting, setRequesting] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  
   // Fetch teams for this club
-  const fetchTeams = () => {
-    fetch(`${baseUrl}/teams`, {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => setTeams(data))
-      .catch((err) =>{
-        toast({
-          title: "Error",
-          description: "Failed to fetch teams",
-          status: "error",
-        });
+  const fetchTeams = async () => {
+    try {
+      const res = await fetch(`${baseUrl}/teams`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
       });
+      const data = await res.json();
+      setTeams(data);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch teams",
+        variant: "destructive",
+      });
+    }
   };
 
-  // Fetch club members for adding to teams
-  const fetchClubMembers = () => {
-    fetch(`${baseUrl}/members`, {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => setClubMembers(data))
-      .catch((err) => {
-        toast({
-          title: "Error",
-          description: "Failed to fetch club members",
-          status: "error",
-        });
+  const fetchClubMembers = async () => {
+    try {
+      const res = await fetch(`${baseUrl}/members`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
       });
+      const data = await res.json();
+      setClubMembers(data);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch club members",
+        variant: "destructive",
+      });
+    }
   };
 
   // Create a new team
@@ -121,7 +121,7 @@ const ClubAdminTeamsPage = () => {
     })
       .then(async (response) => {
         const data = await response.json();
-        if(data.message==="Team created successfully"){
+        if (data.message === "Team created successfully") {
           fetchTeams();
           setNewTeamName("");
           setNewTeamDesc("");
@@ -131,8 +131,7 @@ const ClubAdminTeamsPage = () => {
             description: data.message,
             variant: "success",
           });
-        }
-        else {
+        } else {
           toast({
             title: "Error",
             description: data.message || "Failed to create team",
@@ -146,7 +145,8 @@ const ClubAdminTeamsPage = () => {
           description: err.message,
           variant: "destructive",
         });
-      }).finally(() => {
+      })
+      .finally(() => {
         setRequesting(false);
       });
   };
@@ -160,22 +160,20 @@ const ClubAdminTeamsPage = () => {
     })
       .then(async (response) => {
         const data = await response.json();
-        if(data.message==="Team deleted successfully"){
+        if (data.message === "Team deleted successfully") {
           toast({
             title: "Success",
             description: data.message,
             variant: "success",
           });
           fetchTeams();
-        }
-        else{
+        } else {
           toast({
             title: "Error",
             description: data.message || "Failed to delete team",
             variant: "destructive",
           });
         }
-       
       })
       .catch((err) => {
         toast({
@@ -183,13 +181,14 @@ const ClubAdminTeamsPage = () => {
           description: err.message || "Failed to delete team",
           variant: "destructive",
         });
-      }).finally(()=>{
-        setRequesting(false);
       })
+      .finally(() => {
+        setRequesting(false);
+      });
   };
 
   // Add member to a team
-  const handleAddMember = async(teamId, studentId) => {
+  const handleAddMember = async (teamId, studentId) => {
     setRequesting(true);
     await fetch(`${baseUrl}/teams/${teamId}/${studentId}`, {
       method: "POST",
@@ -200,16 +199,15 @@ const ClubAdminTeamsPage = () => {
     })
       .then(async (response) => {
         const data = await response.json();
-        if(data.message==="Team-member added successfully"){
+        if (data.message === "Team-member added successfully") {
           toast({
             title: "Success",
             description: data.message,
             variant: "success",
           });
           fetchTeams();
-        setSelectedMember("");
-        }
-        else {
+          setSelectedMember("");
+        } else {
           toast({
             title: "Error",
             description: data.message || "Failed to add member to team",
@@ -223,9 +221,10 @@ const ClubAdminTeamsPage = () => {
           description: err.message || "Failed to add member",
           variant: "destructive",
         }),
-      ).finally(()=>{
+      )
+      .finally(() => {
         setRequesting(false);
-      })
+      });
   };
 
   // Remove member from a team
@@ -237,14 +236,14 @@ const ClubAdminTeamsPage = () => {
     })
       .then(async (response) => {
         const data = await response.json();
-        if(data.message==="Team-member removed successfully"){
+        if (data.message === "Team-member removed successfully") {
           toast({
             title: "Success",
             description: data.message,
             variant: "success",
           });
           fetchTeams();
-        }else{
+        } else {
           toast({
             title: "Error",
             description: data.message || "Failed to remove member from team",
@@ -258,16 +257,41 @@ const ClubAdminTeamsPage = () => {
           description: err || "Failed to remove member",
           status: "error",
         }),
-      ).finally(()=>{
+      )
+      .finally(() => {
         setRequesting(false);
-      })
+      });
   };
 
-// Load teams and members on component mount and whenever clubId changes
+  // Load teams and members on component mount and whenever clubId changes
   useEffect(() => {
-    fetchTeams();
-    fetchClubMembers();
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        await Promise.all([fetchTeams(), fetchClubMembers()]);
+      } catch (err) {
+        toast({
+          title: "Error",
+          description: "Failed to load teams and members",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, [clubId]);
+
+  if (loading) {
+    return (
+      <DashboardLayout navItems={updatenavItems()} title="Teams">
+        <div className="py-20">
+          <Loading />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout navItems={updatenavItems()} title="Teams">
@@ -314,7 +338,11 @@ const ClubAdminTeamsPage = () => {
                   />
                 </div>
 
-                <Button className="w-full" onClick={handleCreateTeam} disabled={requesting}>
+                <Button
+                  className="w-full"
+                  onClick={handleCreateTeam}
+                  disabled={requesting}
+                >
                   Create
                 </Button>
               </div>
@@ -333,8 +361,6 @@ const ClubAdminTeamsPage = () => {
               </div>
             </CardContent>
           </Card>
-
-         
         </div>
 
         {/* Teams */}

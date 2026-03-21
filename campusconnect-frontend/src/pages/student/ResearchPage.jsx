@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import {
   Card,
@@ -26,13 +26,14 @@ import {
 } from "../../components/ui/Dialog";
 import { toast } from "../../hooks/use-toast";
 
-import { Search, Download, Upload, Clock, User } from "lucide-react";
+import { Search, Download, Upload, Clock, User, SearchX } from "lucide-react";
 import { studentNavItems } from "../../config/Navigation";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import Loading from "../../components/ui/Loading";
+import EmptyState from "../../components/ui/EmptyState";
 
 const ResearchPage = () => {
-
   //state variables
   const [researchPapers, setResearchPapers] = useState([]);
   const [query, setQuery] = useState("");
@@ -48,18 +49,19 @@ const ResearchPage = () => {
     department: "",
     subject: "",
   });
-  const [requesting,setRequesting]=useState(false);
+  const [requesting, setRequesting] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   //baseUrl
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/student`;
 
-      const navigate = useNavigate();
-      const { routeProtection } = useAuth();
-      useEffect(() => {
-        if (!routeProtection("STUDENT")) {
-          navigate("/auth");
-        }
-      },[]);
+  const navigate = useNavigate();
+  const { routeProtection } = useAuth();
+  useEffect(() => {
+    if (!routeProtection("STUDENT")) {
+      navigate("/auth");
+    }
+  }, [navigate, routeProtection]);
 
   //cancle submit
   const handleCancelSubmit = () => {
@@ -68,7 +70,12 @@ const ResearchPage = () => {
 
   //confirm submit research paper
   const handleConfirmSubmit = async () => {
-    if(formData.title.trim()==="" || formData.abstract.trim()==="" || formData.department.trim()==="" || formData.subject.trim()===""){
+    if (
+      formData.title.trim() === "" ||
+      formData.abstract.trim() === "" ||
+      formData.department.trim() === "" ||
+      formData.subject.trim() === ""
+    ) {
       toast({
         title: "Error",
         description: "Please fill in all the fields.",
@@ -77,7 +84,7 @@ const ResearchPage = () => {
       return;
     }
 
-    if(!pdfFile){
+    if (!pdfFile) {
       toast({
         title: "Error",
         description: "Please upload your research paper in PDF format.",
@@ -87,7 +94,7 @@ const ResearchPage = () => {
     }
 
     setRequesting(true);
-    const token=localStorage.getItem("authToken");
+    const token = localStorage.getItem("authToken");
     const dto = {
       title: formData.title,
       overview: formData.abstract,
@@ -96,15 +103,14 @@ const ResearchPage = () => {
     };
     const data = new FormData();
 
-        // DTO as JSON
+    // DTO as JSON
     data.append(
       "research",
-      new Blob([JSON.stringify(dto)], { type: "application/json" })
+      new Blob([JSON.stringify(dto)], { type: "application/json" }),
     );
 
     // PDF file
     data.append("pdf", pdfFile);
-
 
     await fetch(`${baseUrl}/researches`, {
       method: "POST",
@@ -120,35 +126,34 @@ const ResearchPage = () => {
         return res.json();
       })
       .then((data) => {
-
-        if(data.message==="Your Research Paper has been submitted") {
-        
-        toast({
-          title: "Success",
-          description:data.message,
-        });
-        setFormData({
-          title: "",
-          abstract: "",
-          department: "",
-          subject: "",
-        });
-        setPdfFile(null);
-        fethcMySubmissions();
-        fetchResearchPapers();
-      }
-      else{
-        throw new Error(data.message);
-      }
+        if (data.message === "Your Research Paper has been submitted") {
+          toast({
+            title: "Success",
+            description: data.message,
+          });
+          setFormData({
+            title: "",
+            abstract: "",
+            department: "",
+            subject: "",
+          });
+          setPdfFile(null);
+          fetchMySubmissions();
+          fetchResearchPapers();
+        } else {
+          throw new Error(data.message);
+        }
       })
       .catch((err) => {
         console.error("Error submitting research paper:", err);
         toast({
           title: "Error",
-          description: err.message||"Failed to submit research paper. Please try again.",
+          description:
+            err.message || "Failed to submit research paper. Please try again.",
           variant: "destructive",
         });
-      }).finally(()=>{
+      })
+      .finally(() => {
         setConfirmSubmit(false);
         setRequesting(false);
       });
@@ -161,111 +166,162 @@ const ResearchPage = () => {
     if (!file) return;
 
     if (file.type !== "application/pdf") {
-      alert("Only PDF files are allowed");
+      toast({
+        title: "Error",
+        description: "Only PDF files are allowed.",
+        variant: "destructive",
+      });
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      alert("File size must be less than 10MB");
+      toast({
+        title: "Error",
+        description: "File size must be less than 10MB.",
+        variant: "destructive",
+      });
+
       return;
     }
 
     setPdfFile(file);
   };
 
-// download pdf 
-const downloadPdf = async (url, title) => {
-  try {
-    setRequesting(false);
-    const token = localStorage.getItem("authToken");
+  // download pdf
+  const downloadPdf = async (url, title) => {
+    try {
+      setRequesting(true);
+      const token = localStorage.getItem("authToken");
 
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    const blob = await response.blob();
-
-    const downloadUrl = window.URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.href = downloadUrl;
-    link.download = `${title}.pdf`; // force pdf name
-    document.body.appendChild(link);
-    link.click();
-
-    link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
-  } catch (error) {
-    toast({
-      title: "Error",
-      description: error.message || "Failed to download PDF. Please try again.",
-      variant: "destructive",
-    });
-  }
-  finally{
-    setRequesting(false);
-  }
-};
-
-//fetch my reasearch papers
-  const fethcMySubmissions = async () => {
-    await fetch(`${baseUrl}/researches/mine`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setMySubmissionsData(data);
-      })
-      .catch((err) => {
-        console.error("Error fetching my submissions:", err);
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
-  };  
+
+      const blob = await response.blob();
+
+      const downloadUrl = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = `${title}.pdf`; // force pdf name
+      document.body.appendChild(link);
+      link.click();
+
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description:
+          error.message || "Failed to download PDF. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setRequesting(false);
+    }
+  };
+
+  //fetch my reasearch papers
+  const fetchMySubmissions = async () => {
+    try {
+      const res = await fetch(`${baseUrl}/researches/mine`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+
+      const data = await res.json();
+      setMySubmissionsData(data);
+    } catch (err) {
+      console.error("Error fetching my submissions:", err);
+      toast({
+        title: "Error",
+        description: "Failed to fetch my submissions",
+        variant: "destructive",
+      });
+    }
+  };
 
   //fetch all
   const fetchResearchPapers = async () => {
-    await fetch(`${baseUrl}/researches`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-
-        setResearchPapers(data);
-      })
-      .catch((err) => {
-        console.error("Error fetching research papers:", err);
+    try {
+      const res = await fetch(`${baseUrl}/researches`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
       });
+
+      const data = await res.json();
+      setResearchPapers(data);
+    } catch (err) {
+      console.error("Error fetching research papers:", err);
+      toast({
+        title: "Error",
+        description: "Failed to fetch research papers",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleChange = (e) => {
-  const { name, value } = e.target;
+  const handleChange = useCallback((e) => {
+    const { name, value } = e.target;
 
-  setFormData((prev) => ({
-    ...prev,
-    [name]: value,
-  }));
-};
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  }, []);
   useEffect(() => {
-    fetchResearchPapers();
-    fethcMySubmissions();
+    const loadData = async () => {
+      setLoading(true);
+
+      await Promise.all([fetchResearchPapers(), fetchMySubmissions()]);
+
+      setLoading(false);
+    };
+
+    loadData();
   }, []);
 
   //for searching
-  const filteredPapers = researchPapers.filter((paper) =>paper.title.toLowerCase().includes(query.toLowerCase()));
-  const filteredMySubmissions = mySubmissionsData.filter((paper) =>paper.title.toLowerCase().includes(query.toLowerCase()));
+  const filteredPapers = useMemo(() => {
+    return researchPapers.filter((paper) =>
+      paper.title.toLowerCase().includes(query.toLowerCase()),
+    );
+  }, [researchPapers, query]);
+
+  const filteredMySubmissions = useMemo(() => {
+    return mySubmissionsData.filter((paper) =>
+      paper.title.toLowerCase().includes(query.toLowerCase()),
+    );
+  }, [mySubmissionsData, query]);
+
+  if (loading) {
+    return (
+      <DashboardLayout
+        navItems={studentNavItems}
+        title="Research Papers"
+        bell={true}
+      >
+        <Card>
+          <CardContent className="p-6 text-center">
+            <Loading />
+          </CardContent>
+        </Card>
+      </DashboardLayout>
+    );
+  }
 
   return (
-    <DashboardLayout navItems={studentNavItems} title="Research Papers" bell={true}>
+    <DashboardLayout
+      navItems={studentNavItems}
+      title="Research Papers"
+      bell={true}
+    >
       <div className="space-y-6">
         <Tabs defaultValue="browse" className="w-full">
           {/* Header */}
@@ -293,63 +349,80 @@ const downloadPdf = async (url, title) => {
 
           <TabsContent value="browse" className="mt-0">
             <div className="space-y-4">
-              {filteredPapers.map((paper) => (
-                <Card
-                  key={paper.id}
-                  className="border-border/50 hover:shadow-soft transition-shadow"
-                >
-                  <CardContent className="p-6 pt-4">
-                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge variant="outline">{paper.department}</Badge>
+              {filteredPapers.length === 0 ? (
+                <div className="col-span-full w-full">
+                  <EmptyState
+                    className="col-span-full"
+                    icon={
+                      <SearchX className="w-8 h-8 text-muted-foreground mx-auto mb-4" />
+                    }
+                    title="No Papers Found"
+                    desc="Try adjusting your search query."
+                  />
+                </div>
+              ) : (
+                filteredPapers.map((paper) => (
+                  <Card
+                    key={paper.id}
+                    className="border-border/50 hover:shadow-soft transition-shadow"
+                  >
+                    <CardContent className="p-6 pt-4">
+                      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant="outline">{paper.department}</Badge>
 
-                          <Badge className="bg-primary/10 text-primary border-0">
-                            Published
-                          </Badge>
-                        </div>
-
-                        <h3 className="text-lg font-semibold mb-2">
-                          {paper.title}
-                        </h3>
-
-                        <p className="text-muted-foreground mb-3">
-                          {paper.overview.length > 150
-                            ? paper.overview.substring(0, 150) + "..."
-                            : paper.overview}
-                        </p>
-
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            <User className="w-4 h-4" />
-                            <span>{paper.studentName}</span>
+                            <Badge className="bg-primary/10 text-primary border-0">
+                              Published
+                            </Badge>
                           </div>
 
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            <span>{paper.createdAt.split("T")[0]}</span>
-                          </div>
+                          <h3 className="text-lg font-semibold mb-2">
+                            {paper.title}
+                          </h3>
 
+                          <p className="text-muted-foreground mb-3">
+                            {paper.overview.length > 150
+                              ? paper.overview.substring(0, 150) + "..."
+                              : paper.overview}
+                          </p>
+
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <User className="w-4 h-4" />
+                              <span>{paper.studentName}</span>
+                            </div>
+
+                            <div className="flex items-center gap-1">
+                              <Clock className="w-4 h-4" />
+                              <span>{paper.createdAt.split("T")[0]}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => setViewPaper(paper)}
+                          >
+                            View Details
+                          </Button>
+
+                          <Button
+                            disabled={requesting}
+                            onClick={() =>
+                              downloadPdf(paper.pdfUrl, paper.title)
+                            }
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Download PDF
+                          </Button>
                         </div>
                       </div>
-
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => setViewPaper(paper)}
-                        >
-                          View Details
-                        </Button>
-
-                        <Button disabled={requesting} onClick={() => downloadPdf(paper.pdfUrl,paper.title)}>
-                          <Download className="w-4 h-4 mr-2" />
-                          Download PDF
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
           </TabsContent>
 
@@ -386,7 +459,7 @@ const downloadPdf = async (url, title) => {
                 <div className="space-y-2">
                   <Label htmlFor="department">Department</Label>
                   <Input
-                  name="department"
+                    name="department"
                     id="department"
                     placeholder="e.g., Computer Science"
                     onChange={handleChange}
@@ -395,7 +468,7 @@ const downloadPdf = async (url, title) => {
                 <div className="space-y-2">
                   <Label htmlFor="subject">Subject</Label>
                   <Input
-                  name="subject"
+                    name="subject"
                     id="subject"
                     placeholder="e.g., Machine Learning"
                     onChange={handleChange}
@@ -458,11 +531,17 @@ const downloadPdf = async (url, title) => {
               </DialogHeader>
 
               <div className="flex justify-end gap-3 pt-4">
-                <Button disabled={requesting} variant="outline" onClick={handleCancelSubmit}>
+                <Button
+                  disabled={requesting}
+                  variant="outline"
+                  onClick={handleCancelSubmit}
+                >
                   Cancel
                 </Button>
 
-                <Button disabled={requesting} onClick={handleConfirmSubmit}>Confirm Submit</Button>
+                <Button disabled={requesting} onClick={handleConfirmSubmit}>
+                  Confirm Submit
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -470,39 +549,52 @@ const downloadPdf = async (url, title) => {
 
           <TabsContent value="my-submissions" className="mt-0">
             <div className="space-y-4">
-              {filteredMySubmissions.map((paper) => (
-                <Card key={paper.id} className="border-border/50">
-                  <CardContent className="p-6 pt-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge className="bg-yellow-500/10 text-yellow-600 border-0">
-                            {paper.status}
-                          </Badge>
+              {filteredMySubmissions.length === 0 ? (
+                <div className="col-span-full w-full">
+                  <EmptyState
+                    className="col-span-full"
+                    icon={
+                      <SearchX className="w-8 h-8 text-muted-foreground mx-auto mb-4" />
+                    }
+                    title="No Submissions Found"
+                    desc="You haven't submitted any research papers yet."
+                  />
+                </div>
+              ) : (
+                filteredMySubmissions.map((paper) => (
+                  <Card key={paper.id} className="border-border/50">
+                    <CardContent className="p-6 pt-4">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge className="bg-yellow-500/10 text-yellow-600 border-0">
+                              {paper.status}
+                            </Badge>
+                          </div>
+
+                          <h3 className="font-semibold mb-1">{paper.title}</h3>
+
+                          <p className="text-sm text-muted-foreground">
+                            Submitted on {paper.submittedDate}
+                          </p>
+
+                          <p className="text-sm text-muted-foreground">
+                            Feedback:{paper.reviewerFeedback}
+                          </p>
                         </div>
 
-                        <h3 className="font-semibold mb-1">{paper.title}</h3>
-
-                        <p className="text-sm text-muted-foreground">
-                          Submitted on {paper.submittedDate}
-                        </p>
-
-                        <p className="text-sm text-muted-foreground">
-                          Feedback:{paper.reviewerFeedback}
-                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setViewPaper(paper)}
+                        >
+                          View Details
+                        </Button>
                       </div>
-
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setViewPaper(paper)}
-                      >
-                        View Details
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
           </TabsContent>
         </Tabs>
@@ -519,14 +611,13 @@ const downloadPdf = async (url, title) => {
             <DialogTitle>{viewPaper?.title}</DialogTitle>
 
             <DialogDescription>
-              By {viewPaper?.studentName} •  {viewPaper?.studentId}
+              By {viewPaper?.studentName} • {viewPaper?.studentId}
             </DialogDescription>
           </DialogHeader>
 
           {viewPaper && (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-
                 <Badge
                   className={
                     viewPaper.status === "published"
@@ -556,7 +647,6 @@ const downloadPdf = async (url, title) => {
                 {viewPaper.status === "published" && (
                   <span>Published: {viewPaper.date}</span>
                 )}
-
               </div>
             </div>
           )}

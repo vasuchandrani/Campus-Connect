@@ -15,11 +15,10 @@ import {
 } from "lucide-react";
 import { studentNavItems } from "../../config/Navigation";
 import { marked } from "marked";
-import { useEffect, useMemo,useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "../../hooks/use-toast";
 import { useAuth } from "../../contexts/AuthContext";
-
-
+import Loading from "../../components/ui/Loading";
 
 const EventDetailPage = () => {
   // Get event ID from URL params
@@ -29,21 +28,20 @@ const EventDetailPage = () => {
   // Base URL for API calls related to student events
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/student/events/finished/${id}`;
 
-
-    const { routeProtection } = useAuth();
-    useEffect(() => {
-      if (!routeProtection("STUDENT")) {
-        navigate("/auth");
-      }
-    },[]);
+  const { routeProtection } = useAuth();
+  useEffect(() => {
+    if (!routeProtection("STUDENT")) {
+      navigate("/auth");
+    }
+  }, [navigate, routeProtection]);
 
   // State variable to hold event details
-  const [event,setEvent] = useState({});
-
+  const [event, setEvent] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   // Function to fetch event details
-  const fetchEventDetails = async (eventId) => {
-
+  const fetchEventDetails = async () => {
+    setLoading(true);
     fetch(`${baseUrl}`, {
       method: "GET",
       headers: {
@@ -51,7 +49,12 @@ const EventDetailPage = () => {
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
     })
-      .then((res) => res.json())
+      .then((res) => {
+        if(!res.ok) {
+          throw new Error("Failed to fetch event details");
+        }
+        return res.json();
+      })
       .then((data) => {
         setEvent(data);
       })
@@ -61,6 +64,9 @@ const EventDetailPage = () => {
           description: err.message || "Failed to fetch event details",
           variant: "destructive",
         });
+      })
+      .finally(() => {
+        setLoading(false);
       });
   };
 
@@ -72,25 +78,41 @@ const EventDetailPage = () => {
   };
 
   //load event details on component mount
-  useEffect(()=>{
-     fetchEventDetails(id);
-  },[]);
+  useEffect(() => {
+    fetchEventDetails();
+  }, [id]);
 
   const navItems = studentNavItems;
 
   // Memoized rendered overview to avoid unnecessary re-renders
   const renderedOverview = useMemo(() => {
     if (!event?.overview) return "";
-    return marked.parse(event.overview.trim());
+    return marked.parse(event.overview?.trim() || "");
   }, [event?.overview]);
 
-  // If event data is not yet loaded, show a loading state
+  if (loading) {
+    return (
+      <DashboardLayout navItems={navItems} title="Event Details" bell={true}>
+        <Card>
+          <CardContent className="p-6 text-center">
+            <Loading />
+          </CardContent>
+        </Card>
+      </DashboardLayout>
+    );
+  }
+
   if (!event) {
     return (
-      <DashboardLayout navItems={navItems} title="Event Not Found">
-        <div className="text-center py-12">
-          <h2 className="text-2xl font-bold mb-2">Event not found</h2>
-          <Button onClick={() => navigate(-1)}>Go Back</Button>
+      <DashboardLayout navItems={navItems} title="Event Details" bell={true}>
+        <div className="text-center py-16">
+          <p className="text-muted-foreground mb-4">
+            This Event does not exist.
+          </p>
+          <Button onClick={() => navigate("/campus-connect/student/clubs")}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Events
+          </Button>
         </div>
       </DashboardLayout>
     );
@@ -108,6 +130,7 @@ const EventDetailPage = () => {
           <img
             src={event.image}
             alt={event.title}
+            loading="lazy"
             className="w-full h-64 md:h-80 object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/30 to-transparent" />
@@ -127,7 +150,9 @@ const EventDetailPage = () => {
               <Calendar className="w-5 h-5 text-primary" />
               <div>
                 <p className="text-sm text-muted-foreground">Date</p>
-                <p className="font-medium">{formatDate(event.startTime).date}</p>
+                <p className="font-medium">
+                  {formatDate(event.startTime).date}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -137,7 +162,9 @@ const EventDetailPage = () => {
               <Clock className="w-5 h-5 text-primary" />
               <div>
                 <p className="text-sm text-muted-foreground">Time</p>
-                <p className="font-medium">{formatDate(event.startTime).time}</p>
+                <p className="font-medium">
+                  {formatDate(event.startTime).time}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -157,9 +184,7 @@ const EventDetailPage = () => {
               <Users className="w-5 h-5 text-primary" />
               <div>
                 <p className="text-sm text-muted-foreground">Attendees</p>
-                <p className="font-medium">
-                  {event.registrationsCount}
-                </p>
+                <p className="font-medium">{event.registrationsCount}</p>
               </div>
             </CardContent>
           </Card>
@@ -191,74 +216,82 @@ const EventDetailPage = () => {
         )}
 
         {/* Sponsors */}
-        {
-          event.sponsors && event.sponsors.length > 0 && (
-            <Card className="border-border/50">
-              <CardContent className="p-6 pt-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <Users className="w-5 h-5 text-primary" />
-                  <h3 className="text-lg font-semibold">Event Sponsors</h3>
-                </div>
+        {event.sponsors && event.sponsors.length > 0 && (
+          <Card className="border-border/50">
+            <CardContent className="p-6 pt-4">
+              <div className="flex items-center gap-2 mb-4">
+                <Users className="w-5 h-5 text-primary" />
+                <h3 className="text-lg font-semibold">Event Sponsors</h3>
+              </div>
 
-                <div className="space-y-4">
-                  {event.sponsors.map((sponsor, index) => (
-                    <div key={index} className="p-1  rounded-lg">
-                      <h4 className="text-md font-medium">{sponsor.name}</h4>
-                      <p className="text-sm text-muted-foreground">{sponsor.tagline}</p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )
-        }
+              <div className="space-y-4">
+                {event.sponsors.map((sponsor, index) => (
+                  <div key={index} className="p-1  rounded-lg">
+                    <h4 className="text-md font-medium">{sponsor.name}</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {sponsor.tagline}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Speakers */}
-        {
-          event.speakers && event.speakers.length > 0 && (
-            <Card className="border-border/50">
-              <CardContent className="p-6 pt-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <Speaker className="w-5 h-5 text-primary" />
-                  <h3 className="text-lg font-semibold">Event Speakers</h3>
-                </div>
+        {event.speakers && event.speakers.length > 0 && (
+          <Card className="border-border/50">
+            <CardContent className="p-6 pt-4">
+              <div className="flex items-center gap-2 mb-4">
+                <Speaker className="w-5 h-5 text-primary" />
+                <h3 className="text-lg font-semibold">Event Speakers</h3>
+              </div>
 
-                <div className="space-y-4">
-                  {event.speakers.map((speaker, index) => (
-                    <div key={index} className="p-1 rounded-lg">
-                      <h4 className="text-md font-medium">{speaker.name}</h4>
-                      {speaker.tagline && <p className="text-sm text-muted-foreground">{speaker.tagline}</p>}
-                      {speaker.email && <p className="text-sm text-muted-foreground">{speaker.email}</p>}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )
-        }
+              <div className="space-y-4">
+                {event.speakers.map((speaker, index) => (
+                  <div key={index} className="p-1 rounded-lg">
+                    <h4 className="text-md font-medium">{speaker.name}</h4>
+                    {speaker.tagline && (
+                      <p className="text-sm text-muted-foreground">
+                        {speaker.tagline}
+                      </p>
+                    )}
+                    {speaker.email && (
+                      <p className="text-sm text-muted-foreground">
+                        {speaker.email}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-         {/* Winners */}
-        {
-          event.winners && event.winners.length > 0 && (
-            <Card className="border-border/50">
-              <CardContent className="p-6 pt-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <Award className="w-5 h-5 text-primary" />
-                  <h3 className="text-lg font-semibold">Event Winners</h3>
-                </div>
+        {/* Winners */}
+        {event.winners && event.winners.length > 0 && (
+          <Card className="border-border/50">
+            <CardContent className="p-6 pt-4">
+              <div className="flex items-center gap-2 mb-4">
+                <Award className="w-5 h-5 text-primary" />
+                <h3 className="text-lg font-semibold">Event Winners</h3>
+              </div>
 
-                <div className="space-y-4">
-                  {event.winners.map((winner, index) => (
-                    <div key={index} className="p-1 rounded-lg">
-                      <h4 className="text-md font-medium">{winner.name}</h4>
-                      {winner.email && <p className="text-sm text-muted-foreground">{winner.email}</p>}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )
-        }
+              <div className="space-y-4">
+                {event.winners.map((winner, index) => (
+                  <div key={index} className="p-1 rounded-lg">
+                    <h4 className="text-md font-medium">{winner.name}</h4>
+                    {winner.email && (
+                      <p className="text-sm text-muted-foreground">
+                        {winner.email}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
         {/* Photos */}
         {event.images && event.images.length > 0 && (
           <Card className="border-border/50">
@@ -274,6 +307,7 @@ const EventDetailPage = () => {
                   <img
                     key={index}
                     src={photo}
+                    loading="lazy"
                     alt={`Event photo ${index + 1}`}
                     className="w-full h-48 object-cover rounded-lg hover:opacity-90 transition-opacity cursor-pointer"
                   />

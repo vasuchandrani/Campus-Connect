@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
@@ -31,19 +31,19 @@ import { toast } from "../../hooks/use-toast";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import Loading from "../../components/ui/Loading";
+import EmptyState from "../../components/ui/EmptyState";
 
 const navItems = collegeAdminNavItems;
 
 const AdminUsersPage = () => {
-
   //base URL for API calls related to users
-  const baseUrl =  `${import.meta.env.VITE_BACKEND_URL}/campus-connect/college-admin/users`;
+  const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/college-admin/users`;
 
   // states
   const [journalists, setJournalists] = useState([]);
   const [reviewers, setReviewers] = useState([]);
-  const [journalistRequests, setJournalistRequests] = useState([
-  ]);
+  const [journalistRequests, setJournalistRequests] = useState([]);
 
   const [students, setStudents] = useState([]);
   const [exploreStudents, setExploreStudents] = useState(false);
@@ -68,89 +68,101 @@ const AdminUsersPage = () => {
   });
   const [reviewerOpen, setReviewerOpen] = useState(false);
   const [studentOpen, setStudentOpen] = useState(false);
-  const [requesting, setRequesting] = useState(false); 
-  
-    const navigate = useNavigate();
-    const { routeProtection } = useAuth();
-  
-    useEffect(() => {
-      if (!routeProtection("COLLEGE_ADMIN")) {
-        navigate("/auth");
-      }
-    },[]);
+  const [requesting, setRequesting] = useState(false);
+  const [loading, setLoading] = useState({
+    journalists: false,
+    reviewers: false,
+    journalistRequests: false,
+    students: false,
+  });
+
+  const navigate = useNavigate();
+  const { routeProtection } = useAuth();
+
+  useEffect(() => {
+    if (!routeProtection("COLLEGE_ADMIN")) {
+      navigate("/auth");
+    }
+  }, [navigate, routeProtection]);
 
   //fetch journalist requests
   const fetchJournalistsRequests = async () => {
-    const token = localStorage.getItem("authToken");
+    setLoading((prev) => ({ ...prev, journalistRequests: true }));
 
-    fetch(`${baseUrl}/journalist-req`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setJournalistRequests(data);
-      })
-      .catch((err) => {
-        toast({
-          title: "Error",
-          description: "Failed to fetch journalist requests",
-          variant: "destructive",
-        });
+    try {
+      const res = await fetch(`${baseUrl}/journalist-req`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
       });
+
+      const data = await res.json();
+      setJournalistRequests(data);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch journalist requests",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading((prev) => ({ ...prev, journalistRequests: false }));
+    }
   };
 
   //fetch journalists
   const fetchJournalists = async () => {
-    const token = localStorage.getItem("authToken");
-    fetch(`${baseUrl}/journalist`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setJournalists(data);
-      })
-      .catch((err) => {
-        toast({
-          title: "Error",
-          description: "Failed to fetch journalists",
-          variant: "destructive",
-        });
+    setLoading((prev) => ({ ...prev, journalists: true }));
+
+    try {
+      const res = await fetch(`${baseUrl}/journalist`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
       });
+
+      const data = await res.json();
+      setJournalists(data);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch journalists",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading((prev) => ({ ...prev, journalists: false }));
+    }
   };
 
   //fetch reviewers
   const fetchReviewers = async () => {
-    const token = localStorage.getItem("authToken");
-    fetch(`${baseUrl}/reviewer`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setReviewers(data);
-      })
-      .catch((err) => {
-        toast({
-          title: "Error",
-          description: "Failed to fetch reviewers",
-          variant: "destructive",
-        });
+    setLoading((prev) => ({ ...prev, reviewers: true }));
+
+    try {
+      const res = await fetch(`${baseUrl}/reviewer`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
       });
+
+      const data = await res.json();
+      setReviewers(data);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch reviewers",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading((prev) => ({ ...prev, reviewers: false }));
+    }
   };
 
   //fetch students
   const fetchStudents = async () => {
+    setLoading((prev) => ({ ...prev, students: true }));
     const token = localStorage.getItem("authToken");
     fetch(`${baseUrl}/student`, {
       method: "GET",
@@ -169,15 +181,21 @@ const AdminUsersPage = () => {
           description: "Failed to fetch students",
           variant: "destructive",
         });
-      });
+      })
+      .finally(() => setLoading((prev) => ({ ...prev, students: false })));
   };
-  
-  
+
   //load initial data on component mount
   useEffect(() => {
-    fetchJournalistsRequests();
-    fetchJournalists();
-    fetchReviewers();
+    const fetchData = async () => {
+      await Promise.all([
+        fetchJournalistsRequests(),
+        fetchJournalists(),
+        fetchReviewers(),
+      ]);
+    };
+
+    fetchData();
   }, []);
 
   //fetch students when exploreStudents is toggled
@@ -199,14 +217,14 @@ const AdminUsersPage = () => {
       body: JSON.stringify(student),
     })
       .then(async (res) => {
-        const data=await res.json();
-        if (data.message==="Student registered successfully!") {
+        const data = await res.json();
+        if (data.message === "Student registered successfully!") {
           toast({
             title: "Success",
             description: "Student added successfully",
             variant: "success",
           });
-           fetchStudents();
+          fetchStudents();
         } else {
           throw new Error("Failed to add student");
         }
@@ -217,17 +235,18 @@ const AdminUsersPage = () => {
           description: err.message || "Failed to add student",
           variant: "destructive",
         });
-      }).finally(() => setRequesting(false));
+      })
+      .finally(() => setRequesting(false));
   };
 
   //change in data of student
-  const handleStudentChange = (e) => {
+  const handleStudentChange = useCallback((e) => {
     const { name, value } = e.target;
     setNewStudent((prev) => ({
       ...prev,
       [name]: value,
     }));
-  };
+  }, []);
 
   //add student handler
   const handleAddStudent = async () => {
@@ -235,12 +254,12 @@ const AdminUsersPage = () => {
 
     if (name && email && department && year && studentId && gender) {
       await addStudent({
-        id:studentId,
-        fullName:name,
-        email:email,
-        gender:gender,
-        department:department,
-        year:year,
+        id: studentId,
+        fullName: name,
+        email: email,
+        gender: gender,
+        department: department,
+        year: year,
       });
 
       // reset form
@@ -269,14 +288,14 @@ const AdminUsersPage = () => {
     })
       .then(async (res) => {
         const data = await res.json();
-        if (data.message==="Journalist Request accepted successfully") {
+        if (data.message === "Journalist Request accepted successfully") {
           toast({
             title: "Success",
             description: data.message,
             variant: "success",
           });
-           fetchJournalistsRequests();
-           fetchJournalists();
+          fetchJournalistsRequests();
+          fetchJournalists();
         } else {
           throw new Error(data.message);
         }
@@ -287,7 +306,8 @@ const AdminUsersPage = () => {
           description: err.message || "Failed to approve journalist request",
           variant: "destructive",
         });
-      }).finally(() => setRequesting(false));
+      })
+      .finally(() => setRequesting(false));
   };
 
   // Reject Journalist api call
@@ -302,14 +322,14 @@ const AdminUsersPage = () => {
     })
       .then(async (res) => {
         const data = await res.json();
-        if (data.message==="Journalist Request rejected successfully") {
+        if (data.message === "Journalist Request rejected successfully") {
           toast({
             title: "Success",
             description: data.message,
             variant: "success",
           });
-           fetchJournalistsRequests();
-           fetchJournalists();
+          fetchJournalistsRequests();
+          fetchJournalists();
         } else {
           throw new Error(data.message);
         }
@@ -320,7 +340,8 @@ const AdminUsersPage = () => {
           description: err.message || "Failed to reject journalist request",
           variant: "destructive",
         });
-      }).finally(() => setRequesting(false));
+      })
+      .finally(() => setRequesting(false));
   };
 
   //Add reviewer API call
@@ -336,13 +357,13 @@ const AdminUsersPage = () => {
     })
       .then(async (res) => {
         const data = await res.json();
-        if (data.message==="Reviewer added successfully") {
+        if (data.message === "Reviewer added successfully") {
           toast({
             title: "Success",
             description: data.message,
             variant: "success",
           });
-           fetchReviewers();
+          fetchReviewers();
         } else {
           throw new Error(data.message);
         }
@@ -353,7 +374,8 @@ const AdminUsersPage = () => {
           description: err.message || "Failed to add reviewer",
           variant: "destructive",
         });
-      }).finally(() => setRequesting(false));
+      })
+      .finally(() => setRequesting(false));
   };
 
   //Add Reviwer Handler
@@ -381,7 +403,7 @@ const AdminUsersPage = () => {
     })
       .then(async (res) => {
         const data = await res.json();
-        if (data.message==="Journalist removed successfully") {
+        if (data.message === "Journalist removed successfully") {
           toast({
             title: "Success",
             description: data.message,
@@ -398,9 +420,9 @@ const AdminUsersPage = () => {
           description: err.message || "Failed to remove journalist",
           variant: "destructive",
         });
-      }).finally(() => setRequesting(false));
-
-  }
+      })
+      .finally(() => setRequesting(false));
+  };
 
   //remove Reviewr
   const removeReviewer = async (id) => {
@@ -414,7 +436,7 @@ const AdminUsersPage = () => {
     })
       .then(async (res) => {
         const data = await res.json();
-        if (data.message=="Reviewer removed successfully") {
+        if (data.message == "Reviewer removed successfully") {
           toast({
             title: "Success",
             description: data.message,
@@ -431,16 +453,16 @@ const AdminUsersPage = () => {
           description: err.message || "Failed to remove reviewer",
           variant: "destructive",
         });
-      }).finally(() => setRequesting(false));
-      
-  }
+      })
+      .finally(() => setRequesting(false));
+  };
 
   //add multiple students API call
   const addMultipleStudents = async () => {
-  const formData = new FormData();
-  formData.append("file", excelFile);
-  setRequesting(true);
-   await fetch(`${baseUrl}/student/add-multiple`, {
+    const formData = new FormData();
+    formData.append("file", excelFile);
+    setRequesting(true);
+    await fetch(`${baseUrl}/student/add-multiple`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
@@ -449,7 +471,7 @@ const AdminUsersPage = () => {
     })
       .then(async (res) => {
         const data = await res.json();
-        if (data.message==="All Students registered successfully!") {
+        if (data.message === "All Students registered successfully!") {
           toast({
             title: "Success",
             description: data.message,
@@ -465,10 +487,13 @@ const AdminUsersPage = () => {
           description: err.message || "Failed to add students",
           variant: "destructive",
         });
-      }).finally(() => {setRequesting(false);});
+      })
+      .finally(() => {
+        setRequesting(false);
+      });
 
-      setExcelFile(null);
-      setStudentOpen(false);
+    setExcelFile(null);
+    setStudentOpen(false);
   };
 
   //------------------------------UI--------------------------------------------//
@@ -564,21 +589,27 @@ const AdminUsersPage = () => {
           {/* ---------------- Journalist Requests ---------------- */}
           <TabsContent value="journalist-requests" className="mt-6 space-y-4">
             {/* If no requests, show empty state */}
-            {journalistRequests.length === 0 ? (
+            {loading.journalistRequests ? (
               <Card>
                 <CardContent className="p-6 text-center">
-                  <p className="text-muted-foreground">
-                    No pending journalist requests.
-                  </p>
+                  <Loading />
                 </CardContent>
               </Card>
+            ) : journalistRequests.length === 0 ? (
+              <EmptyState
+                icon={<UserPlus className="text-4xl" />}
+                title="No Journalist Requests"
+                desc="There are no pending journalist requests at the moment."
+              />
             ) : (
               journalistRequests.map((request) => (
                 <Card key={request.id}>
                   <CardContent className="p-6 pt-4">
                     <div className="flex justify-between">
                       <div>
-                        <p className="font-semibold">{request.journalistName}</p>
+                        <p className="font-semibold">
+                          {request.journalistName}
+                        </p>
                         <p className="text-sm text-muted-foreground">
                           {request.studentId}
                         </p>
@@ -592,7 +623,7 @@ const AdminUsersPage = () => {
 
                       <div className="flex gap-2">
                         <Button
-                        disabled={requesting}
+                          disabled={requesting}
                           variant="outline"
                           className="text-destructive"
                           onClick={() =>
@@ -606,7 +637,7 @@ const AdminUsersPage = () => {
                           Reject
                         </Button>
                         <Button
-                        disabled={requesting}
+                          disabled={requesting}
                           onClick={() =>
                             setConfirmDialog({
                               open: true,
@@ -631,12 +662,16 @@ const AdminUsersPage = () => {
               <CardContent className="p-0">
                 <div className="divide-y">
                   {/* If no journalists, show empty state */}
-                  {journalists.length === 0 ? (
+                  {loading.journalists ? (
                     <div className="p-6 text-center">
-                      <p className="text-muted-foreground">
-                        No approved journalists yet.
-                      </p>
+                      <Loading />
                     </div>
+                  ) : journalists.length === 0 ? (
+                    <EmptyState
+                      icon={<UserPlus className="text-4xl" />}
+                      title="No Journalists"
+                      desc="There are no approved journalists at the moment."
+                    />
                   ) : (
                     journalists.map((journalist) => (
                       <div
@@ -660,12 +695,19 @@ const AdminUsersPage = () => {
                           <Badge variant="outline">Journalist</Badge>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" disabled={requesting}>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                disabled={requesting}
+                              >
                                 <MoreVertical className="w-4 h-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem className="text-destructive" onClick={() => removeJournalist(journalist.id)}>
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => removeJournalist(journalist.id)}
+                              >
                                 Remove
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -685,7 +727,10 @@ const AdminUsersPage = () => {
             <div className="flex justify-end">
               <Dialog open={reviewerOpen} onOpenChange={setReviewerOpen}>
                 <DialogTrigger asChild>
-                  <Button onClick={() => setReviewerOpen(true)} disabled={requesting}>
+                  <Button
+                    onClick={() => setReviewerOpen(true)}
+                    disabled={requesting}
+                  >
                     <UserPlus className="w-4 h-4 mr-2" />
                     Add Reviewer
                   </Button>
@@ -712,7 +757,11 @@ const AdminUsersPage = () => {
                         onChange={(e) => setNewReviewerEmail(e.target.value)}
                       />
                     </div>
-                    <Button className="w-full" onClick={handleAddReviewer} disabled={requesting}>
+                    <Button
+                      className="w-full"
+                      onClick={handleAddReviewer}
+                      disabled={requesting}
+                    >
                       Add Reviewer
                     </Button>
                   </div>
@@ -725,12 +774,16 @@ const AdminUsersPage = () => {
               <CardContent className="p-0">
                 {/* If no reviewers, show empty state */}
                 <div className="divide-y">
-                  {reviewers.length === 0 ? (
+                  {loading.reviewers ? (
                     <div className="p-6 text-center">
-                      <p className="text-muted-foreground">
-                        No reviewers added yet.
-                      </p>
+                      <Loading />
                     </div>
+                  ) : reviewers.length === 0 ? (
+                    <EmptyState
+                      icon={<UserPlus className="text-4xl" />}
+                      title="No Reviewers"
+                      desc="There are no reviewers added at the moment."
+                    />
                   ) : (
                     reviewers.map((reviewer) => (
                       <div
@@ -754,12 +807,19 @@ const AdminUsersPage = () => {
                           <Badge variant="outline">Reviewer</Badge>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" disabled={requesting}>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                disabled={requesting}
+                              >
                                 <MoreVertical className="w-4 h-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem className="text-destructive" onClick={()=>removeReviewer(reviewer.id)}>
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => removeReviewer(reviewer.id)}
+                              >
                                 Remove
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -779,7 +839,10 @@ const AdminUsersPage = () => {
             <div className="flex justify-end">
               <Dialog open={studentOpen} onOpenChange={setStudentOpen}>
                 <DialogTrigger asChild>
-                  <Button onClick={() => setStudentOpen(true)} disabled={requesting}>
+                  <Button
+                    onClick={() => setStudentOpen(true)}
+                    disabled={requesting}
+                  >
                     <UserPlus className="w-4 h-4 mr-2" />
                     Add Student
                   </Button>
@@ -852,7 +915,11 @@ const AdminUsersPage = () => {
                         <option value="OTHER">Other</option>
                       </select>
 
-                      <Button className="w-full" onClick={handleAddStudent} disabled={requesting}>
+                      <Button
+                        className="w-full"
+                        onClick={handleAddStudent}
+                        disabled={requesting}
+                      >
                         Add Student
                       </Button>
                     </TabsContent>
@@ -870,7 +937,23 @@ const AdminUsersPage = () => {
                         onChange={(e) => setExcelFile(e.target.files[0])}
                       />
 
-                      {requesting ? (<Button className="w-full" onClick={addMultipleStudents} disabled={requesting}>Processing your excel Don't exit</Button>): (<Button className="w-full" onClick={addMultipleStudents} disabled={requesting}>Upload & Add Students</Button>)}
+                      {requesting ? (
+                        <Button
+                          className="w-full"
+                          onClick={addMultipleStudents}
+                          disabled={requesting}
+                        >
+                          Processing your excel Don't exit
+                        </Button>
+                      ) : (
+                        <Button
+                          className="w-full"
+                          onClick={addMultipleStudents}
+                          disabled={requesting}
+                        >
+                          Upload & Add Students
+                        </Button>
+                      )}
                     </TabsContent>
                   </Tabs>
                 </DialogContent>
@@ -882,10 +965,19 @@ const AdminUsersPage = () => {
               <CardContent className="p-0">
                 {/* If no students, show empty state */}
                 <div className="divide-y">
-                  {students.length === 0 ? (
+                  {loading.students ? (
+                    <div className="p-6 text-center">
+                      <Loading />
+                    </div>
+                  ) : students.length === 0 ? (
                     <div className="p-6 text-center">
                       <p className="text-muted-foreground">
-                        <Button variant="outline" className="mb-2" onClick={() => setExploreStudents(true)} disabled={requesting}>
+                        <Button
+                          variant="outline"
+                          className="mb-2"
+                          onClick={() => setExploreStudents(true)}
+                          disabled={requesting}
+                        >
                           Explore students
                         </Button>
                       </p>

@@ -1,4 +1,4 @@
-import { useState,useEffect } from "react";
+import { useState, useEffect } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
@@ -11,7 +11,7 @@ import {
 } from "../../components/ui/Tabs";
 import { Textarea } from "../../components/ui/Textarea";
 import { Label } from "../../components/ui/Label";
-import { Clock, CheckCircle, Eye, Star, Download } from "lucide-react";
+import { Clock, CheckCircle, Download } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -23,21 +23,19 @@ import { reviewerNavItems } from "../../config/Navigation";
 import { toast } from "../../hooks/use-toast";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import EmptyState from "../../components/ui/EmptyState";
+import Loading from "../../components/ui/Loading";
 
 const navItems = reviewerNavItems;
 
 /* ---------------- MOCK DATA ---------------- */
 
-
 const ReviewerDashboard = () => {
-
   //state variables
-  const [user, setUser] = useState({
-    
-  });
+  const [user, setUser] = useState({});
 
   const nevigate = useNavigate();
-  
+
   const [selectedPaper, setSelectedPaper] = useState(null);
   const [feedback, setFeedback] = useState("");
   const [reviewedPapers, setReviewedPapers] = useState([]);
@@ -46,136 +44,191 @@ const ReviewerDashboard = () => {
     reviewed: 0,
   });
 
-  const [pendingPapers,setPendingPapers] = useState([]);
+  const [pendingPapers, setPendingPapers] = useState([]);
 
-  const [requesting,setRequesting] = useState(false);
+  const [requesting, setRequesting] = useState(false);
+
+  const [loading, setLoading] = useState({
+    pendingPapers: true,
+    reviewedPapers: true,
+  });
 
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/reviewer`;
 
-        const { routeProtection } = useAuth();
-    
-      useEffect(() => {
-        if (!routeProtection("REVIEWER")) {
-          nevigate("/auth");
-        }
-      },[]);
+  const { routeProtection } = useAuth();
+
+  useEffect(() => {
+    if (!routeProtection("REVIEWER")) {
+      nevigate("/auth");
+    }
+  }, []);
 
   //fetch stats for dashboard
-  const fetchStats = () => {
-      fetch(`${baseUrl}/stats`,{
-        method:"GET",
-        headers:{
-          "Content-Type":"application/json",
-          "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+  const fetchStats = async () => {
+    try {
+      const res = await fetch(`${baseUrl}/stats`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
         },
-      })
-      .then(res => res.json())
-      .then(data => {
-        setStats({
-          pending: data.pendingReviews,
-          reviewed: data.reviewed,
-        });
-      })
-      .catch(err => {
-        console.error("Error fetching stats:", err);
       });
+
+      if (!res.ok) throw new Error("Failed to fetch stats");
+
+      const data = await res.json();
+      setStats({
+        pending: data.pendingReviews,
+        reviewed: data.reviewed,
+      });
+    } catch (err) {
+      console.error("Error fetching stats:", err);
+      toast({
+        title: "Error",
+        description: err.message || "Failed to fetch stats",
+        variant: "destructive",
+      });
+    }
   };
 
   //fetch user details
-  const fetchUserDetails = () => {
-    fetch(`${baseUrl}/reviewer-detail`,{
-      method:"GET",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
-      },
-    })
-    .then(res => res.json())
-    .then(data => {
+  const fetchUserDetails = async () => {
+    try {
+      const res = await fetch(`${baseUrl}/reviewer-detail`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to fetch user details");
+
+      const data = await res.json();
       setUser({
         name: data.reviewerName,
         college: data.collegeName,
       });
-    })
-    .catch(err => {
+    } catch (err) {
       console.error("Error fetching user details:", err);
-    });
-  };
-  
-  //fetch pending papers for review
-  const fetchPendingPapers = () => {
-    fetch(`${baseUrl}/pending`,{
-      method:"GET",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
-      },
-    })
-    .then(res => res.json())
-    .then(data => {
-      setPendingPapers(data);
-    })
-    .catch(err => {
-      console.error("Error fetching pending papers:", err);
-    });
+      toast({
+        title: "Error",
+        description: err.message || "Failed to fetch user details",
+        variant: "destructive",
+      });
+    }
   };
 
-//fetch reviewed papers
-  const fetchReviewedPapers = () => {
-    fetch(`${baseUrl}/reviewed`,{
-      method:"GET",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
-      },
-    })
-    .then(res => res.json())
-    .then(data => {
+  //fetch pending papers for review
+  const fetchPendingPapers = async () => {
+    setLoading((prev) => ({ ...prev, pendingPapers: true }));
+    try {
+      const res = await fetch(`${baseUrl}/pending`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to fetch pending papers");
+
+      const data = await res.json();
+      setPendingPapers(data);
+    } catch (err) {
+      console.error("Error fetching pending papers:", err);
+      toast({
+        title: "Error",
+        description: err.message || "Failed to fetch pending papers",
+        variant: "destructive",
+      });
+    }
+    finally{
+      setLoading((prev) => ({ ...prev, pendingPapers: false }));
+    }
+  };
+
+  //fetch reviewed papers
+  const fetchReviewedPapers = async () => {
+    setLoading((prev) => ({ ...prev, reviewedPapers: true }));
+    try {
+      const res = await fetch(`${baseUrl}/reviewed`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to fetch reviewed papers");
+
+      const data = await res.json();
       setReviewedPapers(data);
-    })
-    .catch(err => {
+    } catch (err) {
       console.error("Error fetching reviewed papers:", err);
-    });
+      toast({
+        title: "Error",
+        description: err.message || "Failed to fetch reviewed papers",
+        variant: "destructive",
+      });
+    }
+    finally{
+      setLoading((prev) => ({ ...prev, reviewedPapers: false }));
+    }
   };
 
   useEffect(() => {
-    fetchStats();
-    fetchPendingPapers();
-    fetchReviewedPapers();
-    fetchUserDetails();
-  }, []);
+    const fetchAllData = async () => {
+      try {
+        await Promise.all([
+          fetchStats(),
+          fetchUserDetails(),
+          fetchPendingPapers(),
+          fetchReviewedPapers(),
+        ]);
+      } catch (err) {
+        console.error("Error fetching reviewer dashboard data:", err);
+        toast({
+          title: "Error",
+          description: "Failed to fetch dashboard data",
+          variant: "destructive",
+        });
+      }
+    };
 
+    fetchAllData();
+  }, []);
 
   //download research paper PDF
   const downloadPdf = async (url, title) => {
-  try {
-    const token = localStorage.getItem("authToken");
+    try {
+      const token = localStorage.getItem("authToken");
 
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-    const blob = await response.blob();
+      const blob = await response.blob();
 
-    const downloadUrl = window.URL.createObjectURL(blob);
+      const downloadUrl = window.URL.createObjectURL(blob);
 
-    const link = document.createElement("a");
-    link.href = downloadUrl;
-    link.download = `${title}.pdf`; // force pdf name
-    document.body.appendChild(link);
-    link.click();
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = `${title}.pdf`; // force pdf name
+      document.body.appendChild(link);
+      link.click();
 
-    link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
-  } catch (error) {
-    console.error("Download failed:", error);
-  }
-};
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error("Download failed:", error);
+    }
+  };
 
-  const handleApprove = async(paperId) => {
+  const handleApprove = async (paperId) => {
     setRequesting(true);
     if (!feedback.trim()) {
       toast({
@@ -190,30 +243,30 @@ const ReviewerDashboard = () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
       body: JSON.stringify({
-        feedback
+        feedback,
       }),
     })
       .then((res) => {
         return res.json();
       })
       .then((data) => {
-        if(data.message ==="Research-Paper has been accepted & published") {
-        fetchStats();
-        fetchPendingPapers();
-        fetchReviewedPapers();
-        toast({
-          title: "Paper approved successfully",
-          description: "The paper has been approved.",
-          variant: "success",
-        });
-        }
-        else{
+        if (data.message === "Research-Paper has been accepted & published") {
+          fetchStats();
+          fetchPendingPapers();
+          fetchReviewedPapers();
+          toast({
+            title: "Paper approved successfully",
+            description: "The paper has been approved.",
+            variant: "success",
+          });
+        } else {
           toast({
             title: "Failed to approve paper",
-            description: data.message || "An error occurred while approving the paper.",
+            description:
+              data.message || "An error occurred while approving the paper.",
             variant: "destructive",
           });
         }
@@ -221,10 +274,12 @@ const ReviewerDashboard = () => {
       .catch((err) => {
         toast({
           title: "Failed to submit review",
-          description: err.message||"An error occurred while submitting your review.",
+          description:
+            err.message || "An error occurred while submitting your review.",
           variant: "destructive",
         });
-      }).finally(() => {
+      })
+      .finally(() => {
         setRequesting(false);
       });
     setSelectedPaper(null);
@@ -246,44 +301,46 @@ const ReviewerDashboard = () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
       body: JSON.stringify({
-        feedback
+        feedback,
       }),
     })
       .then((res) => {
         return res.json();
       })
       .then((data) => {
-        if(data.message ==="Research-Paper has been rejected") {
-        fetchStats();
-        fetchPendingPapers();
-        fetchReviewedPapers();
-        toast({
-          title: "Paper rejected successfully",
-          description: "The paper has been rejected.",
-          variant: "success",
-        });
-      }
-      else{
-        toast({
-          title: "Failed to reject paper",
-          description: data.message || "An error occurred while rejecting the paper.",
-          variant: "destructive",
-        })
-      }
-    })
+        if (data.message === "Research-Paper has been rejected") {
+          fetchStats();
+          fetchPendingPapers();
+          fetchReviewedPapers();
+          toast({
+            title: "Paper rejected successfully",
+            description: "The paper has been rejected.",
+            variant: "success",
+          });
+        } else {
+          toast({
+            title: "Failed to reject paper",
+            description:
+              data.message || "An error occurred while rejecting the paper.",
+            variant: "destructive",
+          });
+        }
+      })
       .catch((err) => {
         toast({
           title: "Failed to submit review",
-          description: err.message||"An error occurred while submitting your review.",
+          description:
+            err.message || "An error occurred while submitting your review.",
           variant: "destructive",
         });
-      }).finally(() => {
+      })
+      .finally(() => {
         setRequesting(false);
       });
-      
+
     setSelectedPaper(null);
     setFeedback("");
   };
@@ -348,15 +405,28 @@ const ReviewerDashboard = () => {
 
           {/* Pending Papers */}
           <TabsContent value="pending" className="space-y-4">
-            {pendingPapers.map((paper) => (
+            {loading.pendingPapers ? (
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <Loading />
+                </CardContent>
+              </Card>
+            ) : pendingPapers.length === 0 ? (
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <EmptyState
+                    title="No Pending Reviews"
+                    desc="There are no research papers awaiting your review."
+                    icon={<Clock className="text-4xl" />} />
+                </CardContent>
+              </Card>
+            ) : (
+            pendingPapers.map((paper) => (
               <Card key={paper.id} className="border-border/50 pt-4">
                 <CardContent className="p-6 flex justify-between">
                   <div className="flex gap-4">
-                   
                     <div>
                       <h3 className="font-semibold text-lg">{paper.title}</h3>
-
-                     
 
                       <p className="text-sm text-muted-foreground line-clamp-2">
                         {paper.overview.length > 100
@@ -364,35 +434,53 @@ const ReviewerDashboard = () => {
                           : paper.overview}
                       </p>
 
-                       <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground">
                         by {paper.studentName} • {paper.department}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          disabled={requesting}
-                          onClick={() => setSelectedPaper(paper)}
-                        >
-                          View Details
-                        </Button>
+                    <Button
+                      variant="outline"
+                      disabled={requesting}
+                      onClick={() => setSelectedPaper(paper)}
+                    >
+                      View Details
+                    </Button>
 
-                        <Button disabled={requesting} onClick={() => downloadPdf(paper.pdfUrl,paper.title)}>
-                          <Download className="w-4 h-4 mr-2" />
-                          Download PDF
-                        </Button>
-                      </div>
+                    <Button
+                      disabled={requesting}
+                      onClick={() => downloadPdf(paper.pdfUrl, paper.title)}
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download PDF
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
-            ))}
+            )))}
           </TabsContent>
 
           {/* Reviewed */}
           <TabsContent value="reviewed" className="space-y-4">
-            {reviewedPapers.map((reviewed) => {
-            
+            {loading.reviewedPapers ? (
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <Loading />
+                </CardContent>
+              </Card>
+            ) : reviewedPapers.length === 0 ? (
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <EmptyState
+                    title="No Reviewed Papers"
+                    desc="You haven't reviewed any papers yet."
+                    icon={<CheckCircle className="text-4xl" />} />
+                </CardContent>
+              </Card>
+            ) : (
+            reviewedPapers.map((reviewed) => {
               return (
                 <Card key={reviewed.id}>
                   <CardContent className="p-6 flex justify-between items-center pt-4">
@@ -404,13 +492,11 @@ const ReviewerDashboard = () => {
                       </p>
                     </div>
 
-                    <Badge >
-                      {reviewed.status}
-                    </Badge>
+                    <Badge>{reviewed.status}</Badge>
                   </CardContent>
                 </Card>
               );
-            })}
+            }))}
           </TabsContent>
           <Dialog
             open={!!selectedPaper}
@@ -422,16 +508,17 @@ const ReviewerDashboard = () => {
                   <DialogHeader>
                     <DialogTitle>{selectedPaper.title}</DialogTitle>
                     <DialogDescription>
-                      by {selectedPaper.studentName} • {selectedPaper.department}
+                      by {selectedPaper.studentName} •{" "}
+                      {selectedPaper.department}
                     </DialogDescription>
                   </DialogHeader>
 
                   <div>
-                      <h4 className="font-semibold">Subject</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedPaper.subject}
-                      </p>
-                    </div>
+                    <h4 className="font-semibold">Subject</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedPaper.subject}
+                    </p>
+                  </div>
 
                   <div className="space-y-4">
                     <div>
@@ -440,10 +527,6 @@ const ReviewerDashboard = () => {
                         {selectedPaper.overview}
                       </p>
                     </div>
-
-                    
-
-                    
 
                     <div>
                       <Label>Your Feedback</Label>
@@ -457,14 +540,17 @@ const ReviewerDashboard = () => {
 
                     <div className="flex gap-2 justify-end">
                       <Button
-                      disabled={requesting}
+                        disabled={requesting}
                         variant="destructive"
                         onClick={() => handleReject(selectedPaper.id)}
                       >
                         Reject
                       </Button>
 
-                      <Button disabled={requesting} onClick={() => handleApprove(selectedPaper.id)}>
+                      <Button
+                        disabled={requesting}
+                        onClick={() => handleApprove(selectedPaper.id)}
+                      >
                         Approve
                       </Button>
                     </div>

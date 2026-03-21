@@ -6,112 +6,147 @@ import { journalistNavItems } from "../../config/Navigation";
 import { toast } from "../../hooks/use-toast";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import Loading from "../../components/ui/Loading";
+import EmptyState from "../../components/ui/EmptyState";
 
 /* ---------------- NAV ITEMS ---------------- */
 const navItems = journalistNavItems;
 
 const JournalistDashboard = () => {
   // State variables
-  const [stats,setStats] = useState({
+  const [stats, setStats] = useState({
     published: 0,
     draft: 0,
   });
-  const [details,setDetails] = useState({
+  const [details, setDetails] = useState({
     name: "",
     college: "",
   });
-  const [topArticles,setTopArticles] = useState([]);
+  const [topArticles, setTopArticles] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   // Base URL for API calls related to journalist
-  const baseUrl=`${import.meta.env.VITE_BACKEND_URL}/campus-connect/journalist`;
+  const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/journalist`;
 
-      const { routeProtection } = useAuth();
-      const navigate = useNavigate();
-  
-    useEffect(() => {
-      if (!routeProtection("JOURNALIST")) {
-        navigate("/auth");
-      }
-    },[]);
+  const { routeProtection } = useAuth();
+  const navigate = useNavigate();
 
+  useEffect(() => {
+    if (!routeProtection("JOURNALIST")) {
+      navigate("/auth");
+    }
+  }, [navigate, routeProtection]);
 
   // Fetch dashboard stats
-  const fetchStats = async() => {
-    await fetch(`${baseUrl}/stats`,{
-      method:"GET",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
-      },
-    })
-    .then(res => res.json())
-    .then(data => {
+  const fetchStats = async () => {
+    try {
+      const res = await fetch(`${baseUrl}/stats`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to fetch stats");
+
+      const data = await res.json();
       setStats({
         published: data.published,
         draft: data.draft,
       });
-    })
-    .catch(err => {
+    } catch (err) {
       console.error("Error fetching stats:", err);
-    });
-  }
+      toast({
+        title: "Error",
+        description: err.message || "Failed to fetch stats",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Fetch journalist details
-  const fetchDetails = async() => {
-    await fetch(`${baseUrl}/journalist-detail`,{
-      method:"GET",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
-      },
-    })
-    .then(res => res.json())
-    .then(data => {
+  const fetchDetails = async () => {
+    try {
+      const res = await fetch(`${baseUrl}/journalist-detail`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to fetch journalist details");
+
+      const data = await res.json();
       setDetails({
         name: data.name,
         college: data.collegeName,
       });
-    })
-    .catch(err => {
+    } catch (err) {
       console.error("Error fetching details:", err);
-    });
-  }
+      toast({
+        title: "Error",
+        description: err.message || "Failed to fetch journalist details",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Fetch top 3 articles
-  const fetchTopArticles = async() => {
-    await fetch(`${baseUrl}/newspapers/latest`,{
-      method:"GET",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
-      },
-    })
-    .then(res => res.json())
-    .then(data => {
+  const fetchTopArticles = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${baseUrl}/newspapers/latest`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to fetch top articles");
+
+      const data = await res.json();
       setTopArticles(data);
-    })
-    .catch(err => {
+    } catch (err) {
       console.error("Error fetching top articles:", err);
-    });
-  } 
+      toast({
+        title: "Error",
+        description: err.message || "Failed to fetch top articles",
+        variant: "destructive",
+      });
+    }
+    finally {      
+      setLoading(false);
+    }
+  };
 
   //load data on component mount
   useEffect(() => {
-    fetchStats();
-    fetchDetails();
-    fetchTopArticles();
+    const fetchAllData = async () => {
+      try {
+        await Promise.all([fetchStats(), fetchDetails(), fetchTopArticles()]);
+      } catch (err) {
+        console.error("Error fetching dashboard data:", err);
+        toast({
+          title: "Error",
+          description: "Failed to fetch dashboard data",
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchAllData();
   }, []);
 
   //-----------------------UI--------------------------//
   return (
     <DashboardLayout navItems={navItems} title="Journalist Dashboard">
       <div className="space-y-8">
-
         {/* HEADER */}
         <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-2xl p-6 border">
-          <h2 className="text-2xl font-bold">
-            Welcome, {details.name}!
-          </h2>
+          <h2 className="text-2xl font-bold">Welcome, {details.name}!</h2>
           <p className="text-muted-foreground">
             Dashboard overview for {details.college}
           </p>
@@ -134,29 +169,41 @@ const JournalistDashboard = () => {
 
         {/* ---------------- TOP 3 ARTICLES ---------------- */}
         <div>
-          <h3 className="text-xl font-semibold mb-4">
-            Top 3 Newspapers
-          </h3>
+          <h3 className="text-xl font-semibold mb-4">Top 3 Newspapers</h3>
 
           <div className="grid gap-4">
-            {topArticles.map((article) => (
+            {loading ? (
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <Loading />
+                </CardContent>
+              </Card>
+            ) : (topArticles.length === 0 ? (
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <EmptyState
+                    title="No Articles"
+                    desc="You haven't published any articles yet."
+                    icon={<FileText className="text-4xl" />} />
+                </CardContent>
+              </Card>
+            ) : (
+
+            topArticles.map((article) => (
               <Card key={article.id}>
                 <CardContent className="p-4">
-                  <h4 className="font-semibold text-lg">
-                    {article.title}
-                  </h4>
+                  <h4 className="font-semibold text-lg">{article.title}</h4>
                   <p className="text-sm text-muted-foreground mt-2">
-                    {article.content.substring(0,100)}...
+                    {article.content.substring(0, 100)}...
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {article.createdAt.split("T")[0]}
                   </p>
                 </CardContent>
               </Card>
-            ))}
+            ))))}
           </div>
         </div>
-
       </div>
     </DashboardLayout>
   );

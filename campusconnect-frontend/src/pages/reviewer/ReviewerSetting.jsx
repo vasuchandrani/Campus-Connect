@@ -6,7 +6,7 @@ import { Label } from "../../components/ui/Label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/Tabs";
 import { Shield, User } from "lucide-react";
 import { reviewerNavItems } from "../../config/Navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "../../hooks/use-toast";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -30,7 +30,7 @@ const ReviewerSetting = () => {
         if (!routeProtection("REVIEWER")) {
           navigate("/auth");
         }
-      },[]);
+      },[navigate, routeProtection]);
 
 
   //fetch profile
@@ -65,15 +65,31 @@ const ReviewerSetting = () => {
   }, []);
 
 
-  const handleChange = (e) => {
+  const handleChange = useCallback((e) => {
     setUser({
       ...user,
       [e.target.name]: e.target.value
     });
-  };
+  }, [user]);
 
   //update profile
   const saveChanges = async () => {
+    if(user.fullName.trim()===""){
+      toast({
+        title: "Error",
+        description: "Full name cannot be empty",
+        variant: "destructive",
+      });
+      return;
+    }
+    if(user.email.trim()===""){
+      toast({
+        title: "Error",
+        description: "Email cannot be empty",
+        variant: "destructive",
+      });
+      return;
+    }
     setRequesting(true);
     await fetch(`${import.meta.env.VITE_BACKEND_URL}/campus-connect/reviewer/profile`, {
       method: "PUT",
@@ -118,6 +134,14 @@ const ReviewerSetting = () => {
       toast({
         title: "Password Mismatch",
         description: "New password and confirm password do not match.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if(newPassword.length<6||newPassword.trim()===""){
+      toast({
+        title: "Error",
+        description: "New password must be at least 6 characters long",
         variant: "destructive",
       });
       return;

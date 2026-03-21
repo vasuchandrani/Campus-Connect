@@ -57,7 +57,7 @@ const AdminSettingsPage = () => {
     if (!routeProtection("COLLEGE_ADMIN")) {
       navigate("/auth");
     }
-  }, []);
+  }, [navigate,routeProtection]);
 
 
   const handleChange = (e) => {
@@ -129,6 +129,46 @@ const AdminSettingsPage = () => {
 
   //save profile
   const saveProfile = async () => {
+    if(profile.adminName.trim()===""){
+      toast({
+        title: "Error",
+        description: "Admin name cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+     }
+     if(profile.adminEmail.trim()===""){
+      toast({
+        title: "Error",
+        description: "Admin email cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+     }
+      if(profile.institutionName.trim()===""){
+      toast({
+        title: "Error",
+        description: "Institution name cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+     }
+       if(profile.institutionDomain.trim()===""){
+      toast({
+        title: "Error",
+        description: "Institution domain cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+     }
+      if(profile.address.trim()===""){
+      toast({
+        title: "Error",
+        description: "College address cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+     }
     try {
       const payload = {
         fullName: profile.adminName,
@@ -238,6 +278,14 @@ const AdminSettingsPage = () => {
 };
   //change password
   const changePassword = async () => {
+    if(newPassword.length<6||newPassword.trim()===""){
+      toast({
+        title: "Error",
+        description: "New password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+       return;
+     }
     if (newPassword !== confirmPassword) {
       toast({
         title: "Error",

@@ -261,3 +261,28 @@ body {
 .role-card a:hover {
   text-decoration: underline;
 }
+
+@keyframes bounce-high {
+  0%,100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-18px);
+  }
+}
+
+.dot{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  background-color: hsl(var(--primary));
+  animation:bounce-high 0.8s infinite ease-in-out;
+}
+
+.delay1{
+  animation-delay:0.2s;
+}
+
+.delay2{
+  animation-delay:0.4s;
+}

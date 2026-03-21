@@ -1,4 +1,4 @@
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
@@ -8,33 +8,36 @@ import { Search, Eye } from "lucide-react";
 import { Input } from "../../components/ui/Input";
 import { toast } from "../../hooks/use-toast";
 import { useAuth } from "../../contexts/AuthContext";
+import Loading from "../../components/ui/Loading";
+import { useMemo } from "react";
+import EmptyState from "../../components/ui/EmptyState";
 
 const ClubsPage = () => {
-
   // State variables
   const [clubs, setClubs] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
 
   // Base URL for API calls related to student clubs
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/student`;
 
-  
-    const { routeProtection } = useAuth();
-    useEffect(() => {
-      if (!routeProtection("STUDENT")) {
-        navigate("/auth");
-      }
-    },[]);
+  const { routeProtection } = useAuth();
+  useEffect(() => {
+    if (!routeProtection("STUDENT")) {
+      navigate("/auth");
+    }
+  }, [navigate, routeProtection]);
   // Fetch clubs from API
   const fetchClubs = () => {
-    
+    setLoading(true);
     fetch(`${baseUrl}/clubs`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
-    }).then((res) => res.json())
+    })
+      .then((res) => res.json())
       .then((data) => {
         setClubs(data);
       })
@@ -44,21 +47,43 @@ const ClubsPage = () => {
           description: "Failed to fetch clubs",
           variant: "destructive",
         });
+      })
+      .finally(() => {
+        setLoading(false);
       });
   };
 
   //search filter function
-  const filteredClubs = clubs.filter((club) => {
-    const matchesSearch = club.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    return matchesSearch;
-  });
+  const filteredClubs = useMemo(() => {
+    return clubs.filter((club) =>
+      club.name.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+  }, [clubs, searchQuery]);
 
   // Load clubs on component mount
   useEffect(() => {
     fetchClubs();
   }, []);
+
+  if (loading) {
+    return (
+      <DashboardLayout navItems={studentNavItems} title="Clubs" bell={true}>
+        <Loading />
+      </DashboardLayout>
+    );
+  }
+
+  if (clubs.length === 0) {
+    return (
+      <DashboardLayout navItems={studentNavItems} title="Clubs" bell={true}>
+        <EmptyState
+          icon={<Search className="w-8 h-8 text-muted-foreground" />}
+          title="No Clubs Found"
+          desc="There are currently no clubs available. Please check back later."
+        />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout navItems={studentNavItems} title="Clubs" bell={true}>
@@ -77,6 +102,7 @@ const ClubsPage = () => {
         </div>
 
         {/* Clubs Grid */}
+
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredClubs.map((club) => (
             <Card
@@ -96,12 +122,12 @@ const ClubsPage = () => {
                 <div className="flex justify-between mb-3">
                   <div>
                     <h3 className="text-lg font-semibold">{club.name}</h3>
-                    
                   </div>
                 </div>
 
                 <p className="text-sm text-muted-foreground mb-4">
-                  {club.description.substring(0,40)+(club.description.length>40?"...":"")}
+                  {club.description.substring(0, 40) +
+                    (club.description.length > 40 ? "..." : "")}
                 </p>
 
                 <Button
@@ -109,9 +135,7 @@ const ClubsPage = () => {
                   className="w-full"
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate(
-                      `/campus-connect/student/clubs/${club.id}`
-                    );
+                    navigate(`/campus-connect/student/clubs/${club.id}`);
                   }}
                 >
                   <Eye className="w-4 h-4 mr-2" />

@@ -19,6 +19,8 @@ import {
 import { toast } from "../../hooks/use-toast";
 import {collegeAdminNavItems} from "../../config/Navigation";
 import { useAuth } from "../../contexts/AuthContext";
+import Loading from "../../components/ui/Loading";
+import EmptyState from "../../components/ui/EmptyState";
 
 /* ======================================================================== */
 
@@ -37,6 +39,7 @@ const ClubDetailAdminPage = () => {
   const [events, setEvents] = useState([]);
   const [teams, setTeams] = useState([]);
   const [clubMembers, setClubMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
 
     const { routeProtection } = useAuth();
@@ -45,11 +48,12 @@ const ClubDetailAdminPage = () => {
       if (!routeProtection("COLLEGE_ADMIN")) {
         navigate("/auth");
       }
-    },[]);
+    },[navigate,routeProtection]);
 
 
   // Fetch club details
   const fetchClubDetails = () => {
+    setLoading(true);
     const token = localStorage.getItem("authToken");
 
     fetch(`${baseUrl}`, {
@@ -86,6 +90,8 @@ const ClubDetailAdminPage = () => {
           description: "Failed to load club details",
           variant: "destructive",
         });
+      }).finally(() => {
+        setLoading(false);
       });
   };
 
@@ -94,6 +100,17 @@ const ClubDetailAdminPage = () => {
     fetchClubDetails();
   }, [clubId]);
 
+  if(loading) {
+    return (
+      <DashboardLayout navItems={collegeAdminNavItems} title="Club Details">
+        <Card>
+          <CardContent className="p-6 text-center">
+            <Loading />
+          </CardContent>
+        </Card>
+      </DashboardLayout>
+    );
+  }
 
   //-----------------------------UI----------------------------//
   {/* If club is not found, show Back to club button */}
@@ -175,19 +192,36 @@ const ClubDetailAdminPage = () => {
           </TabsList>
 
           <TabsContent value="teams">
-            {teams.map((team) => (
+            {teams.length === 0 ? (
+              <EmptyState
+                icon={<Users className="w-8 h-8 text-muted-foreground" />}
+                title="No Teams"
+                desc="This club does not have any teams yet."
+              />
+            ) : (
+            teams.map((team) => (
               <Card key={team.id} className="mb-3 pt-3">
                 <CardContent className="p-4">
                   <p className="font-semibold">{team.name}</p>
                   <p className="text-sm text-muted-foreground">{team.description}</p>
                 </CardContent>
               </Card>
-            ))}
+            )))}
           </TabsContent>
 
           <TabsContent value="members">
             <div className="grid md:grid-cols-2 gap-3">
-              {clubMembers.map((m) => (
+              {clubMembers.length === 0 ? (
+                <div className="col-span-full w-full">
+                <EmptyState
+                  className="col-span-full"
+                  icon={<Users className="w-8 h-8 text-muted-foreground" />}
+                  title="No Members"
+                  desc="This club does not have any members yet."
+                />
+                </div>
+              ) : (
+              clubMembers.map((m) => (
                 <div key={m.studentId} className="flex gap-3 p-3 bg-muted rounded-lg">
                  <Avatar>
                     {m.image && <AvatarImage src={m.image} />}
@@ -198,13 +232,23 @@ const ClubDetailAdminPage = () => {
                     <p className="text-xs text-muted-foreground">{m.role}</p>
                   </div>
                 </div>
-              ))}
+              )))}
             </div>
           </TabsContent>
 
           <TabsContent value="events">
             <div className="grid grid-cols-3 gap-3">
-            {events.map((e) => (
+              {events.length === 0 ? (
+                <div className="col-span-full w-full">
+                <EmptyState
+                  className="col-span-full"
+                  icon={<Calendar className="w-8 h-8 text-muted-foreground" />}
+                  title="No Events"
+                  desc="This club does not have any events yet."
+                />
+                </div>
+              ) : (
+            events.map((e) => (
               <Card key={e.id} className="mb-3">
                 <img src={e.image} className="h-32 w-full object-cover" />
                 <CardContent className="p-4">
@@ -217,12 +261,19 @@ const ClubDetailAdminPage = () => {
                   </p>
                 </CardContent>
               </Card>
-            ))}
+            )))}
             </div>
           </TabsContent>
 
           <TabsContent value="announcements">
-            {announcements.map((a) => (
+            {announcements.length === 0 ? (
+              <EmptyState
+                icon={<Megaphone className="w-8 h-8 text-muted-foreground" />}
+                title="No Announcements"
+                desc="This club does not have any announcements yet."
+              />
+            ) : (
+            announcements.map((a) => (
               <Card key={a.id} className="mb-3">
                 <CardContent className="p-4">
                   {a.priority === "high" && <Badge variant="destructive">Important</Badge>}
@@ -230,7 +281,7 @@ const ClubDetailAdminPage = () => {
                   <p className="text-sm text-muted-foreground">{a.content}</p>
                 </CardContent>
               </Card>
-            ))}
+            )))}
           </TabsContent>
         </Tabs>
       </div>
