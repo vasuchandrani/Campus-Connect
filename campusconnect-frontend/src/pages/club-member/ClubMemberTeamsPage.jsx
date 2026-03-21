@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import {
   Card,
@@ -11,6 +11,8 @@ import { UsersRound } from "lucide-react";
 import { clubMemberNavItems } from "../../config/Navigation";
 import { toast } from "../../hooks/use-toast";
 import { useParams } from "react-router-dom";
+import EmptyState from "../../components/ui/EmptyState";
+import Loading from "../../components/ui/Loading";
 
 const ClubMemberTeamsPage = () => {
   let { clubId } = useParams();
@@ -18,16 +20,19 @@ const ClubMemberTeamsPage = () => {
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/member`;
   const token = localStorage.getItem("authToken");
 
-  const updateNavItems = () => {
+  const updateNavItems = useCallback(() => {
     return clubMemberNavItems.map((item) => ({
       ...item,
       href: item.href.replace(":clubId", clubId),
     }));
-  };
+  }, [clubId]);
 
   const [teams, setTeams] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const fetchTeams = () => {
+    setLoading(true);
+
     fetch(`${baseUrl}/teams`, {
       headers: {
         "Content-Type": "application/json",
@@ -42,12 +47,35 @@ const ClubMemberTeamsPage = () => {
           description: "Failed to fetch teams",
           variant: "destructive",
         })
-      );
+      ).finally(() => setLoading(false));
   };
 
   useEffect(() => {
     fetchTeams();
   }, [clubId]);
+
+  if(loading) {
+    return (
+      <DashboardLayout navItems={updateNavItems()} title="Teams">
+        <div className="text-center py-12">
+          <Loading />
+        </div>
+      </DashboardLayout>
+    );
+  }
+  else if(teams.length === 0) {
+    return (
+      <DashboardLayout navItems={updateNavItems()} title="Teams">
+        <div className="text-center py-12">
+          <EmptyState
+            icon={<UsersRound className="w-8 h-8 text-muted-foreground" />}
+            title="No teams found"
+            desc="Your club doesn't have any teams yet."
+          />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout navItems={updateNavItems()} title="Teams">

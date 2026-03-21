@@ -35,6 +35,9 @@ import { useNavigate } from "react-router-dom";
 import { collegeAdminNavItems } from "../../config/Navigation";
 import { toast } from "../../hooks/use-toast";
 import { useAuth } from "../../contexts/AuthContext";
+import { useMemo } from "react";
+import Loading from "../../components/ui/Loading";
+import EmptyState from "../../components/ui/EmptyState";
 
 const navItems = collegeAdminNavItems;
 
@@ -55,6 +58,13 @@ const AdminClubsPage = () => {
   const [viewAnnouncement, setViewAnnouncement] = useState(null);
   const [viewEvent, setViewEvent] = useState(null);
   const [requesting, setRequesting] = useState(false);
+  const [loading, setLoading] = useState({
+    clubs: false,
+    pendingClubs: false,
+    announcements: false,
+    upcomingEvents: false,
+    completedEvents: false,
+  });
 
   const { routeProtection } = useAuth();
 
@@ -62,12 +72,12 @@ const AdminClubsPage = () => {
     if (!routeProtection("COLLEGE_ADMIN")) {
       navigate("/auth");
     }
-  },[]);
+  }, [navigate, routeProtection]);
 
   //Approve club request
-  const approveClub = async (clubId) => {
+  const approveClub = (clubId) => {
     setRequesting(true);
-    await fetch(`${baseUrl}/club-request/${clubId}`, {
+    fetch(`${baseUrl}/club-request/${clubId}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -76,7 +86,7 @@ const AdminClubsPage = () => {
     })
       .then(async (res) => {
         const data = await res.json();
-        if (data.message==="Club-request approved successfully") {
+        if (data.message === "Club-request approved successfully") {
           toast({
             title: "Club approved",
             description: data.message,
@@ -84,8 +94,7 @@ const AdminClubsPage = () => {
           });
           fetchClubRequest(); // Refresh pending clubs list
           fetchClubs(); // Refresh active clubs list
-        }
-        else{
+        } else {
           throw new Error(data.message || "Failed to approve club request");
         }
       })
@@ -95,9 +104,10 @@ const AdminClubsPage = () => {
           description: err.message || "Failed to approve club request",
           variant: "destructive",
         }),
-      ).finally(()=>{
+      )
+      .finally(() => {
         setRequesting(false);
-      })
+      });
   };
 
   //get event status based on current time
@@ -115,7 +125,7 @@ const AdminClubsPage = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       setNow(new Date());
-    }, 1000);
+    }, 30000);
 
     return () => clearInterval(interval);
   }, []);
@@ -129,14 +139,14 @@ const AdminClubsPage = () => {
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
     })
-      .then(async (res) =>await res.json())
+      .then(async (res) => await res.json())
       .then((data) => {
         setAnnouncements(data);
       })
       .catch((err) =>
         toast({
           title: "Error",
-          description: err.message||"Failed to fetch announcements",
+          description: err.message || "Failed to fetch announcements",
           variant: "destructive",
         }),
       );
@@ -155,15 +165,13 @@ const AdminClubsPage = () => {
       .then(async (res) => {
         const data = await res.json();
 
-        if (data.message==="Club-request rejected successfully") {
-          
+        if (data.message === "Club-request rejected successfully") {
           toast({
             title: "Club request rejected",
             description: data.message,
             variant: "destructive",
           });
-        }
-        else throw new Error(data.message || "Failed to reject club request");
+        } else throw new Error(data.message || "Failed to reject club request");
       })
       .catch((err) =>
         toast({
@@ -171,7 +179,8 @@ const AdminClubsPage = () => {
           description: err.message || "Failed to reject club request",
           variant: "destructive",
         }),
-      ).finally(()=>{
+      )
+      .finally(() => {
         fetchClubRequest();
         setRequesting(false);
       });
@@ -179,99 +188,117 @@ const AdminClubsPage = () => {
 
   //fetch pending club requests
   const fetchClubRequest = async () => {
-    await fetch(`${baseUrl}/club-request`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-      },
-    })
-      .then(async (res) => await res.json())
-      .then((data) => {
-        setPendingClubs(data);
-      })
-      .catch((err) =>
-        toast({
-          title: "Error",
-          description: "Failed to fetch club requests",
-          variant: "destructive",
-        }),
-      );
+    setLoading((prev) => ({ ...prev, pendingClubs: true }));
+
+    try {
+      const res = await fetch(`${baseUrl}/club-request`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+
+      const data = await res.json();
+      setPendingClubs(data);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch club requests",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading((prev) => ({ ...prev, pendingClubs: false }));
+    }
   };
 
   //fetch Upcomming events
   const fetchUpcomingEvents = async () => {
-    await fetch(`${baseUrl}/events/active`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-      },
-    })
-      .then(async (res) => await res.json())
-      .then((data) => {
-        setUpcomingEvents(data);
-      })
-      .catch((err) =>
-        toast({
-          title: "Error",
-          description: err.message||"Failed to fetch upcoming events",
-          variant: "destructive",
-        }),
-      );
+    setLoading((prev) => ({ ...prev, upcomingEvents: true }));
+
+    try {
+      const res = await fetch(`${baseUrl}/events/active`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+
+      const data = await res.json();
+      setUpcomingEvents(data);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to fetch upcoming events",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading((prev) => ({ ...prev, upcomingEvents: false }));
+    }
   };
 
   //fetch completed events
-  const fetchCompletedEvents = async() => {
-    await fetch(`${baseUrl}/events/finished`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-      },
-    })
-      .then(async (res) => await res.json())
-      .then((data) => {
-        setCompletedEvents(data);
-      })
-      .catch((err) =>
-        toast({
-          title: "Error",
-          description: err.message || "Failed to fetch completed events",
-          variant: "destructive",
-        }),
-      );
+  const fetchCompletedEvents = async () => {
+    setLoading((prev) => ({ ...prev, completedEvents: true }));
+
+    try {
+      const res = await fetch(`${baseUrl}/events/finished`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+
+      const data = await res.json();
+      setCompletedEvents(data);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to fetch completed events",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading((prev) => ({ ...prev, completedEvents: false }));
+    }
   };
 
   //fetch clubs
   const fetchClubs = async () => {
-    await fetch(`${baseUrl}/clubs`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-      },
-    })
-      .then(async (res) => await res.json())
-      .then((data) => {
-        setClubs(data);
-      })
-      .catch((err) =>
-        toast({
-          title: "Error",
-          description: err.message || "Failed to fetch clubs",
-          variant: "destructive",
-        }),
-      );
+    setLoading((prev) => ({ ...prev, clubs: true }));
+
+    try {
+      const res = await fetch(`${baseUrl}/clubs`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+
+      const data = await res.json();
+      setClubs(data);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to fetch clubs",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading((prev) => ({ ...prev, clubs: false }));
+    }
   };
 
   //load data on component mount
   useEffect(() => {
-    fetchClubs();
-    fetchClubRequest();
-    fetchAnnouncements();
-    fetchCompletedEvents();
-    fetchUpcomingEvents();
+    const fetchData = async () => {
+      await Promise.all([
+        fetchClubs(),
+        fetchClubRequest(),
+        fetchAnnouncements(),
+        fetchUpcomingEvents(),
+        fetchCompletedEvents(),
+      ]);
+    };
+
+    fetchData();
   }, []);
 
   //sort upcoming events to show LIVE ones first
@@ -282,22 +309,35 @@ const AdminClubsPage = () => {
   });
 
   //for searching
-  const filteredClubs = clubs.filter((club) =>
-    club.name.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const filteredClubs = useMemo(() => {
+    return clubs.filter((club) =>
+      club.name.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+  }, [clubs, searchQuery]);
 
-  const filteredPendingClubs = pendingClubs.filter((club) =>
-    club.clubName.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
-  const filteredAnnouncements = announcements.filter((a) =>
-    a.title.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
-  const filteredUpcomingEvents = upcomming.filter((e) =>
-    e.title.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
-  const filteredCompletedEvents = completedEvents.filter((e) =>
-    e.title.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const filteredPendingClubs = useMemo(() => {
+    return pendingClubs.filter((club) =>
+      club.clubName.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+  }, [pendingClubs, searchQuery]);
+
+  const filteredAnnouncements = useMemo(() => {
+    return announcements.filter((a) =>
+      a.title.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+  }, [announcements, searchQuery]);
+
+  const filteredUpcomingEvents = useMemo(() => {
+    return upcomming.filter((e) =>
+      e.title.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+  }, [upcomming, searchQuery]);
+
+  const filteredCompletedEvents = useMemo(() => {
+    return completedEvents.filter((e) =>
+      e.title.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+  }, [completedEvents, searchQuery]);
 
   //-----------------------------UI----------------------------//
   return (
@@ -346,96 +386,111 @@ const AdminClubsPage = () => {
           <TabsContent value="active" className="mt-6">
             {/* Clubs Grid */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredClubs.map((club) => (
-                <Card
-                  key={club.id}
-                  className="cursor-pointer hover:shadow-lg transition"
-                  onClick={() =>
-                    navigate(`/campus-connect/college-admin/clubs/${club.id}`)
-                  }
-                >
-                  {/* Image + 3-dot menu */}
-                  <div className="relative">
-                    <img
-                      src={club.logoUrl}
-                      alt={club.name}
-                      className="w-full h-40 object-cover rounded-t-lg"
-                    />
+              {loading.clubs ? (
+                <div className="col-span-full text-center py-10">
+                  <Loading />
+                </div>
+              ) : filteredClubs.length === 0 ? (
+                <div className="col-span-full w-full">
+                  <EmptyState
+                    className="col-span-full text-center py-10"
+                    icon={<Search className="w-8 h-8 text-muted-foreground" />}
+                    title="No Clubs Found"
+                    desc="There are currently no clubs available. Please check back later."
+                  />
+                </div>
+              ) : (
+                filteredClubs.map((club) => (
+                  <Card
+                    key={club.id}
+                    className="cursor-pointer hover:shadow-lg transition"
+                    onClick={() =>
+                      navigate(`/campus-connect/college-admin/clubs/${club.id}`)
+                    }
+                  >
+                    {/* Image + 3-dot menu */}
+                    <div className="relative">
+                      <img
+                        src={club.logoUrl}
+                        alt={club.name}
+                        className="w-full h-40 object-cover rounded-t-lg"
+                      />
 
-                    {/* 3-dot dropdown */}
-                    <div className="absolute top-2 right-2 z-20">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            disabled={requesting}
-                            className="bg-white/80 hover:bg-white"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
+                      {/* 3-dot dropdown */}
+                      <div className="absolute top-2 right-2 z-20">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              disabled={requesting}
+                              className="bg-white/80 hover:bg-white"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
 
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(
-                                `/campus-connect/college-admin/clubs/${club.id}`,
-                              );
-                            }}
-                          >
-                            <Eye className="w-4 h-4 mr-2" />
-                            View Details
-                          </DropdownMenuItem>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(
+                                  `/campus-connect/college-admin/clubs/${club.id}`,
+                                );
+                              }}
+                            >
+                              <Eye className="w-4 h-4 mr-2" />
+                              View Details
+                            </DropdownMenuItem>
 
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            Suspend Club
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              Suspend Club
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Card Content */}
-                  <CardContent className="p-5 pt-4">
-                    <div className="flex justify-between mb-3">
-                      <div>
-                        <h3 className="text-lg font-semibold">{club.name}</h3>
+                    {/* Card Content */}
+                    <CardContent className="p-5 pt-4">
+                      <div className="flex justify-between mb-3">
+                        <div>
+                          <h3 className="text-lg font-semibold">{club.name}</h3>
+                        </div>
+
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Users className="w-4 h-4" />
+                          {club.members}
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Users className="w-4 h-4" />
-                        {club.members}
-                      </div>
-                    </div>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        {club.description.substring(0, 40) +
+                          (club.description.length > 40 ? "..." : "")}
+                      </p>
 
-                    <p className="text-sm text-muted-foreground mb-4">
-                      {club.description.substring(0, 40) +
-                        (club.description.length > 40 ? "..." : "")}
-                    </p>
-
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      disabled={requesting}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(
-                          `/campus-connect/college-admin/clubs/${club.id}`,
-                        );
-                      }}
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      View Details
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        disabled={requesting}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(
+                            `/campus-connect/college-admin/clubs/${club.id}`,
+                          );
+                        }}
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        View Details
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
           </TabsContent>
 
@@ -514,54 +569,69 @@ const AdminClubsPage = () => {
 
             {/* Pending Clubs List */}
             <div className="space-y-4">
-              {filteredPendingClubs.map((club) => (
-                <Card key={club.id} className="border-border/50">
-                  <CardContent className="p-6 pt-4">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div>
-                        <h3 className="text-xl font-semibold">
-                          {club.clubName}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          Submitted by {club.studentName} on{" "}
-                          {club.createdAt.split("T")[0]}
-                        </p>
-                      </div>
+              {loading.pendingClubs ? (
+                <div className="col-span-full text-center py-10">
+                  <Loading />
+                </div>
+              ) : filteredPendingClubs.length === 0 ? (
+                <div className="col-span-full w-full">
+                  <EmptyState
+                    className="text-center py-10"
+                    icon={<Search className="w-8 h-8 text-muted-foreground" />}
+                    title="No Pending Club Requests"
+                    desc="There are no club registration requests to review."
+                  />
+                </div>
+              ) : (
+                filteredPendingClubs.map((club) => (
+                  <Card key={club.id} className="border-border/50">
+                    <CardContent className="p-6 pt-4">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                          <h3 className="text-xl font-semibold">
+                            {club.clubName}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            Submitted by {club.studentName} on{" "}
+                            {club.createdAt.split("T")[0]}
+                          </p>
+                        </div>
 
-                      <div className="flex gap-2">
-                        <Button
-                          disabled={requesting}
-                          variant="outline"
-                          onClick={() => {
-                            setReviewClub(club);
-                          }}
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          Review
-                        </Button>
-                        <Button
-                          disabled={requesting}
-                          variant="outline"
-                          className="text-destructive"
-                          onClick={() => {
-                            deleteClubRequest(club.id);
-                          }}
-                        >
-                          <XCircle className="w-4 h-4 mr-2" />
-                          Reject
-                        </Button>
-                        <Button
-                          disabled={requesting}
-                          onClick={() => approveClub(club.id)}
-                        >
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          Approve
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            disabled={requesting}
+                            variant="outline"
+                            onClick={() => {
+                              setReviewClub(club);
+                            }}
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            Review
+                          </Button>
+                          <Button
+                            disabled={requesting}
+                            variant="outline"
+                            className="text-destructive"
+                            onClick={() => {
+                              deleteClubRequest(club.id);
+                            }}
+                          >
+                            <XCircle className="w-4 h-4 mr-2" />
+                            Reject
+                          </Button>
+                          <Button
+                            disabled={requesting}
+                            onClick={() => approveClub(club.id)}
+                          >
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            Approve
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
           </TabsContent>
 
@@ -610,45 +680,60 @@ const AdminClubsPage = () => {
 
             {/* Announcements List */}
             <div className="space-y-4">
-              {filteredAnnouncements.map((announcement) => (
-                <Card key={announcement.id} className="relative pt-4">
-                  <CardContent className="p-6">
-                    {/* 🔹 Top Row: Title + Eye Button */}
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <div className="flex gap-2 mb-1">
-                          <Badge variant="outline">
-                            {announcement.clubName}
-                          </Badge>
+              {loading.announcements ? (
+                <div className="col-span-full text-center py-10">
+                  <Loading />
+                </div>
+              ) : filteredAnnouncements.length === 0 ? (
+                <div className="col-span-full w-full">
+                  <EmptyState
+                    className="text-center py-10"
+                    icon={<Search className="w-8 h-8 text-muted-foreground" />}
+                    title="No Announcements"
+                    desc="There are no announcements to display."
+                  />
+                </div>
+              ) : (
+                filteredAnnouncements.map((announcement) => (
+                  <Card key={announcement.id} className="relative pt-4">
+                    <CardContent className="p-6">
+                      {/* 🔹 Top Row: Title + Eye Button */}
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <div className="flex gap-2 mb-1">
+                            <Badge variant="outline">
+                              {announcement.clubName}
+                            </Badge>
+                          </div>
+                          <h3 className="text-lg font-semibold">
+                            {announcement.title}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {announcement.createdAt.split("T")[0]} at{" "}
+                            {announcement.createdAt.split("T")[1].split(".")[0]}
+                          </p>
                         </div>
-                        <h3 className="text-lg font-semibold">
-                          {announcement.title}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {announcement.createdAt.split("T")[0]} at{" "}
-                          {announcement.createdAt.split("T")[1].split(".")[0]}
-                        </p>
+
+                        {/*  Eye Button */}
+                        <Button
+                          disabled={requesting}
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setViewAnnouncement(announcement)}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
                       </div>
 
-                      {/*  Eye Button */}
-                      <Button
-                        disabled={requesting}
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setViewAnnouncement(announcement)}
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                    </div>
-
-                    {/* 🔹 Description */}
-                    <p className="text-sm text-muted-foreground">
-                      {announcement.content.substring(0, 35) +
-                        (announcement.content.length > 35 ? "..." : "")}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
+                      {/* 🔹 Description */}
+                      <p className="text-sm text-muted-foreground">
+                        {announcement.content.substring(0, 35) +
+                          (announcement.content.length > 35 ? "..." : "")}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
           </TabsContent>
 
@@ -710,10 +795,96 @@ const AdminClubsPage = () => {
 
             {/* Events Grid */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredUpcomingEvents.map((event) => {
-                const status = getEventStatus(event);
+              {loading.upcomingEvents ? (
+                <div className="col-span-full text-center py-10">
+                  <Loading />
+                </div>
+              ) : filteredUpcomingEvents.length === 0 ? (
+                <div className="col-span-full w-full">
+                  <EmptyState
+                    className="text-center py-10 w-full"
+                    icon={<Search className="w-8 h-8 text-muted-foreground" />}
+                    title="No Upcoming Events"
+                    desc="There are no upcoming events to display."
+                  />
+                </div>
+              ) : (
+                filteredUpcomingEvents.map((event) => {
+                  const status = getEventStatus(event);
 
-                return (
+                  return (
+                    <Card
+                      key={event.id}
+                      className="border-border/50 overflow-hidden"
+                    >
+                      <img
+                        src={event.image}
+                        alt={event.title}
+                        className="w-full h-40 object-cover"
+                      />
+
+                      <CardContent className="p-5 pt-4">
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          {event.clubName && (
+                            <Badge variant="outline">{event.clubName}</Badge>
+                          )}
+
+                          <Badge
+                            variant={
+                              status === "LIVE"
+                                ? "destructive"
+                                : status === "UPCOMING"
+                                  ? "secondary"
+                                  : "default"
+                            }
+                          >
+                            {status}
+                          </Badge>
+                        </div>
+
+                        <h4 className="font-semibold mb-2">{event.title}</h4>
+
+                        {event.description && (
+                          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                            {event.description.substring(0, 40) +
+                              (event.description.length > 40 ? "..." : "")}
+                          </p>
+                        )}
+
+                        <Button
+                          disabled={requesting}
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => setViewEvent(event)}
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          Details
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="completed" className="mt-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {loading.completedEvents ? (
+                <div className="col-span-full text-center py-10">
+                  <Loading />
+                </div>
+              ) : filteredCompletedEvents.length === 0 ? (
+                <div className="col-span-full w-full">
+                  <EmptyState
+                    className="col-span-full text-center py-10"
+                    icon={<Search className="w-8 h-8 text-muted-foreground" />}
+                    title="No Completed Events"
+                    desc="There are no completed events to display."
+                  />
+                </div>
+              ) : (
+                filteredCompletedEvents.map((event) => (
                   <Card
                     key={event.id}
                     className="border-border/50 overflow-hidden"
@@ -721,92 +892,36 @@ const AdminClubsPage = () => {
                     <img
                       src={event.image}
                       alt={event.title}
-                      className="w-full h-40 object-cover"
+                      className="w-full h-40 object-cover opacity-70"
                     />
-
                     <CardContent className="p-5 pt-4">
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        {event.clubName && (
-                          <Badge variant="outline">{event.clubName}</Badge>
-                        )}
-
-                        <Badge
-                          variant={
-                            status === "LIVE"
-                              ? "destructive"
-                              : status === "UPCOMING"
-                                ? "secondary"
-                                : "default"
-                          }
-                        >
-                          {status}
-                        </Badge>
-                      </div>
+                      <Badge variant="secondary" className="mb-2">
+                        Finished
+                      </Badge>
 
                       <h4 className="font-semibold mb-2">{event.title}</h4>
-
-                      {event.description && (
-                        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                          {event.description.substring(0, 40) +
-                            (event.description.length > 40 ? "..." : "")}
-                        </p>
-                      )}
+                      <p className="text-sm text-muted-foreground mb-3">
+                        {event.description.substring(0, 40) +
+                          (event.description.length > 40 ? "..." : "")}
+                      </p>
 
                       <Button
                         disabled={requesting}
                         variant="outline"
                         className="w-full"
-                        onClick={() => setViewEvent(event)}
+                        onClick={() =>
+                          navigate(
+                            `/campus-connect/college-admin/events/${event.id}`,
+                          )
+                        }
                       >
                         <Eye className="w-4 h-4 mr-2" />
-                        Details
+                        View Details
                       </Button>
                     </CardContent>
                   </Card>
-                );
-              })}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="completed" className="mt-6">
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredCompletedEvents.map((event) => (
-                <Card
-                  key={event.id}
-                  className="border-border/50 overflow-hidden"
-                >
-                  <img
-                    src={event.image}
-                    alt={event.title}
-                    className="w-full h-40 object-cover opacity-70"
-                  />
-                  <CardContent className="p-5 pt-4">
-                    <Badge variant="secondary" className="mb-2">
-                      Finished
-                    </Badge>
-
-                    <h4 className="font-semibold mb-2">{event.title}</h4>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      {event.description.substring(0, 40) +
-                        (event.description.length > 40 ? "..." : "")}
-                    </p>
-
-                    <Button
-                      disabled={requesting}
-                      variant="outline"
-                      className="w-full"
-                      onClick={() =>
-                        navigate(
-                          `/campus-connect/college-admin/events/${event.id}`,
-                        )
-                      }
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      View Details
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
+                ))
+              )}
             </div>
           </TabsContent>
         </Tabs>

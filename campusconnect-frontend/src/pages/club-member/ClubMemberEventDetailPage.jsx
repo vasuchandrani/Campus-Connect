@@ -15,8 +15,9 @@ import {
 } from "lucide-react";
 import { clubMemberNavItems } from "../../config/Navigation";
 import { marked } from "marked";
-import { useMemo,useEffect,useState } from "react";
+import { useMemo,useEffect,useState, useCallback } from "react";
 import { toast } from "../../hooks/use-toast";
+import Loading from "../../components/ui/Loading";
 
 const ClubMemberEventDetailPage = () => {
   const { clubId, id } = useParams();
@@ -26,16 +27,18 @@ const ClubMemberEventDetailPage = () => {
 
   // state variables
   const [event, setEvent] = useState({});
+  const [loading, setLoading] = useState(false);
 
   //formateDate function
-  const formatDate = (dateTime) => {
+  const formatDate = useCallback((dateTime) => {
     if (!dateTime) return { date: "", time: "" };
     const [date, time] = dateTime.split("T");
     return { date, time: time.substring(0, 5) };
-  };
+  }, []);
 
   //fetch Event Details
   const fetchEventDetails = async () => {
+    setLoading(true);
     const token = localStorage.getItem("authToken");
 
     await fetch(baseUrl, {
@@ -55,7 +58,7 @@ const ClubMemberEventDetailPage = () => {
           description: err.message||"Failed to fetch event details",
           variant:"destructive",
         });
-      });
+      }).finally(() => setLoading(false));
   };
 
   //load event details on component mount
@@ -64,12 +67,12 @@ const ClubMemberEventDetailPage = () => {
   }, []);
 
   //--------------Nav---------------//
-  const navItems = () => {
+  const navItems = useCallback(() => {
     return clubMemberNavItems.map((item) => ({
       ...item,
       href: item.href.replace(":clubId", clubId),
     }));
-  };
+  }, [clubId]);
 
   // Render markdown overview
   const renderedOverview = useMemo(() => {
@@ -78,6 +81,15 @@ const ClubMemberEventDetailPage = () => {
   }, [event?.overview]);
 
   // If event is not found, show a message
+  if(loading){
+    return (
+      <DashboardLayout navItems={navItems()} title="Loading Event...">
+        <div className="text-center py-12">
+          <Loading />
+        </div>
+      </DashboardLayout>
+    );
+  }
   if (!event) {
     return (
       <DashboardLayout navItems={navItems()} title="Event Not Found">

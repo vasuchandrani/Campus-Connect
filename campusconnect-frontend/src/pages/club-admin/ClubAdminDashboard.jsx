@@ -2,14 +2,16 @@ import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 import { Badge } from "../../components/ui/Badge";
-import { Eye, Heart } from "lucide-react";
+import { BellOff, Eye, Heart } from "lucide-react";
 import { CalendarDays, UserCheck, UsersRound } from "lucide-react";
 import { clubAdminNavItems } from "../../config/Navigation";
 import { useParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "../../hooks/use-toast";
 import { ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import Loading from "../../components/ui/Loading";
+import EmptyState from "../../components/ui/EmptyState";
 
 const ClubAdminDashboard = () => {
   // Get clubId from URL params
@@ -20,15 +22,15 @@ const ClubAdminDashboard = () => {
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/admin`;
 
   //---------Navs------------//
-  const updatenavItems = () => {
+  const updatenavItems = useCallback(() => {
     return clubAdminNavItems.map((item) => {
       return {
         ...item,
         href: item.href.replace(":clubId", clubId),
       };
     });
-  };
-  
+  }, [clubId]);
+
   // State variables
   const [clubAnnouncements, setClubAnnouncements] = useState([]);
   const [stats, setStats] = useState({
@@ -39,107 +41,122 @@ const ClubAdminDashboard = () => {
   });
   const [teams, setTeams] = useState([]);
   const [clubName, setClubName] = useState("Club Name");
+  const [loading, setLoading] = useState({
+    announcements: false,
+    teams: false,
+  });
 
   //1) Fetch club details including stats, announcements, teams etc.
-  const fetchClubName = () => {
-    fetch(`${baseUrl}/club-name`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-      },
-    })
-      .then((res) => res.text())
-      .then((text) => setClubName(text))
-      .catch((err) => {
-        toast({
-          title: "Error",
-          description: "Failed to fetch club details",
-          status: "error",
-        });
+  const fetchClubName = async () => {
+    try {
+      const res = await fetch(`${baseUrl}/club-name`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
       });
+
+      const text = await res.text();
+      setClubName(text);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch club details",
+        status: "error",
+      });
+    }
   };
 
   //2) Fetch stats
-  const fetchStats = () => {
-    const token = localStorage.getItem("authToken");
-    fetch(`${baseUrl}/stats`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setStats({
-          events: data.events,
-          followers: data.followers,
-          members: data.members,
-          teams: data.teams,
-        });
-      })
-      .catch((err) => {
-        toast({
-          title: "Error",
-          description: "Failed to fetch stats",
-          status: "error",
-        });
+  const fetchStats = async () => {
+    try {
+      const res = await fetch(`${baseUrl}/stats`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
       });
+
+      const data = await res.json();
+
+      setStats({
+        events: data.events,
+        followers: data.followers,
+        members: data.members,
+        teams: data.teams,
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch stats",
+        status: "error",
+      });
+    }
   };
 
   //3) Fetch teams
-  const fetchTeams = () => {
-    fetch(`${baseUrl}/team-names`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
+  const fetchTeams = async () => {
+    setLoading((prev) => ({ ...prev, teams: true }));
 
-        setTeams(data);
-      })
-      .catch((err) => {
-        toast({
-          title: "Error",
-          description: "Failed to fetch teams",
-          status: "error",
-        });
+    try {
+      const res = await fetch(`${baseUrl}/team-names`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
       });
+
+      const data = await res.json();
+      setTeams(data);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch teams",
+        status: "error",
+      });
+    } finally {
+      setLoading((prev) => ({ ...prev, teams: false }));
+    }
   };
 
   //4) Fetch recent announcements
-  const fetchClubAnnouncements = () => {
-    fetch(`${baseUrl}/top-announcements`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setClubAnnouncements(data);
-      })
-      .catch((err) => {
-        toast({
-          title: "Error",
-          description: "Failed to fetch announcements",
-          status: "error",
-        });
+  const fetchClubAnnouncements = async () => {
+    setLoading((prev) => ({ ...prev, announcements: true }));
+
+    try {
+      const res = await fetch(`${baseUrl}/top-announcements`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
       });
+
+      const data = await res.json();
+      setClubAnnouncements(data);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch announcements",
+        status: "error",
+      });
+    } finally {
+      setLoading((prev) => ({ ...prev, announcements: false }));
+    }
   };
 
   // Fetch all necessary data on component mount and whenever clubId changes
-  useEffect(() => {
-    fetchClubName();
-    fetchStats();
-    fetchClubAnnouncements();
-    fetchTeams();
-  }, [clubId]);
+useEffect(() => {
+  const fetchData = async () => {
+    await Promise.all([
+      fetchClubName(),
+      fetchStats(),
+      fetchClubAnnouncements(),
+      fetchTeams(),
+    ]);
+  };
+
+  fetchData();
+}, [clubId]);
 
   return (
     <DashboardLayout navItems={updatenavItems()} title="Club Dashboard">
@@ -229,7 +246,17 @@ const ClubAdminDashboard = () => {
 
             {/* Announcement Cards */}
             <div className="space-y-3">
-              {clubAnnouncements &&
+              {loading.announcements ? (
+                <Loading />
+              ) : clubAnnouncements.length === 0 ? (
+                <EmptyState 
+                  title="No Announcements"
+                  desc="There are no announcements for this club yet."
+                  icon={<BellOff className="w-8 h-8 text-muted-foreground" />}
+                />
+              ) : (
+              
+              clubAnnouncements &&
                 clubAnnouncements.map((announcement) => (
                   <Card
                     key={announcement.id}
@@ -254,11 +281,10 @@ const ClubAdminDashboard = () => {
                               (announcement.content.length > 80 ? "..." : "")}
                           </p>
                         </div>
-
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                )))}
             </div>
           </div>
 
@@ -284,7 +310,17 @@ const ClubAdminDashboard = () => {
             <Card className="border-border/50">
               <CardContent className="pt-4">
                 <div className="space-y-3">
-                  {teams.map((team) => (
+                  {loading.teams ? (
+                    <Loading />
+                  ) : (
+                     teams.length === 0 ? (
+                      <EmptyState
+                        title="No Teams"
+                        desc="There are no teams created for this club yet."
+                        icon={<UsersRound className="w-8 h-8 text-muted-foreground" />}
+                      />
+                     ):(
+                  teams.map((team) => (
                     <div
                       key={team.name}
                       className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/40 transition"
@@ -298,13 +334,9 @@ const ClubAdminDashboard = () => {
                         </p>
                       </div>
                     </div>
-                  ))}
+                  ))))}
 
-                  {teams.length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-6">
-                      No teams created yet
-                    </p>
-                  )}
+                 
                 </div>
               </CardContent>
             </Card>

@@ -29,6 +29,14 @@ const CollegeAdminLogin = ({
   //change password
   const handleForgot = async (e) => {
     e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Error",
+        description: "New password and confirm password do not match.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (newPassword !== confirmPassword) {
       toast({
@@ -175,7 +183,7 @@ const CollegeAdminLogin = ({
           />
         </div>
 
-        <Button disable={requesting} type="submit" className="w-full" >
+        <Button disabled={requesting} type="submit" className="w-full" >
           Send OTP
         </Button>
       </form>

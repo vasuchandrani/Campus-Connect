@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "../../components/ui/Dialog";
-import { Search, Eye } from "lucide-react";
+import { Search, Eye ,Newspaper } from "lucide-react";
 import { studentNavItems } from "../../config/Navigation";
 import { marked } from "marked";
 import { PenTool } from "lucide-react";
@@ -19,6 +19,8 @@ import { Label } from "../../components/ui/Label";
 import { toast } from "../../hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import Loading from "../../components/ui/Loading";
+import EmptyState from "../../components/ui/EmptyState";
 
 const StudentNewspaperPage = () => {
   // State variables
@@ -29,17 +31,18 @@ const StudentNewspaperPage = () => {
   const [reason, setReason] = useState("");
   const [experience, setExperience] = useState("");
   const [portfolioLink, setPortfolioLink] = useState("");
+  const [loading, setLoading] = useState(true);
 
   // Base URL for API calls related to student
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/student`;
 
-      const navigate = useNavigate();
-      const { routeProtection } = useAuth();
-      useEffect(() => {
-        if (!routeProtection("STUDENT")) {
-          navigate("/auth");
-        }
-      },[]);
+  const navigate = useNavigate();
+  const { routeProtection } = useAuth();
+  useEffect(() => {
+    if (!routeProtection("STUDENT")) {
+      navigate("/auth");
+    }
+  }, [navigate, routeProtection]);
 
   //  Compile Markdown
   const renderedContent = useMemo(() => {
@@ -49,6 +52,7 @@ const StudentNewspaperPage = () => {
 
   // Fetch newspaper articles
   const fetchArticles = async () => {
+    setLoading(true);
     await fetch(baseUrl + "/news-papers", {
       method: "GET",
       headers: {
@@ -66,15 +70,21 @@ const StudentNewspaperPage = () => {
           description: err.message || "Failed to fetch newspaper articles",
           variant: "destructive",
         });
+      })
+      .finally(() => {
+        setLoading(false);
       });
   };
 
   // Filter articles based on search query
-  const articles = newspaper.filter((a) =>
-    a.title.toLowerCase().includes(query.toLowerCase()),
-  );
-// become journalist request
-  const handleSubmitRequest = async() => {
+  const articles = useMemo(() => {
+    return newspaper.filter((a) =>
+      a.title.toLowerCase().includes(query.toLowerCase()),
+    );
+  }, [newspaper, query]);
+
+  // become journalist request
+  const handleSubmitRequest = async () => {
     if (!reason.trim() || !experience.trim()) {
       toast({
         title: "Error",
@@ -84,28 +94,29 @@ const StudentNewspaperPage = () => {
       return;
     }
 
-      await fetch(`${baseUrl}/news-papers/become`,{
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-        },
-        body: JSON.stringify({
-          why:reason,
-          experience,
-          portfolioLink
-        })
-      })
+    await fetch(`${baseUrl}/news-papers/become`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+      body: JSON.stringify({
+        why: reason,
+        experience,
+        portfolioLink,
+      }),
+    })
       .then(async (res) => {
         const data = await res.json();
-        if(data.message==="Your journalist has been sent successfully"){
+        if (data.message === "Your journalist has been sent successfully") {
           toast({
             title: "Request Submitted",
-            description: data.message || "Your request to become a journalist has been submitted successfully!",
+            description:
+              data.message ||
+              "Your request to become a journalist has been submitted successfully!",
             variant: "success",
           });
-        }
-        else{
+        } else {
           toast({
             title: "Request Failed",
             description: data.message,
@@ -131,6 +142,17 @@ const StudentNewspaperPage = () => {
     fetchArticles();
   }, []);
 
+  if (loading) {
+    return (
+      <DashboardLayout navItems={studentNavItems} title="Newspaper" bell={true}>
+        <Card>
+          <CardContent className="p-6 text-center">
+            <Loading />
+          </CardContent>
+        </Card>
+      </DashboardLayout>
+    );
+  }
   //-----------------------UI--------------------------//
   return (
     <DashboardLayout navItems={studentNavItems} title="Newspaper" bell={true}>
@@ -210,43 +232,55 @@ const StudentNewspaperPage = () => {
           </div>
         </div>
 
-        <p className="text-sm text-muted-foreground">
-          {articles.length} articles available
-        </p>
+        {articles.length === 0 ? (
+          <EmptyState
+            icon={<Newspaper className="w-8 h-8 text-muted-foreground mx-auto mb-4" />}
+            title="No Articles"
+            desc="There are no newspaper articles available at the moment."
+          />
+        ) : (
+          <>
+            <p className="text-sm text-muted-foreground">
+              {articles.length} articles available
+            </p>
 
-        {/* Articles Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {articles.map((article) => (
-            <Card key={article.id} className="border-border/50 overflow-hidden">
-              <img
-                src={article.imageUrl}
-                alt={article.title}
-                className="w-full h-40 object-cover"
-              />
-
-              <CardContent className="p-4 pt-4">
-                <h4 className="font-semibold line-clamp-2 mb-2">
-                  {article.title}
-                </h4>
-
-                <p className="text-sm text-muted-foreground mb-3">
-                  By {article.journalistName} •{" "}
-                  {article.createdAt.split("T")[0]}
-                </p>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => setViewArticle(article)}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {articles.map((article) => (
+                <Card
+                  key={article.id}
+                  className="border-border/50 overflow-hidden"
                 >
-                  <Eye className="w-4 h-4 mr-1" />
-                  Read Article
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  <img
+                    src={article.imageUrl}
+                    alt={article.title}
+                    className="w-full h-40 object-cover"
+                  />
+
+                  <CardContent className="p-4 pt-4">
+                    <h4 className="font-semibold line-clamp-2 mb-2">
+                      {article.title}
+                    </h4>
+
+                    <p className="text-sm text-muted-foreground mb-3">
+                      By {article.journalistName} •{" "}
+                      {article.createdAt.split("T")[0]}
+                    </p>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => setViewArticle(article)}
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      Read Article
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* View Article Dialog */}

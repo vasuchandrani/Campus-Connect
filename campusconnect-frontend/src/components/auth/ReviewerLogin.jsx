@@ -68,6 +68,23 @@ export default function ReviewerLogin({ onBack }) {
   //send otp
   const handleSendOtp = async(e) => {
     e.preventDefault();
+    if(resetEmail.trim()===""){
+      toast({
+        title: "Error",
+        description: "Email cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+     }
+     if(!resetEmail.includes("@") || !resetEmail.includes(".")){
+      toast({
+        title: "Error",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+     }
+    
 
     setRequesting(true);
     
@@ -112,6 +129,14 @@ export default function ReviewerLogin({ onBack }) {
   const handleForgot = async (e) => {
     e.preventDefault();
 
+    if(newPassword.trim()===""||newPassword.length<6){
+      toast({
+        title: "Error",
+        description: "New password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      return;
+     }
     if (newPassword !== confirmPassword) {
       toast({
         title: "Error",

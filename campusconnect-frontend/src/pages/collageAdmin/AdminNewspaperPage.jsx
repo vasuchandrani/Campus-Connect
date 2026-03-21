@@ -10,13 +10,14 @@ import {
   DialogTitle,
   DialogDescription,
 } from "../../components/ui/Dialog";
-import { Search, Eye } from "lucide-react";
+import { Search, Eye, Newspaper } from "lucide-react";
 import { collegeAdminNavItems } from "../../config/Navigation";
 import { toast } from "../../hooks/use-toast";
 import { marked } from "marked";
-import { set } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import Loading from "../../components/ui/Loading";
+import EmptyState from "../../components/ui/EmptyState";
 
 const AdminNewspaperPage = () => {
   // State variables
@@ -25,6 +26,7 @@ const AdminNewspaperPage = () => {
   const [query, setQuery] = useState("");
   const [requesting, setRequesting] = useState(false); 
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
 
   // Base URL for API calls related to college admin
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/college-admin`;
@@ -35,10 +37,11 @@ const AdminNewspaperPage = () => {
       if (!routeProtection("COLLEGE_ADMIN")) {
         navigate("/auth");
       }
-    },[]);
+    },[navigate,routeProtection]);
 
   // Fetch published articles
   const fetchPublishedArticles = async () => {
+    setLoading(true);
     await fetch(baseUrl+"/news-papers", {
       method: "GET",
       headers: {
@@ -53,6 +56,7 @@ const AdminNewspaperPage = () => {
       .catch((err) => {
         console.error("Error fetching published articles:", err);
       });
+      setLoading(false);
   };
 
   //load published articles on component mount
@@ -100,10 +104,26 @@ const AdminNewspaperPage = () => {
   }, [viewArticle?.content]);
 
   //for search functionality
-  const filteredArticles = publishedArticles.filter((a) =>
-    a.title.toLowerCase().includes(query.toLowerCase())
-  );
+  const filteredArticles = useMemo(() => {
+    return publishedArticles.filter((a) =>
+      a.title.toLowerCase().includes(query.toLowerCase())
+    );
+  }, [publishedArticles, query]);
 
+  if(loading){
+    return (
+      <DashboardLayout
+        navItems={collegeAdminNavItems}
+        title="Manage Newspaper"
+      >
+        <Card>
+          <CardContent className="p-6 text-center">
+            <Loading />
+          </CardContent>
+        </Card>
+      </DashboardLayout>
+    );
+  }
 
   //-------------UI------------------//
   return (
@@ -139,12 +159,22 @@ const AdminNewspaperPage = () => {
 
         {/* Articles Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredArticles.map((article) => (
-            <Card
-              key={article.id}
-              className="border-border/50 overflow-hidden"
-            >
-              <img
+          {filteredArticles.length === 0 ? (
+            <div className="col-span-full w-full">
+            <EmptyState
+              className="col-span-full"
+              icon={<Newspaper className="w-8 h-8 text-muted-foreground mx-auto mb-4" />}
+              title="No Articles Found"
+              desc="No published articles match your search."
+            />
+            </div>
+          ) : (
+            filteredArticles.map((article) => (
+              <Card
+                key={article.id}
+                className="border-border/50 overflow-hidden"
+              >
+                <img
                 src={article.imageUrl}
                 alt={article.title}
                 className="w-full h-40 object-cover"
@@ -185,7 +215,7 @@ const AdminNewspaperPage = () => {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          )))}
         </div>
       </div>
 

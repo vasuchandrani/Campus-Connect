@@ -1,4 +1,4 @@
-import { useState, useEffect, version } from "react";
+import { useState, useEffect, useCallback } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
@@ -18,6 +18,8 @@ import { Megaphone, Plus, Eye, Edit, Trash2 } from "lucide-react";
 import { clubAdminNavItems } from "../../config/Navigation";
 import { useParams } from "react-router-dom";
 import { toast } from "../../hooks/use-toast";
+import Loading from "../../components/ui/Loading";
+import EmptyState from "../../components/ui/EmptyState";
 
 const ClubAdminAnnouncementsPage = () => {
   //Take clubId from URL params
@@ -38,18 +40,21 @@ const ClubAdminAnnouncementsPage = () => {
   const [editingId, setEditingId] = useState(null);
 
   const [requesting, setRequesting] = useState(false);
+
+  const [loading, setLoading] = useState(true);
   /* ---------------- NAV ---------------- */
 
-  const updatenavItems = () => {
+  const updatenavItems = useCallback(() => {
     return clubAdminNavItems.map((item) => ({
       ...item,
       href: item.href.replace(":clubId", clubId),
     }));
-  };
+  }, [clubId]);
 
   //Fetching Data from backend
   //1) Fetch club announcements
   const fetchClubAnnouncements = () => {
+    setLoading(true);
     fetch(`${baseurl}/announcements`, {
       headers: {
         "Content-Type": "application/json",
@@ -64,6 +69,8 @@ const ClubAdminAnnouncementsPage = () => {
           description: "Failed to load announcements",
           variant: "destructive",
         });
+      }).finally(() => {
+        setLoading(false);
       });
   };
 
@@ -186,6 +193,25 @@ const ClubAdminAnnouncementsPage = () => {
 
 
   /* ---------------- UI ---------------- */
+  if (loading) {
+    return(
+      <DashboardLayout navItems={updatenavItems()} title="Announcements">
+        <Loading/>
+      </DashboardLayout>
+    )
+  }
+
+  if(!loading && clubAnnouncements.length === 0){
+    return (
+      <DashboardLayout navItems={updatenavItems()} title="Announcements">
+        <EmptyState
+          icon={<Megaphone className="text-4xl" />}
+          title="No Announcements"
+          desc="There are no announcements for this club yet."
+        />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout navItems={updatenavItems()} title="Announcements">

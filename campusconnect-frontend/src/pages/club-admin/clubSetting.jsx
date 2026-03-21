@@ -22,7 +22,7 @@ import {
 
 import { Upload, Globe, Trash2 } from "lucide-react";
 import { clubAdminNavItems } from "../../config/Navigation";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Dialog,
@@ -73,12 +73,12 @@ const handleDialogChange = (open) => {
   }
 };
 
-  const updatenavItems = () => {
+  const updatenavItems = useCallback(() => {
     return clubAdminNavItems.map((item) => ({
       ...item,
       href: item.href.replace(":clubId", clubId),
     }));
-  };
+  }, [clubId]);
 
   //send otp
   const handleEmailSubmit = async () => {
@@ -192,6 +192,14 @@ const handleDialogChange = (open) => {
 
   //save changes
 const handleSaveChanges = async () => {
+  if(clubData.name.trim()===""){
+    toast({
+      title: "Error",
+      description: "Club name cannot be empty",
+      variant: "destructive",
+    });
+    return;
+   }
   const formData = new FormData();
 
   // JSON object

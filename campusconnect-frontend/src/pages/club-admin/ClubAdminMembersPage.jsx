@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/Select";
-import { UserPlus, MoreVertical, Mail, Shield } from "lucide-react";
+import { UserPlus, MoreVertical } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,9 +32,9 @@ import {
 } from "../../components/ui/DropdownMenu";
 import { clubAdminNavItems } from "../../config/Navigation";
 import { useParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "../../hooks/use-toast";
-import { set } from "date-fns";
+import Loading from "../../components/ui/Loading";
 
 /* ================= COMPONENT ================= */
 
@@ -46,14 +46,14 @@ const ClubAdminMembersPage = () => {
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/admin`;
 
   //---------Navs------------//
-  const updatenavItems = () => {
+  const updatenavItems = useCallback(() => {
     return clubAdminNavItems.map((item) => {
       return {
         ...item,
         href: item.href.replace(":clubId", clubId),
       };
     });
-  };
+  }, [clubId]);
 
   // State variables
   const [clubMembers, setClubMembers] = useState([]);
@@ -61,9 +61,11 @@ const ClubAdminMembersPage = () => {
   const [role, setRole] = useState("member");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [requesting, setRequesting] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   //1) Fetch club members
   const fetchClubMembers = async () => {
+    setLoading(true);
     const token = localStorage.getItem("authToken");
     await fetch(`${baseUrl}/members`, {
       method: "GET",
@@ -82,6 +84,8 @@ const ClubAdminMembersPage = () => {
           description: "Failed to fetch club members",
           variant: "destructive",
         });
+      }).finally(() => {
+        setLoading(false);
       });
   };
 
@@ -162,6 +166,17 @@ const ClubAdminMembersPage = () => {
     fetchClubMembers();
   }, [clubId]);
 
+  if(loading){
+    return (
+      <DashboardLayout navItems={updatenavItems()} title="Members">
+        <Card>
+          <CardContent className="p-6 text-center">
+            <Loading />
+          </CardContent>
+        </Card>
+      </DashboardLayout>
+    );
+  }
   return (
     <DashboardLayout navItems={updatenavItems()} title="Members">
       <div className="space-y-6">

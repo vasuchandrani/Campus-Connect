@@ -15,8 +15,9 @@ import {
 } from "lucide-react";
 import { clubMemberNavItems } from "../../config/Navigation";
 import { marked } from "marked";
-import { useMemo,useEffect,useState } from "react";
+import { useMemo,useEffect,useState, useCallback } from "react";
 import { toast } from "../../hooks/use-toast";
+import Loading from "../../components/ui/Loading";
 
 
 const ClubAdminEventDetailPage = () => {
@@ -26,16 +27,16 @@ const ClubAdminEventDetailPage = () => {
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/admin/events/finished/${id}`;
 
   //--------------Nav---------------//
-    const navItems = () => {
+    const navItems = useCallback(() => {
     return clubMemberNavItems.map((item) => ({
       ...item,
       href: item.href.replace(":clubId", clubId),
     }));
-  };
+  }, [clubId]);
 
   //state variables
   const [event, setEvent] = useState({});
-
+  const [loading, setLoading] = useState(true);
   // Function to format date and time
   const formatDate = (dateTime) => {
     if (!dateTime) return { date: "", time: "" };
@@ -44,32 +45,34 @@ const ClubAdminEventDetailPage = () => {
   };
 
   //fetching event details
-  const fetchEventDetails = () => {
+  const fetchEventDetails = async () => {
+    setLoading(true);
     const token = localStorage.getItem("authToken");
 
-    fetch(baseUrl, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setEvent(data);
-      })
-      .catch((err) => {
-        toast({
-          title: "Error",
-          description: "Failed to fetch event details",
-          variant: "destructive",
-        });
+    try {
+      const res = await fetch(baseUrl, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
       });
+      const data = await res.json();
+      setEvent(data);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message|| "Failed to fetch event details",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Fetch event details on component mount
   useEffect(() => {
-    fetchEventDetails();
+     fetchEventDetails();
   }, []);
 
 
@@ -79,8 +82,20 @@ const ClubAdminEventDetailPage = () => {
     return marked.parse(event.overview.trim());
   }, [event?.overview]);
 
+  if(loading) {
+    return (
+      <DashboardLayout navItems={navItems()} title="Event Details">
+        <Card>
+          <CardContent className="p-6 text-center">
+            <Loading />
+          </CardContent>
+        </Card>
+      </DashboardLayout>
+    );
+  }
+
   // If event data is can't be fetched or is null, show a not found message
-  if (!event) {
+  if (!loading && !event) {
     return (
       <DashboardLayout navItems={navItems()} title="Event Not Found">
         <div className="text-center py-12">
