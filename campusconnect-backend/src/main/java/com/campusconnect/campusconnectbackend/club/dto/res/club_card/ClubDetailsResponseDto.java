@@ -5,11 +5,16 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.*;
 
 @Getter
 @Setter
-public class ClubDetailsResponseDto {
+public class ClubDetailsResponseDto implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     @NotBlank
     private String clubName;

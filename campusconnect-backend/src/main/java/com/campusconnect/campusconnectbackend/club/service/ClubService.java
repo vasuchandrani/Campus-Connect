@@ -67,8 +67,7 @@ public class ClubService {
         }
     }
 
-    // get club by id
-    @Cacheable(value = "club", key = "#clubId", sync = true)
+    // get club by id (for backend-use)
     public Club getClubById(Long clubId) {
         return clubRepository.findById(clubId).orElseThrow(
                 () -> new RuntimeException("Club with id " + clubId + " not found")

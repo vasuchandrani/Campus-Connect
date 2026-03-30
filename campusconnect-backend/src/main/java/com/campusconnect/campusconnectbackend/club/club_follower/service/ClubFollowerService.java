@@ -6,7 +6,6 @@ import com.campusconnect.campusconnectbackend.club.entity.Club;
 import com.campusconnect.campusconnectbackend.club.repository.ClubRepository;
 import com.campusconnect.campusconnectbackend.club.club_follower.entity.id.ClubFollowerId;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
-import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import com.campusconnect.campusconnectbackend.student.service.StudentRepoService;
 
 import org.springframework.cache.annotation.CacheEvict;
@@ -24,16 +23,10 @@ import java.util.List;
 public class ClubFollowerService {
 
     private final ClubFollowerRepository clubFollowerRepository;
-    private final AuthService authService;
     private final StudentRepoService studentRepoService;
     private final ClubRepository clubRepository;
 
-    // get all followed clubs
-    @Cacheable(
-            value = "followed_clubs",
-            key = "#studentId",
-            sync = true
-    )
+    // get all followed clubs (for backend-use)
     public List<Club> getFollowedClubs(Long studentId) {
         return clubFollowerRepository.findFollowedClubsByStudentId(studentId);
     }
@@ -41,7 +34,6 @@ public class ClubFollowerService {
     // follow-unfollow
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "followed_clubs", key = "#studentId"),
             @CacheEvict(value = "club_dashboard_stats", key = "#clubId")
     })
     public MessageResponseDto changeFollow(Long studentId, Long clubId, boolean follow) {

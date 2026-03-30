@@ -3,11 +3,16 @@ package com.campusconnect.campusconnectbackend.research_paper.dto.res;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Getter
 @Setter
-public class ResearchesResponseDto {
+public class ResearchesResponseDto implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     private Long id;
 
