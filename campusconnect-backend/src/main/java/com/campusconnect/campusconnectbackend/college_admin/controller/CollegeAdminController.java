@@ -1,28 +1,28 @@
 package com.campusconnect.campusconnectbackend.college_admin.controller;
 
-import com.campusconnect.campusconnectbackend.club.announcement.AnnouncementService;
-import com.campusconnect.campusconnectbackend.club.club_request.ClubRequestService;
-import com.campusconnect.campusconnectbackend.club.ClubService;
+import com.campusconnect.campusconnectbackend.announcement.service.AnnouncementService;
+import com.campusconnect.campusconnectbackend.club.club_request.service.ClubRequestService;
+import com.campusconnect.campusconnectbackend.club.service.ClubService;
 import com.campusconnect.campusconnectbackend.college.dto.res.CollegeSubscriptionResponseDto;
 import com.campusconnect.campusconnectbackend.college.service.CollegeSubscriptionService;
 import com.campusconnect.campusconnectbackend.college_admin.service.CollegeAdminAuth;
 import com.campusconnect.campusconnectbackend.college_admin.service.CollegeAdminService;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
-import com.campusconnect.campusconnectbackend.research_paper.ResearchPaperService;
+import com.campusconnect.campusconnectbackend.research_paper.service.ResearchPaperService;
 import com.campusconnect.campusconnectbackend.research_paper.dto.res.ResearchesResponseDto;
 import com.campusconnect.campusconnectbackend.reviewer.dto.req.AddReviewerRequestDto;
 import com.campusconnect.campusconnectbackend.security.security_management.dto.res.CollegeAdminProfileDto;
 import com.campusconnect.campusconnectbackend.student.dto.req.StudentRegisterRequestDto;
-import com.campusconnect.campusconnectbackend.club.announcement.dto.res.AnnouncementResponseDto;
+import com.campusconnect.campusconnectbackend.announcement.dto.res.AnnouncementResponseDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.ClubListDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.ClubRequestResponseDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.club_card.ClubDetailsResponseDto;
 import com.campusconnect.campusconnectbackend.college_admin.dto.res.CollegeAdminDashboardStatsDto;
-import com.campusconnect.campusconnectbackend.club.event.dto.res.EventResponseDto;
+import com.campusconnect.campusconnectbackend.event.dto.res.EventResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.dto.res.JournalistReqResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.dto.res.JournalistResponseDto;
 import com.campusconnect.campusconnectbackend.newspaper.dto.res.NewsPaperResponseDto;
-import com.campusconnect.campusconnectbackend.club.event.service.EventService;
+import com.campusconnect.campusconnectbackend.event.service.EventService;
 import com.campusconnect.campusconnectbackend.reviewer.dto.res.ReviewerResponseDto;
 import com.campusconnect.campusconnectbackend.student.dto.res.StudentResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.service.JournalistRequestService;
@@ -62,19 +62,19 @@ public class CollegeAdminController {
     // get college-name
     @GetMapping("/college-name")
     public String collegeName() {
-        return collegeAdminService.getCollegeName();
+        return collegeAdminService.getCollegeName(authService.getCurrentCollegeId());
     }
 
     // stats -section
     @GetMapping("/stats")
     public CollegeAdminDashboardStatsDto getStats() {
-        return collegeAdminService.getStats();
+        return collegeAdminService.getStats(authService.getCurrentCollegeId());
     }
 
     // latest-newspaper
     @GetMapping("/latest-news")
     public NewsPaperResponseDto getLatestNews() {
-        return newsPaperService.getLatestOne();
+        return newsPaperService.getLatestOne(authService.getCurrentCollegeId());
     }
 
 
@@ -83,12 +83,19 @@ public class CollegeAdminController {
     // get all clubs of college
     @GetMapping("/clubs")
     public List<ClubListDto> getAllClubs() {
-        return clubService.getClubsByCollege();
+        return clubService.getClubsByCollege(authService.getCurrentCollegeId());
     }
+
     // get particular club
     @GetMapping("/clubs/{id}")
     public ClubDetailsResponseDto getClub(@PathVariable Long id) {
         return clubService.getClub(id);
+    }
+
+    // remove club
+    @DeleteMapping("/clubs/{clubId}")
+    public MessageResponseDto deleteClub(@PathVariable Long clubId) {
+        return clubService.deleteClub(clubId, authService.getCurrentCollegeId());
     }
 
     // get all pending approvals
@@ -98,11 +105,13 @@ public class CollegeAdminController {
         Long collegeId = authService.getCurrentCollegeId();
         return clubRequestService.getClubRequests(collegeId);
     }
+
     // accept the club-request
     @PostMapping("/club-request/{clubReqId}")
     public MessageResponseDto acceptClubRequest(@PathVariable Long clubReqId) {
         return clubRequestService.acceptRequest(clubReqId);
     }
+
     // reject the club-request
     @DeleteMapping("/club-request/{clubReqId}")
     public MessageResponseDto rejectClubRequest(@PathVariable Long clubReqId) {
@@ -112,7 +121,7 @@ public class CollegeAdminController {
     // get all announcements of college
     @GetMapping("/announcements")
     public List<AnnouncementResponseDto> getAnnouncements() {
-        return announcementService.getAnnouncementsByCollege();
+        return announcementService.getAnnouncementsByCollege(authService.getCurrentCollegeId());
     }
 
     // get particular announcement
@@ -124,13 +133,13 @@ public class CollegeAdminController {
     // get all live & upcoming events of college
     @GetMapping("/events/active")
     public List<EventResponseDto> getActiveEventsByCollege() {
-        return eventService.getActiveEventsByCollege();
+        return eventService.getActiveEventsByCollege(authService.getCurrentCollegeId());
     }
 
     // get all finished events of college
     @GetMapping("/events/finished")
     public List<EventResponseDto> getFinishedEventsByCollege() {
-        return eventService.getFinishedEventsByCollege();
+        return eventService.getFinishedEventsByCollege(authService.getCurrentCollegeId());
     }
 
     // get particular active event
@@ -152,7 +161,7 @@ public class CollegeAdminController {
     // get all journalist request
     @GetMapping("/users/journalist-req")
     public List<JournalistReqResponseDto>  getJournalistRequests() {
-        return journalistRequestService.getJournalistRequests();
+        return journalistRequestService.getJournalistRequests(authService.getCurrentCollegeId());
     }
 
     // get particular journalist request
@@ -178,7 +187,7 @@ public class CollegeAdminController {
     // get all journalist of college
     @GetMapping("/users/journalist")
     public List<JournalistResponseDto> getJournalists() {
-        return journalistService.getJournalists();
+        return journalistService.getJournalists(authService.getCurrentCollegeId());
     }
     // remove journalist
     @DeleteMapping("/users/journalist/{journalistId}")
@@ -191,7 +200,7 @@ public class CollegeAdminController {
     // get all reviewers of college
     @GetMapping("/users/reviewer")
     public List<ReviewerResponseDto> getReviewers() {
-        return reviewerService.getReviewers();
+        return reviewerService.getReviewers(authService.getCurrentCollegeId());
     }
 
     // add new reviewer
@@ -211,7 +220,7 @@ public class CollegeAdminController {
     // get all students
     @GetMapping("/users/student")
     public List<StudentResponseDto> getStudents() {
-        return studentRepoService.getAllStudents();
+        return studentRepoService.getAllStudents(authService.getCurrentCollegeId());
     }
 
     // add multiple students
@@ -230,12 +239,18 @@ public class CollegeAdminController {
         return studentRepoService.registerStudent(request, collegeId);
     }
 
+    // delete student
+    @DeleteMapping("/users/students/delete/{studentId}")
+    public MessageResponseDto deleteStudent(@PathVariable Long studentId) {
+        return studentRepoService.removeStudent(studentId);
+    }
+
     /* News-paper */
 
     // get all newspapers
     @GetMapping("/news-papers")
     public List<NewsPaperResponseDto> getNewsPapers() {
-        return newsPaperService.getNewsPapersByCollege();
+        return newsPaperService.getNewsPapersByCollege(authService.getCurrentCollegeId());
     }
 
     // unpublish newspaper
@@ -249,26 +264,26 @@ public class CollegeAdminController {
     // get all not-reviewed researches
     @GetMapping("/researches/not-reviewed")
     public List<ResearchesResponseDto> getNotReviewedResearches() {
-        return researchPaperService.getNotReviewedResearches();
+        return researchPaperService.getNotReviewedResearches(authService.getCurrentCollegeId());
     }
 
     // get all not-reviewed researches
     @GetMapping("/researches/reviewed")
     public List<ResearchesResponseDto> getReviewedResearches() {
-        return researchPaperService.getReviewedResearches();
+        return researchPaperService.getReviewedResearches(authService.getCurrentCollegeId());
     }
 
     // get all not-reviewed researches
     @GetMapping("/researches/under-reviewed")
     public List<ResearchesResponseDto> getUnderReviewedResearches() {
-        return researchPaperService.getUnderReviewedResearches();
+        return researchPaperService.getUnderReviewedResearches(authService.getCurrentCollegeId());
     }
 
     // assign reviewer
     // get all reviewer
     @GetMapping("/researches/reviewers")
     public List<ReviewerResponseDto> getAllReviewers() {
-        return reviewerService.getReviewers();
+        return reviewerService.getReviewers(authService.getCurrentCollegeId());
     }
 
     @PostMapping("/researches/review/{researchId}")

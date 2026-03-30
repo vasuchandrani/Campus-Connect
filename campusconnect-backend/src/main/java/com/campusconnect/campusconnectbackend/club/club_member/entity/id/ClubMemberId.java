@@ -1,0 +1,16 @@
+package com.campusconnect.campusconnectbackend.club.club_member.entity.id;
+
+import jakarta.persistence.Embeddable;
+import lombok.*;
+
+import java.io.Serializable;
+
+@Embeddable
+@Getter
+@Setter
+public class ClubMemberId implements Serializable {
+
+    private Long clubId;
+    private Long studentId;
+}
+

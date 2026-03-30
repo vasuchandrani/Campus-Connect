@@ -1,6 +1,6 @@
 package com.campusconnect.campusconnectbackend.club.club_team.entity;
 
-import com.campusconnect.campusconnectbackend.club.Club;
+import com.campusconnect.campusconnectbackend.club.entity.Club;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;

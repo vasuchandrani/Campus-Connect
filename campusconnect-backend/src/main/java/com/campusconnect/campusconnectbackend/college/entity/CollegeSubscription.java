@@ -1,6 +1,5 @@
 package com.campusconnect.campusconnectbackend.college.entity;
 
-import com.campusconnect.campusconnectbackend.college.College;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

@@ -1,9 +1,9 @@
 package com.campusconnect.campusconnectbackend.college_admin.service;
 
-import com.campusconnect.campusconnectbackend.college.College;
+import com.campusconnect.campusconnectbackend.college.entity.College;
 import com.campusconnect.campusconnectbackend.college.entity.CollegeSubscription;
 import com.campusconnect.campusconnectbackend.college.repository.CollegeSubscriptionRepository;
-import com.campusconnect.campusconnectbackend.college_admin.CollegeAdmin;
+import com.campusconnect.campusconnectbackend.college_admin.entity.CollegeAdmin;
 import com.campusconnect.campusconnectbackend.integrations.cloudinary.service.CloudinaryService;
 import com.campusconnect.campusconnectbackend.integrations.mail_service.service.EmailDispatcherService;
 import com.campusconnect.campusconnectbackend.integrations.razorpay.service.GenerateInvoice;
@@ -12,7 +12,7 @@ import com.campusconnect.campusconnectbackend.security.security_management.dto.r
 import com.campusconnect.campusconnectbackend.dto.request.LoginRequestDto;
 import com.campusconnect.campusconnectbackend.college_admin.dto.req.CollegeAdminSignupRequestDto;
 import com.campusconnect.campusconnectbackend.dto.response.AuthResponseDto;
-import com.campusconnect.campusconnectbackend.college_admin.CollegeAdminRepository;
+import com.campusconnect.campusconnectbackend.college_admin.repository.CollegeAdminRepository;
 import com.campusconnect.campusconnectbackend.college.repository.CollegeRepository;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.security.jwt.JwtTokenProvider;

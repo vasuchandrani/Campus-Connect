@@ -1,6 +1,6 @@
 package com.campusconnect.campusconnectbackend.journalist.service;
 
-import com.campusconnect.campusconnectbackend.college.College;
+import com.campusconnect.campusconnectbackend.college.entity.College;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.dto.req.JournalistRequestDto;
 import com.campusconnect.campusconnectbackend.journalist.dto.res.JournalistReqResponseDto;
@@ -11,10 +11,15 @@ import com.campusconnect.campusconnectbackend.journalist.repository.JournalistRe
 import com.campusconnect.campusconnectbackend.integrations.mail_service.dto.journalist.JournalistAssignmentDto;
 import com.campusconnect.campusconnectbackend.integrations.mail_service.service.EmailDispatcherService;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
-import com.campusconnect.campusconnectbackend.student.Student;
+import com.campusconnect.campusconnectbackend.student.entity.Student;
 import com.campusconnect.campusconnectbackend.student.service.StudentRepoService;
-import org.springframework.transaction.annotation.Transactional;
+
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -27,7 +32,6 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class JournalistRequestService {
-
 
     private final AuthService authService;
     private final JournalistRepository journalistRepository;
@@ -74,6 +78,9 @@ public class JournalistRequestService {
 
     // become a journalist request sent by student
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "journalist_requests", key = "'college_' + @authService.getCurrentCollegeId()"),
+    })
     public MessageResponseDto createJournalistRequest(JournalistRequestDto requestDto) {
         // find student
         Long studentId = authService.getCurrentUserId();
@@ -104,15 +111,15 @@ public class JournalistRequestService {
         // save in db
         journalistRequestRepository.save(request);
 
-        return new MessageResponseDto("Your journalist has been sent successfully");
+        return new MessageResponseDto("Your journalist request has been sent successfully");
     }
 
     /* College-Admin */
 
     // get all journalist request made from the college
-    public List<JournalistReqResponseDto> getJournalistRequests() {
-        // find college-id
-        Long collegeId = authService.getCurrentCollegeId();
+    @Cacheable(value = "journalist_requests", key = "'college_' + #collegeId", sync = true)
+    public List<JournalistReqResponseDto> getJournalistRequests(Long collegeId) {
+
         // find all journalist-requests
         List<JournalistRequest> requests = journalistRequestRepository.findAllByCollege_Id(collegeId);
 
@@ -120,9 +127,11 @@ public class JournalistRequestService {
     }
 
     // get particular journalist request
-    public JournalistReqResponseDto getJournalistRequest(Long id) {
-        JournalistRequest request = journalistRequestRepository.findById(id).orElseThrow(
-                () -> new RuntimeException("Journalist Request with id " + id + " not found")
+    @Cacheable(value = "journalist_request", key = "#journalistRequestId", sync = true)
+    public JournalistReqResponseDto getJournalistRequest(Long journalistRequestId) {
+
+        JournalistRequest request = journalistRequestRepository.findById(journalistRequestId).orElseThrow(
+                () -> new RuntimeException("Journalist Request not found")
         );
 
         return getDto(request);
@@ -130,17 +139,25 @@ public class JournalistRequestService {
 
     // accept journalist request
     @Transactional
-    public MessageResponseDto acceptJournalistRequest(Long id) {
+    @Caching(evict = {
+            @CacheEvict(value = "journalists", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "journalist_requests", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "journalist_request", key = "#journalistRequestId"),
+            @CacheEvict(value = "college_dashboard_stats", key = "@authService.getCurrentCollegeId()")
+    })
+    public MessageResponseDto acceptJournalistRequest(Long journalistRequestId) {
         // generate password
         String password = generatePassword();
         // find request
-        JournalistRequest request = journalistRequestRepository.findById(id).orElseThrow(
-                () -> new RuntimeException("Journalist Request with id " + id + " not found")
+        JournalistRequest request = journalistRequestRepository.findById(journalistRequestId).orElseThrow(
+                () -> new RuntimeException("Journalist Request not found")
         );
 
         // check if student is already a journalist
         if (journalistRepository.existsById(request.getStudent().getId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You are already Journalist");
+            // delete journalist request
+            journalistRequestRepository.delete(request);
+            throw new RuntimeException("Request already accepted");
         }
 
         // create journalist
@@ -167,13 +184,18 @@ public class JournalistRequestService {
 
     // reject journalist request
     @Transactional
-    public MessageResponseDto rejectJournalistRequest(Long id) {
+    @Caching(evict = {
+            @CacheEvict(value = "journalist_requests", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "journalist_request", key = "#journalistRequestId"),
+    })
+    public MessageResponseDto rejectJournalistRequest(Long journalistRequestId) {
+
         // check if exist
-        if (!journalistRequestRepository.existsById(id)) {
-            throw new RuntimeException("Journalist Request with id " + id + " not found");
+        if (!journalistRequestRepository.existsById(journalistRequestId)) {
+            throw new RuntimeException("Journalist Request not found");
         }
         // delete
-        journalistRequestRepository.deleteById(id);
+        journalistRequestRepository.deleteById(journalistRequestId);
 
         return new MessageResponseDto("Journalist Request rejected successfully");
     }

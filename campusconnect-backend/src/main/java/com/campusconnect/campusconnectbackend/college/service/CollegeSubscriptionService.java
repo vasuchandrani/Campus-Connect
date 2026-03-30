@@ -5,6 +5,7 @@ import com.campusconnect.campusconnectbackend.college.entity.CollegeSubscription
 import com.campusconnect.campusconnectbackend.college.repository.CollegeSubscriptionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.cache.annotation.Cacheable;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -50,20 +51,22 @@ public class CollegeSubscriptionService {
     }
 
     // get subscription
-    public CollegeSubscriptionResponseDto getSubscription(Long currentCollegeId) {
+    @Cacheable(value = "college_subscription", key = "#collegeId")
+    public CollegeSubscriptionResponseDto getSubscription(Long collegeId) {
 
         // find subscription
-        CollegeSubscription subscription = collegeSubscriptionRepository.findActiveSubscription(currentCollegeId, LocalDateTime.now()).orElse(
+        CollegeSubscription subscription = collegeSubscriptionRepository.findActiveSubscription(collegeId, LocalDateTime.now()).orElse(
                 new CollegeSubscription()
         );
 
         return getDto(subscription);
     }
 
-    public List<CollegeSubscriptionResponseDto> getSubscriptionHistory(Long currentCollegeId) {
+    @Cacheable(value = "college_subscription_history", key = "#collegeId")
+    public List<CollegeSubscriptionResponseDto> getSubscriptionHistory(Long collegeId) {
 
         // find all subscriptions
-        List<CollegeSubscription> subscriptions = collegeSubscriptionRepository.findAllByCollege_Id(currentCollegeId);
+        List<CollegeSubscription> subscriptions = collegeSubscriptionRepository.findAllByCollege_Id(collegeId);
 
         return getDtoList(subscriptions);
     }

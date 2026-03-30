@@ -1,7 +1,7 @@
 package com.campusconnect.campusconnectbackend.journalist.entity;
 
-import com.campusconnect.campusconnectbackend.college.College;
-import com.campusconnect.campusconnectbackend.student.Student;
+import com.campusconnect.campusconnectbackend.college.entity.College;
+import com.campusconnect.campusconnectbackend.student.entity.Student;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
