@@ -1,6 +1,6 @@
 package com.campusconnect.campusconnectbackend.newspaper.entity;
 
-import com.campusconnect.campusconnectbackend.college.College;
+import com.campusconnect.campusconnectbackend.college.entity.College;
 import com.campusconnect.campusconnectbackend.journalist.entity.Journalist;
 import jakarta.persistence.*;
 import lombok.Getter;

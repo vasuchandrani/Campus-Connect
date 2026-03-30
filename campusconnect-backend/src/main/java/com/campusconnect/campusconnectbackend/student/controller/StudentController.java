@@ -1,25 +1,25 @@
 package com.campusconnect.campusconnectbackend.student.controller;
 
-import com.campusconnect.campusconnectbackend.club.announcement.AnnouncementService;
-import com.campusconnect.campusconnectbackend.club.club_follower.ClubFollowerService;
-import com.campusconnect.campusconnectbackend.club.ClubService;
+import com.campusconnect.campusconnectbackend.announcement.service.AnnouncementService;
+import com.campusconnect.campusconnectbackend.club.club_follower.service.ClubFollowerService;
+import com.campusconnect.campusconnectbackend.club.service.ClubService;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.dto.req.JournalistRequestDto;
 import com.campusconnect.campusconnectbackend.journalist.service.JournalistRequestService;
-import com.campusconnect.campusconnectbackend.research_paper.ResearchPaperService;
+import com.campusconnect.campusconnectbackend.research_paper.service.ResearchPaperService;
 import com.campusconnect.campusconnectbackend.research_paper.dto.req.ResearchRequestDto;
 import com.campusconnect.campusconnectbackend.research_paper.dto.res.ResearchesResponseDto;
 import com.campusconnect.campusconnectbackend.security.security_management.dto.res.StudentProfileDto;
 import com.campusconnect.campusconnectbackend.student.dto.req.ClubRequestDto;
-import com.campusconnect.campusconnectbackend.club.announcement.dto.res.AnnouncementResponseDto;
+import com.campusconnect.campusconnectbackend.announcement.dto.res.AnnouncementResponseDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.YourClubListDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.club_card.ClubDetailsResponseDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.ClubListDto;
-import com.campusconnect.campusconnectbackend.club.event.dto.res.EventResponseDto;
+import com.campusconnect.campusconnectbackend.event.dto.res.EventResponseDto;
 import com.campusconnect.campusconnectbackend.newspaper.dto.res.NewsPaperResponseDto;
 import com.campusconnect.campusconnectbackend.student.dto.res.StudentDashboardStatsDto;
-import com.campusconnect.campusconnectbackend.club.event.service.EventRegistrationService;
-import com.campusconnect.campusconnectbackend.club.event.service.EventService;
+import com.campusconnect.campusconnectbackend.event.service.EventRegistrationService;
+import com.campusconnect.campusconnectbackend.event.service.EventService;
 import com.campusconnect.campusconnectbackend.newspaper.service.NewsPaperService;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import com.campusconnect.campusconnectbackend.student.service.StudentAuth;
@@ -60,14 +60,14 @@ public class StudentController {
     // stats -section
     @GetMapping("/stats")
     public StudentDashboardStatsDto getStats() {
-        return studentService.getStats();
+        return studentService.getStats(authService.getCurrentUserId());
     }
 
     // your clubs -section
     // get all joined clubs
     @GetMapping("/joined-clubs")
     public List<YourClubListDto> getJoinedClubs() {
-        return clubService.getYourClubsByCollege();
+        return clubService.getYourClubsByCollege(authService.getCurrentUserId());
     }
 
     // request for a new club
@@ -85,13 +85,13 @@ public class StudentController {
     // upcoming events -top 3 upcoming events
     @GetMapping("/top-events")
     public List<EventResponseDto> getTopEvents() {
-        return eventService.getTopEvents();
+        return eventService.getTopEvents(authService.getCurrentCollegeId());
     }
 
     // campus news -top 4 news-papers
     @GetMapping("/top-news")
     public List<NewsPaperResponseDto> getTopNews() {
-        return newsPaperService.getTopNewsPaper();
+        return newsPaperService.getTopNewsPaper(authService.getCurrentCollegeId());
     }
 
     /* Clubs */
@@ -99,7 +99,7 @@ public class StudentController {
     // get all clubs of college
     @GetMapping("/clubs")
     public List<ClubListDto> getAllClubs() {
-        return clubService.getClubsByCollege();
+        return clubService.getClubsByCollege(authService.getCurrentCollegeId());
     }
 
     // get particular club
@@ -111,7 +111,7 @@ public class StudentController {
     // follow-unfollow
     @PostMapping("/clubs/{clubId}")
     public MessageResponseDto changeFollow(@PathVariable Long clubId, @RequestBody boolean follow) {
-        return clubFollowerService.changeFollow(clubId, follow);
+        return clubFollowerService.changeFollow(authService.getCurrentUserId(), clubId, follow);
     }
 
 
@@ -120,13 +120,13 @@ public class StudentController {
     // get all live & upcoming events of college
     @GetMapping("/events/active")
     public List<EventResponseDto> getActiveEventsByCollege() {
-        return eventService.getActiveEventsByCollege();
+        return eventService.getActiveEventsByCollege(authService.getCurrentCollegeId());
     }
 
     // get all finished events of college
     @GetMapping("/events/finished")
     public List<EventResponseDto> getFinishedEventsByCollege() {
-        return eventService.getFinishedEventsByCollege();
+        return eventService.getFinishedEventsByCollege(authService.getCurrentCollegeId());
     }
 
     // get particular active event
@@ -159,7 +159,7 @@ public class StudentController {
     // get all announcements of college
     @GetMapping("/announcements")
     public List<AnnouncementResponseDto> getAnnouncements() {
-        return announcementService.getAnnouncementsByCollege();
+        return announcementService.getAnnouncementsByCollege(authService.getCurrentCollegeId());
     }
 
     // get particular announcement
@@ -174,7 +174,7 @@ public class StudentController {
     // get all announcement of followed clubs(Notifications)
     @GetMapping("/notifications")
     public List<AnnouncementResponseDto> getNotifications() {
-        return announcementService.getNotifications();
+        return announcementService.getNotifications(authService.getCurrentUserId());
     }
 
     /* News-paper */
@@ -182,13 +182,13 @@ public class StudentController {
     // latest-newspaper
     @GetMapping("/latest-news")
     public NewsPaperResponseDto getLatestNews() {
-        return newsPaperService.getLatestOne();
+        return newsPaperService.getLatestOne(authService.getCurrentCollegeId());
     }
 
     // get all newspapers
     @GetMapping("/news-papers")
     public List<NewsPaperResponseDto> getNewsPapers() {
-        return newsPaperService.getNewsPapersByCollege();
+        return newsPaperService.getNewsPapersByCollege(authService.getCurrentCollegeId());
     }
 
     // become a journalist
@@ -202,7 +202,7 @@ public class StudentController {
     // get all research-papers
     @GetMapping("/researches")
     public List<ResearchesResponseDto> getResearches() {
-        return researchPaperService.getAllResearchPapers();
+        return researchPaperService.getAllResearchPapers(authService.getCurrentCollegeId());
     }
 
     // get particular research-paper
@@ -214,7 +214,7 @@ public class StudentController {
     // get my research-papers
     @GetMapping("/researches/mine")
     public List<ResearchesResponseDto> getMyResearches() {
-        return researchPaperService.getMyResearchPapers();
+        return researchPaperService.getMyResearchPapers(authService.getCurrentUserId());
     }
 
     // submit research-paper
@@ -226,7 +226,7 @@ public class StudentController {
         if (pdf.getSize() > 5 * 1024 * 1024) {
             throw new RuntimeException("PDF must be less than 5MB");
         }
-        return researchPaperService.submitPaper(request, pdf);
+        return researchPaperService.submitPaper(request, pdf, authService.getCurrentUserId());
     }
 
     /* Settings */

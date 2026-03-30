@@ -41,7 +41,7 @@ public class JournalistController {
     // get latest 3 newspaper by journalist
     @GetMapping("/newspapers/latest")
     public List<NewsPaperResponseDto> getLatestNewsPaper(){
-        return newsPaperService.getTopNewsPapers();
+        return newsPaperService.getTopNewsPapers(authService.getCurrentUserId());
     }
 
     // get all published newspaper by journalist
@@ -82,7 +82,7 @@ public class JournalistController {
             @RequestPart("newspaper") NewsPaperRequestDto request,
             @RequestPart("image") MultipartFile image
     ){
-        return newsPaperService.createDraft(request, image);
+        return newsPaperService.createDraft(authService.getCurrentUserId(), request, image);
     }
 
     // modify draft

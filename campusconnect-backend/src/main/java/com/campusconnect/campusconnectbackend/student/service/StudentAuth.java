@@ -7,9 +7,9 @@ import com.campusconnect.campusconnectbackend.security.security_management.dto.r
 import com.campusconnect.campusconnectbackend.security.security_management.dto.req.ForgetPasswordRequestDto;
 import com.campusconnect.campusconnectbackend.student.dto.req.StudentSignupRequestDto;
 import com.campusconnect.campusconnectbackend.dto.response.AuthResponseDto;
-import com.campusconnect.campusconnectbackend.student.StudentRepository;
+import com.campusconnect.campusconnectbackend.student.repository.StudentRepository;
 import com.campusconnect.campusconnectbackend.security.jwt.JwtTokenProvider;
-import com.campusconnect.campusconnectbackend.student.Student;
+import com.campusconnect.campusconnectbackend.student.entity.Student;
 import com.campusconnect.campusconnectbackend.security.security_management.dto.res.StudentProfileDto;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;

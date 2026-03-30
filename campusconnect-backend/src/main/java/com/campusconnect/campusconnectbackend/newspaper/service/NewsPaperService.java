@@ -1,8 +1,9 @@
 package com.campusconnect.campusconnectbackend.newspaper.service;
 
-import com.campusconnect.campusconnectbackend.college.College;
+import com.campusconnect.campusconnectbackend.college.entity.College;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.integrations.cloudinary.service.CloudinaryService;
+import com.campusconnect.campusconnectbackend.journalist.service.JournalistService;
 import com.campusconnect.campusconnectbackend.newspaper.dto.req.NewsPaperRequestDto;
 import com.campusconnect.campusconnectbackend.journalist.entity.Journalist;
 import com.campusconnect.campusconnectbackend.journalist.repository.JournalistRepository;
@@ -11,6 +12,9 @@ import com.campusconnect.campusconnectbackend.newspaper.entity.NewsPaper;
 import com.campusconnect.campusconnectbackend.newspaper.repository.NewsPaperRepository;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -28,6 +32,7 @@ public class NewsPaperService {
     private final AuthService authService;
     private final JournalistRepository journalistRepository;
     private final CloudinaryService cloudinaryService;
+    private final JournalistService journalistService;
 
     // upload image on cloudinary and get url
     private String getUploadedImageUrl (MultipartFile image, Long journalistId) {
@@ -71,10 +76,9 @@ public class NewsPaperService {
     }
 
     // get latest 4 news-papers of college
-    public List<NewsPaperResponseDto> getTopNewsPaper() {
+    @Cacheable(value = "top_newsPapers", key = "'college_' + #collegeId", sync = true)
+    public List<NewsPaperResponseDto> getTopNewsPaper(Long collegeId) {
 
-        // get college-id
-        Long collegeId = authService.getCurrentCollegeId();
         Pageable pageable = PageRequest.of(0, 4);
         // find all newspapers
         List<NewsPaper> newsPapers = newsPaperRepository.findLatestByCollegeId(collegeId, "PUBLISHED", pageable);
@@ -83,10 +87,9 @@ public class NewsPaperService {
     }
 
     // get latest one news of college
-    public NewsPaperResponseDto getLatestOne() {
+    @Cacheable(value = "latest_news", key = "'college_' + #collegeId", sync = true)
+    public NewsPaperResponseDto getLatestOne(Long collegeId) {
 
-        // get college-id
-        Long collegeId = authService.getCurrentCollegeId();
         Pageable pageable = PageRequest.of(0, 1);
 
         // return the latest one
@@ -100,10 +103,8 @@ public class NewsPaperService {
     }
 
     // get new-papers of college
-    public List<NewsPaperResponseDto> getNewsPapersByCollege() {
-
-        // find college
-        Long collegeId = authService.getCurrentCollegeId();
+    @Cacheable(value = "college_newsPapers", key = "'college_' + #collegeId", sync = true)
+    public List<NewsPaperResponseDto> getNewsPapersByCollege(Long collegeId) {
 
         List<NewsPaper> newsPapers = newsPaperRepository.findAllByCollege_IdAndStatus(collegeId, "PUBLISHED");
 
@@ -114,13 +115,24 @@ public class NewsPaperService {
 
     // unpublish newspaper
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "college_dashboard_stats", key = "@authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "top_newsPapers", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "latest_news", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "college_newsPapers", key = "'college_' + @authService.currentCollegeId()"),
+    })
     public MessageResponseDto unpublishNewsPaper(Long newsPaperId) {
         // check if exist
-        if (!newsPaperRepository.existsById(newsPaperId)) {
-            throw new RuntimeException("News Paper Not Found!");
-        }
+        NewsPaper newsPaper = newsPaperRepository.findById(newsPaperId).orElseThrow(
+                () -> new RuntimeException("newsPaper not found")
+        );
+
+        Long journalistId = newsPaper.getJournalist().getId();
+
         // delete
-        newsPaperRepository.deleteById(newsPaperId);
+        newsPaperRepository.delete(newsPaper);
+
+        journalistService.evictJournalistCaches(journalistId);
 
         return new MessageResponseDto("News Paper Unpublished!");
     }
@@ -134,10 +146,8 @@ public class NewsPaperService {
     /* Journalist */
 
     // get latest 3 newspaper
-    public List<NewsPaperResponseDto> getTopNewsPapers() {
-
-        // find journalist
-        Long journalistId = authService.getCurrentUserId();
+    @Cacheable(value = "journalist_topNewsPapers", key = "#journalistId", sync = true)
+    public List<NewsPaperResponseDto> getTopNewsPapers(Long journalistId) {
 
         // find newspapers
         Pageable page = PageRequest.of(0, 3);
@@ -147,6 +157,7 @@ public class NewsPaperService {
     }
 
     // get all published newspaper by journalist
+    @Cacheable(value = "journalist_newsPapers", key = "#journalistId", sync = true)
     public List<NewsPaperResponseDto> getNewsPaperByJournalist(Long journalistId){
         // find all published newspapers
         List<NewsPaper> list = newsPaperRepository.findAllByJournalist_IdAndStatus(journalistId, "PUBLISHED");
@@ -155,6 +166,7 @@ public class NewsPaperService {
     }
 
     // get all drafts of journalist
+    @Cacheable(value = "journalist_draftPapers", key = "#journalistId", sync = true)
     public List<NewsPaperResponseDto> getDraftPaperByJournalistId(Long journalistId){
         // find all draft newspapers
         List<NewsPaper> list = newsPaperRepository.findAllByJournalist_IdAndStatus(journalistId, "DRAFT");
@@ -174,10 +186,10 @@ public class NewsPaperService {
 
     // create draft (save as draft)
     @Transactional
-    public MessageResponseDto createDraft(NewsPaperRequestDto request, MultipartFile image) {
+    @CacheEvict(value = "journalist_draftNewsPapers", key = "'journalist' + #journalistId")
+    public MessageResponseDto createDraft(Long journalistId, NewsPaperRequestDto request, MultipartFile image) {
 
         // find journalist
-        Long journalistId = authService.getCurrentUserId();
         Journalist journalist = journalistRepository.findById(journalistId).orElseThrow(
                 () -> new RuntimeException("Journalist Not Found")
         );
@@ -203,6 +215,7 @@ public class NewsPaperService {
 
     // modify any draft
     @Transactional
+    @CacheEvict(value = "journalist_draftNewsPapers", key = "'journalist' + #journalistId")
     public MessageResponseDto updateDraft(Long  journalistId, Long draftId, NewsPaperRequestDto request, MultipartFile image) {
         // find draft
         NewsPaper draftNewsPaper = newsPaperRepository.findById(draftId).orElseThrow(
@@ -226,6 +239,9 @@ public class NewsPaperService {
 
     // delete any draft
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "journalist_draftPapers", key = "@authService.getCurrentUserId()")
+    })
     public MessageResponseDto deleteDraft(Long draftId) {
         // check if exist
         if (!newsPaperRepository.existsById(draftId)) {
@@ -238,6 +254,12 @@ public class NewsPaperService {
 
     // publish draft -(change status to PUBLISHED)
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "top_newsPapers", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "latest_news", key = "'college_' + @authService.currentUserId()"),
+            @CacheEvict(value = "college_newsPapers", key = "'college_' + @authService.currentCollegeId()"),
+            @CacheEvict(value = "college_dashboard_stats", key = "@authService.getCurrentCollegeId()")
+    })
     public MessageResponseDto publishDraftPaper(Long draftId) {
         // find draft
         NewsPaper draftNewsPaper = newsPaperRepository.findById(draftId).orElseThrow(
@@ -248,11 +270,22 @@ public class NewsPaperService {
         draftNewsPaper.setStatus("PUBLISHED");
         newsPaperRepository.save(draftNewsPaper);
 
+        // clear journalist cache
+        journalistService.evictJournalistCaches(authService.getCurrentUserId());
+
         return new MessageResponseDto("Draft Published Successfully");
     }
 
     // publish new newspaper
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "journalist_newsPapers", key = "@authService.getCurrentUserId()"),
+            @CacheEvict(value = "journalist_topNewsPapers", key = "@authService.getCurrentUserId()"),
+            @CacheEvict(value = "top_newsPapers", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "latest_news", key = "'college_' + @authService.currentUserId()"),
+            @CacheEvict(value = "college_newsPapers", key = "'college_' + @authService.currentCollegeId()"),
+            @CacheEvict(value = "college_dashboard_stats", key = "@authService.getCurrentCollegeId()")
+    })
     public MessageResponseDto publishNewspaper(NewsPaperRequestDto request, MultipartFile image) {
 
         // find journalist

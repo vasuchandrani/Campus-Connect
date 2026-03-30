@@ -1,6 +1,6 @@
 package com.campusconnect.campusconnectbackend.security.auth;
 
-import com.campusconnect.campusconnectbackend.college.College;
+import com.campusconnect.campusconnectbackend.college.entity.College;
 import com.campusconnect.campusconnectbackend.college.dto.res.CollegeSubscriptionResponseDto;
 import com.campusconnect.campusconnectbackend.college.service.CollegeSubscriptionService;
 import com.campusconnect.campusconnectbackend.college_admin.service.CollegeAdminAuth;
@@ -8,8 +8,8 @@ import com.campusconnect.campusconnectbackend.dto.request.LoginRequestDto;
 import com.campusconnect.campusconnectbackend.dto.request.SignupRequestDto;
 import com.campusconnect.campusconnectbackend.college_admin.dto.req.CollegeAdminSignupRequestDto;
 import com.campusconnect.campusconnectbackend.journalist.entity.Journalist;
-import com.campusconnect.campusconnectbackend.reviewer.Reviewer;
-import com.campusconnect.campusconnectbackend.student.Student;
+import com.campusconnect.campusconnectbackend.reviewer.entity.Reviewer;
+import com.campusconnect.campusconnectbackend.student.entity.Student;
 import com.campusconnect.campusconnectbackend.student.dto.req.StudentSignupRequestDto;
 import com.campusconnect.campusconnectbackend.dto.response.AuthResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.service.JournalistAuth;
