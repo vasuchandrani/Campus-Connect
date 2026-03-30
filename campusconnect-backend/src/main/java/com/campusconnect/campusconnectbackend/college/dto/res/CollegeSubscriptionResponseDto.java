@@ -3,11 +3,16 @@ package com.campusconnect.campusconnectbackend.college.dto.res;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Getter
 @Setter
-public class CollegeSubscriptionResponseDto {
+public class CollegeSubscriptionResponseDto implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     private String planName;
 

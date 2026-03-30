@@ -88,7 +88,6 @@ public class RedisConfig implements CachingConfigurer {
         cacheConfigs.put("club_profile", baseConfig.entryTtl(Duration.ofDays(7)));
         cacheConfigs.put("club_dashboard_stats", baseConfig.entryTtl(Duration.ofDays(1)));
 
-        cacheConfigs.put("followed_clubs", baseConfig.entryTtl(Duration.ofDays(1)));
         cacheConfigs.put("club_requests", baseConfig.entryTtl(Duration.ofDays(1)));
         cacheConfigs.put("club_teams", baseConfig.entryTtl(Duration.ofDays(7)));
         cacheConfigs.put("club_team_names", baseConfig.entryTtl(Duration.ofDays(7)));
