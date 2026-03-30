@@ -10,12 +10,15 @@ import {
   ChevronRight,
   Clock,
   MapPin,
+  BellOff
 } from "lucide-react";
 import { clubMemberNavItems } from "../../config/Navigation";
 import { useParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "../../hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import EmptyState from "../../components/ui/EmptyState";
+import Loading from "../../components/ui/Loading";
 
 const ClubMemberDashboard = () => {
   // Get clubId from URL params
@@ -27,14 +30,14 @@ const ClubMemberDashboard = () => {
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/member`;
 
   //--------------Nav---------------//
-  const updateNavItems = () => {
+  const updateNavItems = useCallback(() => {
     return clubMemberNavItems.map((item) => {
       return {
         ...item,
         href: item.href.replace(":clubId", clubId),
       };
     });
-  };
+  }, [clubId]);
 
   // State variables
   const [clubAnnouncements, setClubAnnouncements] = useState([]);
@@ -46,6 +49,10 @@ const ClubMemberDashboard = () => {
     teams: 0,
   });
   const [clubName, setClubName] = useState("Club Name");
+  const [loading, setLoading] = useState({
+    announcements: true,
+    events: true,
+  });
 
   //fetch club name
   const fetchClubName = async() => {
@@ -96,6 +103,7 @@ const ClubMemberDashboard = () => {
 
   //fetch club announcements
   const fetchClubAnnouncements = async () => {
+    setLoading((prev) => ({ ...prev, announcements: true }));
     await fetch(`${baseUrl}/top-announcements`, {
       method: "GET",
       headers: {
@@ -113,11 +121,14 @@ const ClubMemberDashboard = () => {
           description: err.message || "Failed to fetch announcements",
           variant: "destructive",
         });
+      }).finally(() => {
+        setLoading((prev) => ({ ...prev, announcements: false }));
       });
   };
 
   //fetch club events
   const fetchClubEvents = async () => {
+    setLoading((prev) => ({ ...prev, events: true }));
     await fetch(`${baseUrl}/top-events`, {
       method: "GET",
       headers: {
@@ -135,16 +146,28 @@ const ClubMemberDashboard = () => {
           description: err.message || "Failed to fetch events",
           variant: "destructive",
         });
+      }).finally(() => {
+        setLoading((prev) => ({ ...prev, events: false }));
       });
   };
 
   //load club details on component mount and whenever clubId changes
   useEffect(() => {
-    fetchClubName();
-    fetchStates();
-    fetchClubAnnouncements();
-    fetchClubEvents();
-  }, []);
+    const fetchData = async () => {
+      try{
+        await Promise.all([fetchClubName(), fetchStates(), fetchClubAnnouncements(), fetchClubEvents()]);
+      }
+      catch (error) {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to fetch club details",
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchData();
+  }, [clubId]);
 
   //---------------------------UI----------------------------//
   return (
@@ -221,7 +244,16 @@ const ClubMemberDashboard = () => {
               </Button>
             </div>
 
-            {clubAnnouncements.map((a) => (
+              {loading.announcements ? (
+                <Loading />
+              ) : clubAnnouncements.length === 0 ? (
+                <EmptyState
+                  title="No Announcements"
+                  desc="There are no announcements for this club yet."
+                  icon={<BellOff className="w-8 h-8 text-muted-foreground" />}
+                />
+              ) : (
+            clubAnnouncements.map((a) => (
               <Card key={a.id}>
                 <CardContent className="pt-4">
                   <div className="flex justify-between gap-4">
@@ -243,7 +275,7 @@ const ClubMemberDashboard = () => {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            )))}
           </div>
 
           {/* Events */}
@@ -256,8 +288,16 @@ const ClubMemberDashboard = () => {
                 View All <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
             </div>
-
-            {clubEvents.map((e) => (
+            {loading.events ? (
+              <Loading />
+            ) : clubEvents.length === 0 ? (
+              <EmptyState
+                title="No Events"
+                desc="There are no upcoming events for this club yet."
+                icon={<CalendarDays className="w-8 h-8 text-muted-foreground" />}
+              />
+            ) : (
+            clubEvents.map((e) => (
               <Card key={e.id} className="relative">
                 <CardContent className="pt-4">
                   {/* Status Badge Top Right */}
@@ -290,7 +330,7 @@ const ClubMemberDashboard = () => {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            )))}
           </div>
         </div>
       </div>

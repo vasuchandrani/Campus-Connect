@@ -24,11 +24,15 @@ import {
   Plus,
   Crown,
   User,
+  Newspaper,
+
+
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { toast } from "../../hooks/use-toast";
 import { studentNavItems } from "../../config/Navigation";
-
+import Loading from "../../components/ui/Loading";
+import EmptyState from "../../components/ui/EmptyState";
 
 const navItems = studentNavItems;
 
@@ -49,135 +53,160 @@ const StudentDashboard = () => {
   });
   const [userName, setUserName] = useState("");
 
+  const [loadingClubs, setLoadingClubs] = useState(true);
+  const [loadingEvents, setLoadingEvents] = useState(true);
+  const [loadingNews, setLoadingNews] = useState(true);
+
   // Base URL for API calls related to student dashboard
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/student`;
 
-    const { routeProtection } = useAuth();
-    useEffect(() => {
-      if (!routeProtection("STUDENT")) {
-        navigate("/auth");
-      }
-    },[]);
+  const { routeProtection } = useAuth();
+  useEffect(() => {
+    if (!routeProtection("STUDENT")) {
+      navigate("/auth");
+    }
+  }, [navigate, routeProtection]);
 
   // Fetch user name for welcome message
-  const fetchUserName = () => {
-    fetch(`${baseUrl}/name`, {
+const fetchUserName = async () => {
+  try {
+    const res = await fetch(`${baseUrl}/name`, {
       method: "GET",
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-      },
-    })
-      .then((res) => res.text())
-      .then((name) => setUserName(name))
-      .catch((err) =>
-        toast({
-          title: "Error",
-          description: "Failed to fetch user name",
-          variant: "destructive",
-        }),
-      );
-  };
-
-  // Fetch dashboard stats
-  const getStats = () => {
-    const respose = fetch(`${baseUrl}/stats`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
     });
-    respose
-      .then((res) => res.json())
-      .then((data) => {
-        setStats({ clubs: data.joinedClubs, events: data.upcomingEvents });
-      })
-      .catch((err) =>
-        toast({
-          title: "Error",
-          description: "Failed to fetch stats",
-          variant: "destructive",
-        }),
-      );
-  };
+
+    const name = await res.text();
+    setUserName(name);
+  } catch (err) {
+    toast({
+      title: "Error",
+      description: err.message || "Failed to fetch user name",
+      variant: "destructive",
+    });
+  }
+};
+
+  // Fetch dashboard stats
+const getStats = async () => {
+  try {
+    const res = await fetch(`${baseUrl}/stats`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    });
+
+    const data = await res.json();
+
+    setStats({
+      clubs: data.joinedClubs,
+      events: data.upcomingEvents,
+    });
+  } catch (err) {
+    toast({
+      title: "Error",
+      description: err.message || "Failed to fetch stats",
+      variant: "destructive",
+    });
+  }
+};
 
   // Fetch user clubs with roles
-  const fetchUserClubs = () => {
-    fetch(`${baseUrl}/joined-clubs`, {
+const fetchUserClubs = async () => {
+  setLoadingClubs(true);
+
+  try {
+    const res = await fetch(`${baseUrl}/joined-clubs`, {
       method: "GET",
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        const mappedClubs = data.map((club) => ({
-          club: club,
-          role: club.role,
-        }));
+    });
 
-        setUserClubs(mappedClubs);
-      })
-      .catch((err) =>
-        toast({
-          title: "Error",
-          description: "Failed to fetch user clubs",
-          variant: "destructive",
-        }),
-      );
-  };
+    const data = await res.json();
+
+    const mappedClubs = data.map((club) => ({
+      club: club,
+      role: club.role,
+    }));
+
+    setUserClubs(mappedClubs);
+  } catch (err) {
+    toast({
+      title: "Error",
+      description: err.message || "Failed to fetch user clubs",
+      variant: "destructive",
+    });
+  } finally {
+    setLoadingClubs(false);
+  }
+};
 
   // Fetch events
-  const fetchEvents = () => {
-    fetch(`${baseUrl}/top-events`, {
+const fetchEvents = async () => {
+  setLoadingEvents(true);
+
+  try {
+    const res = await fetch(`${baseUrl}/top-events`, {
       method: "GET",
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setEvents(data);
-      })
-      .catch((err) =>
-        toast({
-          title: "Error",
-          description: "Failed to fetch events",
-          variant: "destructive",
-        }),
-      );
-  };
+    });
+
+    const data = await res.json();
+    setEvents(data);
+  } catch (err) {
+    toast({
+      title: "Error",
+      description: err.message || "Failed to fetch events",
+      variant: "destructive",
+    });
+  } finally {
+    setLoadingEvents(false);
+  }
+};
 
   // Fetch news articles for campus news section
-  const fetchNews = () => {
-    fetch(`${baseUrl}/top-news`, {
+const fetchNews = async () => {
+  setLoadingNews(true);
+
+  try {
+    const res = await fetch(`${baseUrl}/top-news`, {
       method: "GET",
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
-    })
-      .then((res) => res.json())
-      .then((data) => setNewsArticles(data))
-      .catch((err) =>
-        toast({
-          title: "Error",
-          description: "Failed to fetch news articles",
-          variant: "destructive",
-        }),
-      );
-  };
+    });
+
+    const data = await res.json();
+    setNewsArticles(data);
+  } catch (err) {
+    toast({
+      title: "Error",
+      description: err.message || "Failed to fetch news articles",
+      variant: "destructive",
+    });
+  } finally {
+    setLoadingNews(false);
+  }
+};
 
   //load data on component mount
   useEffect(() => {
-    fetchUserName();
-    fetchUserClubs();
-    fetchEvents();
-    fetchNews();
-    getStats();
+    const loadDashboard = async () => {
+      await Promise.all([
+        fetchUserName(),
+        fetchUserClubs(),
+        fetchEvents(),
+        fetchNews(),
+        getStats(),
+      ]);
+    };
+
+    loadDashboard();
   }, []);
 
   //Handle new Club Request submission
@@ -209,28 +238,26 @@ const StudentDashboard = () => {
         return await res.json();
       })
       .then((res) => {
-        if(res.message === "Club Request sent successfully") {
-        toast({
-          title: "Success",
-          description:
-            res.message,
-        });
-        setClubRequestOpen(false);
-        setClubName("");
-        setClubDescription("");
-      }
-      else{
-        toast({
-          title: "Error",
-          description: res.message || "Failed to submit club request",
-          variant: "destructive",
-        });
-      }
+        if (res.message === "Club Request sent successfully") {
+          toast({
+            title: "Success",
+            description: res.message,
+          });
+          setClubRequestOpen(false);
+          setClubName("");
+          setClubDescription("");
+        } else {
+          toast({
+            title: "Error",
+            description: res.message || "Failed to submit club request",
+            variant: "destructive",
+          });
+        }
       })
       .catch((err) => {
         toast({
           title: "Error",
-          description: "Failed to submit club request",
+          description: err.message || "Failed to submit club request",
           variant: "destructive",
         });
       });
@@ -333,7 +360,13 @@ const StudentDashboard = () => {
             </Dialog>
           </div>
 
-          {userClubs.length === 0 ? (
+          {loadingClubs ? (
+            <Card>
+              <CardContent className="p-6 text-center">
+                <Loading />
+              </CardContent>
+            </Card>
+          ) : userClubs.length === 0 ? (
             <Card className="border-border/50 border-dashed">
               <CardContent className="p-8 text-center">
                 <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -426,46 +459,56 @@ const StudentDashboard = () => {
               </Button>
             </div>
             <div className="space-y-3">
-              {events.map((event) => (
-                <Card
-                  key={event.id}
-                  className="relative border-border/50 hover:shadow-soft transition-shadow cursor-pointer"
-                >
-                  <CardContent className="p-4">
-                    <Badge variant="outline" className="mb-2">
-                      {event.clubName}
-                    </Badge>
-                    {/* Status Badge Top Right */}
-                    <Badge
-                      className="absolute top-4 right-4"
-                      variant={
-                        event.status === "UPCOMING"
-                          ? "default"
-                          : event.status === "LIVE"
-                            ? "destructive"
-                            : "secondary"
-                      }
-                    >
-                      {event.status}
-                    </Badge>
+              {loadingEvents ? (
+                <Loading />
+              ) : events.length === 0 ? (
+                <EmptyState
+                  icon={<Calendar className="w-8 h-8 text-muted-foreground mx-auto mb-4" />}
+                  title="No Upcoming Events"
+                  desc="There are no upcoming events at the moment. Check back later!"
+                />
+              ) : (
+                events.map((event) => (
+                  <Card
+                    key={event.id}
+                    className="relative border-border/50 hover:shadow-soft transition-shadow cursor-pointer"
+                  >
+                    <CardContent className="p-4">
+                      <Badge variant="outline" className="mb-2">
+                        {event.clubName}
+                      </Badge>
+                      {/* Status Badge Top Right */}
+                      <Badge
+                        className="absolute top-4 right-4"
+                        variant={
+                          event.status === "UPCOMING"
+                            ? "default"
+                            : event.status === "LIVE"
+                              ? "destructive"
+                              : "secondary"
+                        }
+                      >
+                        {event.status}
+                      </Badge>
 
-                    <h4 className="font-medium mb-2">{event.title}</h4>
-                    <div className="space-y-1 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4" />
-                        <span>
-                          {event.createAt.split("T")[0]} at{" "}
-                          {event.createAt.split("T")[1]}
-                        </span>
+                      <h4 className="font-medium mb-2">{event.title}</h4>
+                      <div className="space-y-1 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4" />
+                          <span>
+                            {event.createAt.split("T")[0]} at{" "}
+                            {event.createAt.split("T")[1]}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4" />
+                          <span className="truncate">{event.location}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
-                        <span className="truncate">{event.location}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
           </div>
 
@@ -477,39 +520,48 @@ const StudentDashboard = () => {
                 variant="ghost"
                 size="sm"
                 className="text-primary"
-                onClick={() =>
-                  navigate("/campus-connect/student/newspaper")
-                }
+                onClick={() => navigate("/campus-connect/student/newspaper")}
               >
                 Read More <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
             </div>
             <div className="space-y-3">
-              {newsArticles.map((article) => (
-                <Card
-                  key={article.id}
-                  className="border-border/50 hover:shadow-soft transition-shadow cursor-pointer"
-                >
-                  <CardContent className="p-4 pt-4">
-                    <div className="flex gap-4 items-center">
-                      <img
-                        src={article.imageUrl}
-                        alt={article.title}
-                        className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
-                      />
-                      <div className="flex-1 min-w-0">
-
-                        <h4 className="font-medium line-clamp-2 mb-1">
-                          {article.title}
-                        </h4>
-                        <p className="text-xs text-muted-foreground">
-                          {article.createdAt.split("T")[0]} by {article.journalistName}
-                        </p>
+              {loadingNews ? (
+                <Loading />
+              ) : newsArticles.length === 0 ? (
+                <EmptyState
+                  icon={<Newspaper className="w-8 h-8 text-muted-foreground mx-auto mb-4" />}
+                  title="No News Available"
+                  desc="There is no news available at the moment. Check back later!"
+                />
+      
+              ) : (
+                newsArticles.map((article) => (
+                  <Card
+                    key={article.id}
+                    className="border-border/50 hover:shadow-soft transition-shadow cursor-pointer"
+                  >
+                    <CardContent className="p-4 pt-4">
+                      <div className="flex gap-4 items-center">
+                        <img
+                          src={article.imageUrl}
+                          alt={article.title}
+                          className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium line-clamp-2 mb-1">
+                            {article.title}
+                          </h4>
+                          <p className="text-xs text-muted-foreground">
+                            {article.createdAt.split("T")[0]} by{" "}
+                            {article.journalistName}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
           </div>
         </div>

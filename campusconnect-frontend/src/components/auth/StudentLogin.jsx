@@ -27,6 +27,22 @@ const StudentLogin = ({
   //send otp
   const handleSendOtp = async (e) => {
     e.preventDefault();
+    if(resetEmail.trim()===""){
+      toast({
+        title: "Error",
+        description: "Email cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+     }
+     if(!resetEmail.includes("@") || !resetEmail.includes(".")){
+      toast({
+        title: "Error",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+     }
     setRequesting(true);
     await fetch(`${baseUrl}/send-code`, {
       method: "POST",
@@ -67,6 +83,15 @@ const StudentLogin = ({
   const handleResetPassword = async (e) => {
     e.preventDefault();
     setRequesting(true);
+    if(newPassword.trim()===""||newPassword.length<6){
+      toast({
+        title: "Error",
+        description: "New password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      setRequesting(false);
+       return;
+     }
 
     if (newPassword !== confirmPassword) {
       toast({

@@ -33,7 +33,7 @@ const JournalistSetting = () => {
         if (!routeProtection("JOURNALIST")) {
           navigate("/auth");
         }
-      },[]);
+      },[navigate,routeProtection]);
 
   //baseurl
   const baseUrl= `${import.meta.env.VITE_BACKEND_URL}/campus-connect/journalist`;
@@ -75,6 +75,15 @@ const handleChange = (e) => {
 
   //update profile
 const saveChanges = async () => {
+  if(user.fullName.trim()===""){
+      toast({
+        title: "Error",
+        description: "Full name cannot be empty",
+        variant: "destructive",
+      });
+      return;
+     }
+     
     try {
 
       const payload={
@@ -127,6 +136,14 @@ const saveChanges = async () => {
 
   //change password
   const updatePassword = async () => {
+    if(newPassword.length<6||newPassword.trim()===""){
+      toast({
+        title: "Error",
+        description: "New password must be at least 6 characters long",
+        variant: "destructive",
+      });
+      return;
+    }
     if (newPassword !== confirmPassword) {
      toast({
         title: "Error",

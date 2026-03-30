@@ -15,6 +15,8 @@ import {
 import { collegeAdminNavItems } from "../../config/Navigation";
 import { toast } from "../../hooks/use-toast";
 import { useAuth } from "../../contexts/AuthContext";
+import EmptyState from "../../components/ui/EmptyState";
+import Loading from "../../components/ui/Loading";
 
 export default function CollegeAdminDashboard() {
   const navigate = useNavigate();
@@ -22,90 +24,98 @@ export default function CollegeAdminDashboard() {
   const [stats, setStats] = useState({});
   const [latestNews, setLatestNews] = useState(null);
   const [collegeName, setCollegeName] = useState("");
+  const [loading, setLoading] = useState(true);
 
   // Base URL for API calls related to college admin
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/college-admin`;
 
-    const { routeProtection } = useAuth();
+  const { routeProtection } = useAuth();
 
   useEffect(() => {
     if (!routeProtection("COLLEGE_ADMIN")) {
       navigate("/auth");
     }
-  },[]);
+  }, [navigate, routeProtection]);
 
   // Fetch dashboard stats
-  const fetchStats = () => {
-    fetch(`${baseUrl}/stats`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setStats(data);
-      })
-      .catch((err) => {
-        console.error("Error fetching stats:", err);
-        toast({
-          title: "Error",
-          description: "Failed to fetch dashboard stats",
-          variant: "destructive",
-        });
+  const fetchStats = async () => {
+    try {
+      const res = await fetch(`${baseUrl}/stats`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
       });
+
+      const data = await res.json();
+      setStats(data);
+    } catch (err) {
+      console.error("Error fetching stats:", err);
+      toast({
+        title: "Error",
+        description: "Failed to fetch dashboard stats",
+        variant: "destructive",
+      });
+    }
   };
 
   // Fetch latest news for newspaper section
-  const getLatestNews = () => {
-    fetch(`${baseUrl}/latest-news`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data && data.id) {
-          setLatestNews(data);
-        }
-      })
-      .catch((err) => {
-        toast({
-          title: "Error",
-          description: "Failed to fetch latest news",
-          variant: "destructive",
-        });
+  const getLatestNews = async () => {
+    setLoading(true);
+
+    try {
+      const res = await fetch(`${baseUrl}/latest-news`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
       });
+
+      const data = await res.json();
+
+      if (data && data.id) {
+        setLatestNews(data);
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch latest news",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Fetch college name
-  const fetchCollegeName = () => {
-    fetch(`${baseUrl}/college-name`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-      },
-    })
-      .then((res) => res.text().then((text) => setCollegeName(text)))
-      .catch((err) => {
-        console.error("Error fetching college name:", err);
-        toast({
-          title: "Error",
-          description: "Failed to fetch college name",
-          variant: "destructive",
-        });
+  const fetchCollegeName = async () => {
+    try {
+      const res = await fetch(`${baseUrl}/college-name`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
       });
+
+      const text = await res.text();
+      setCollegeName(text);
+    } catch (err) {
+      console.error("Error fetching college name:", err);
+      toast({
+        title: "Error",
+        description: "Failed to fetch college name",
+        variant: "destructive",
+      });
+    }
   };
 
   //load data on component mount
   useEffect(() => {
-    fetchCollegeName();
-    fetchStats();
-    getLatestNews();
+    const fetchData = async () => {
+      await Promise.all([fetchStats(), getLatestNews(), fetchCollegeName()]);
+    };
+
+    fetchData();
   }, []);
 
   //-----------------------------UI----------------------------//
@@ -210,10 +220,22 @@ export default function CollegeAdminDashboard() {
         />
 
         <div className="p-4 border rounded-lg">
-          {latestNews && (
+          {loading ? (
+            <div className="py-10">
+              <Loading />
+            </div>
+          ) : !latestNews ? (
+            <div className="col-span-full w-full">
+              <EmptyState
+                className="col-span-full"
+                icon={<Newspaper className="w-8 h-8 text-muted-foreground" />}
+                title="No Latest News"
+                desc="There is no latest news available."
+              />
+            </div>
+          ) : (
             <div className="space-y-4">
-              <Card
-                className="w-full mx-auto border-border/50 overflow-hidden hover:shadow-md transition-shadow cursor-pointer h-32">
+              <Card className="w-full mx-auto border-border/50 overflow-hidden hover:shadow-md transition-shadow cursor-pointer h-32">
                 <div className="flex h-full">
                   {/* Image */}
                   <div className="w-1/3 h-full overflow-hidden">
@@ -246,7 +268,6 @@ export default function CollegeAdminDashboard() {
               </Card>
             </div>
           )}
-
         </div>
       </div>
     </DashboardLayout>

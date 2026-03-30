@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
@@ -18,7 +18,8 @@ import { Megaphone, Plus, Eye, Edit, Trash2 } from "lucide-react";
 import { clubMemberNavItems } from "../../config/Navigation";
 import { useParams } from "react-router-dom";
 import { toast } from "../../hooks/use-toast";
-import { set } from "date-fns";
+import Loading from "../../components/ui/Loading"
+import EmptyState from "../../components/ui/EmptyState"
 
 const ClubMemberAnnouncementsPage = () => {
   
@@ -36,18 +37,20 @@ const ClubMemberAnnouncementsPage = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [editingId, setEditingId] = useState(null); 
   const [requesting, setRequesting] = useState(false);
+  const [loading,setLoading]=useState(true);
 
   /* ---------------- NAV ITEMS ---------------- */
 
-  const updateNavItems = () => {
+  const updateNavItems = useCallback(() => {
     return clubMemberNavItems.map((item) => ({
       ...item,
       href: item.href.replace(":clubId", clubId),
     }));
-  };
+  }, [clubId]);
 
   // Fetch announcements for this club
   const fetchAnnouncements = () => {
+    setLoading(true);
     fetch(`${baseurl}/announcements`, {
       headers: {
         "Content-Type": "application/json",
@@ -62,7 +65,9 @@ const ClubMemberAnnouncementsPage = () => {
           description: "Failed to fetch announcements",
           status: "error",
         });
-      });
+      }).finally(()=>{
+        setLoading(false);
+      })
   };
 
   // Create or update an announcement
@@ -179,6 +184,27 @@ const ClubMemberAnnouncementsPage = () => {
 
   /* ---------------- UI ---------------- */
 
+    if (loading) {
+    return (
+       <DashboardLayout navItems={updateNavItems()} title="Announcements">
+        <Loading/>
+       </DashboardLayout>
+
+    )
+  }
+
+  if(!loading && clubAnnouncements.length === 0){
+    return (
+      <DashboardLayout navItems={updateNavItems()} title="Announcements">
+        <EmptyState
+          icon={<Megaphone className="text-4xl" />}
+          title="No Announcements"
+          desc="There are no announcements for this club yet."
+        />
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout navItems={updateNavItems()} title="Announcements">
       <div className="space-y-6">
@@ -262,17 +288,7 @@ const ClubMemberAnnouncementsPage = () => {
 
         {/* Announcement List */}
         <div className="space-y-4">
-          {clubAnnouncements.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <Megaphone className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">
-                  No Announcements Yet
-                </h3>
-              </CardContent>
-            </Card>
-          ) : (
-            clubAnnouncements.map((announcement) => (
+            {clubAnnouncements.map((announcement) => (
               <Card key={announcement.id}>
                 <CardContent className="pt-4">
                   <div className="flex justify-between">
@@ -324,7 +340,7 @@ const ClubMemberAnnouncementsPage = () => {
                   </div>
                 </CardContent>
               </Card>
-            ))
+            )
           )}
         </div>
       </div>

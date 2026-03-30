@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
@@ -13,7 +13,7 @@ import {
   DialogTrigger,
   DialogDescription,
 } from "../../components/ui/Dialog";
-import { Plus, Clock, MapPin, Edit, Trash2, Eye } from "lucide-react";
+import { Plus, Clock, MapPin, Edit, Trash2, Eye,CalendarDays,CalendarCheck } from "lucide-react";
 import { clubMemberNavItems } from "../../config/Navigation";
 import { useParams } from "react-router-dom";
 import { toast } from "../../hooks/use-toast";
@@ -27,7 +27,8 @@ import { useNavigate } from "react-router-dom";
 import { FileText } from "lucide-react";
 import { marked } from "marked";
 import { Badge } from "../../components/ui/Badge";
-import { set } from "date-fns";
+import Loading from "../../components/ui/Loading";
+import EmptyState from "../../components/ui/EmptyState";
 
 const ClubMemberEventsPage = () => {
   // Get clubId from URL params
@@ -39,12 +40,12 @@ const ClubMemberEventsPage = () => {
   const navigate = useNavigate();
 
   //------------------Nav----------------//
-  const updateNavItems = () => {
+  const updateNavItems = useCallback(() => {
     return clubMemberNavItems.map((item) => ({
       ...item,
       href: item.href.replace(":clubId", clubId),
     }));
-  };
+  }, [clubId]);
 
   // State variables
   const [upcomingEvents, setUpcomingEvents] = useState([]);
@@ -88,6 +89,10 @@ const ClubMemberEventsPage = () => {
   const [now, setNow] = useState(new Date());
   const [existingImages, setExistingImages] = useState([]);
   const [requesting, setRequesting] = useState(false);
+  const [loading, setLoading] = useState({
+    past: false,
+    upcoming: false,
+  });
 
   const resetCreateEventForm = () => {
     setNewEvent({
@@ -121,49 +126,75 @@ const ClubMemberEventsPage = () => {
   const renderedPreview = marked.parse(overviewMarkdown || "");
 
   //format date and time for display
-  const formatDate = (dateTime) => {
+  const formatDate = useCallback((dateTime) => {
     if (!dateTime) return { date: "", time: "" };
     const [date, time] = dateTime.split("T");
     return { date, time: time.substring(0, 5) };
-  };
+  }, []);
 
-  const handleSelectPhoto = (e) => {
+  const handleSelectPhoto = useCallback((e) => {
     const file = e.target.files[0];
     setNewPhoto(file);
+  }, []);
+
+  const fetchPastEvents = async () => {
+    const token = localStorage.getItem("authToken");
+    setLoading((prev) => ({ ...prev, past: true }));
+
+    try {
+      const res = await fetch(`${baseUrl}/events/finished`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) throw new Error("Failed to fetch past events");
+
+      const data = await res.json();
+      setPastEvents(data);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to fetch past events",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading((prev) => ({ ...prev, past: false }));
+    }
+  };
+  const fetchUpcomingEvents = async () => {
+    const token = localStorage.getItem("authToken");
+    setLoading((prev) => ({ ...prev, upcoming: true }));
+
+    try {
+      const res = await fetch(`${baseUrl}/events/active`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) throw new Error("Failed to fetch upcoming events");
+
+      const data = await res.json();
+      setUpcomingEvents(data);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to fetch upcoming events",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading((prev) => ({ ...prev, upcoming: false }));
+    }
   };
   // Fetch club events
   const fetchClubEvents = async () => {
-    const token = localStorage.getItem("authToken");
-
-    await fetch(`${baseUrl}/events/finished`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(async (res) => await res.json())
-      .then((data) => {
-        setPastEvents(data);
-      })
-      .catch((err) =>
-        toast({
-          title: "Error",
-          description: err.message || "Failed to fetch events",
-          variant: "destructive",
-        }),
-      );
-
-    await fetch(`${baseUrl}/events/active`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(async (res) => await res.json())
-      .then((data) => {
-        setUpcomingEvents(data);
-      })
-      .catch((err) =>
-        toast({
-          title: "Error",
-          description: err.message || "Failed to fetch upcoming events",
-          variant: "destructive",
-        }),
-      );
+    try {
+      // run in parallel
+      await Promise.all([fetchPastEvents(), fetchUpcomingEvents()]);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch events",
+        variant: "destructive",
+      });
+    }
   };
 
   const fetchEventOverviewDetails = async (eventId) => {
@@ -194,14 +225,17 @@ const ClubMemberEventsPage = () => {
     }
   };
 
-  const getEventStatus = (event) => {
-    const start = new Date(event.startTime);
-    const end = new Date(event.endTime);
+  const getEventStatus = useCallback(
+    (event) => {
+      const start = new Date(event.startTime);
+      const end = new Date(event.endTime);
 
-    if (now >= start && now <= end) return "LIVE";
-    if (now < start) return "UPCOMING";
-    return "FINISHED";
-  };
+      if (now >= start && now <= end) return "LIVE";
+      if (now < start) return "UPCOMING";
+      return "FINISHED";
+    },
+    [now],
+  );
 
   //handle create event
   const handleCreateEvent = async () => {
@@ -418,7 +452,7 @@ const ClubMemberEventsPage = () => {
   }, [upcomingEvents]);
 
   //add photo to photo array for overview
-  const handleAddPhoto = () => {
+  const handleAddPhoto = useCallback(() => {
     if (!newPhoto || existingImages.length + overviewPhotos.length >= 10)
       return;
 
@@ -426,7 +460,7 @@ const ClubMemberEventsPage = () => {
     setNewPhoto(null);
 
     document.querySelector('input[type="file"]').value = "";
-  };
+  }, [newPhoto, existingImages, overviewPhotos]);
 
   const handleRemoveExistingImage = (index) => {
     setExistingImages(existingImages.filter((_, i) => i !== index));
@@ -550,43 +584,43 @@ const ClubMemberEventsPage = () => {
   };
 
   //add speaker to speakers array for overview
-  const handleAddSpeaker = () => {
+  const handleAddSpeaker = useCallback(() => {
     if (!newSpeaker.name.trim() || !newSpeaker.email.trim()) return;
 
     setSpeakers([...speakers, newSpeaker]);
     setNewSpeaker({ name: "", email: "", tagline: "" });
-  };
+  }, [newSpeaker, speakers]);
 
   //remove speaker from speakers array for overview
-  const handleRemoveSpeaker = (index) => {
+  const handleRemoveSpeaker = useCallback((index) => {
     setSpeakers(speakers.filter((_, i) => i !== index));
-  };
+  }, [speakers]);
 
   //add sponsor to sponsors array for overview
-  const handleAddSponsor = () => {
+  const handleAddSponsor = useCallback(() => {
     if (!newSponsor.name.trim() || !newSponsor.tagline.trim()) return;
 
     setSponsors([...sponsors, newSponsor]);
     setNewSponsor({ name: "", tagline: "" });
-  };
+  }, [newSponsor, sponsors]);
 
   //remove sponsor from sponsors array for overview
-  const handleRemoveSponsor = (index) => {
+  const handleRemoveSponsor = useCallback((index) => {
     setSponsors(sponsors.filter((_, i) => i !== index));
-  };
+  }, [sponsors]);
 
   //add winner to winners array for overview
-  const handleAddWinner = () => {
+  const handleAddWinner = useCallback(() => {
     if (!newWinner.name.trim() || !newWinner.email.trim()) return;
 
     setWinners([...winners, newWinner]);
     setNewWinner({ name: "", email: "" });
-  };
+  }, [newWinner, winners]);
 
   //remove winner from winners array for overview
-  const handleRemoveWinner = (index) => {
+  const handleRemoveWinner = useCallback((index) => {
     setWinners(winners.filter((_, i) => i !== index));
-  };
+  }, [winners]);
 
   //calculate event duration in hours and minutes
   function getDuration(startDate, endDate) {
@@ -645,7 +679,7 @@ const ClubMemberEventsPage = () => {
             }}
           >
             <DialogTrigger asChild>
-              <Button dissabled={requesting}>
+              <Button dissabled={requesting?.toString()}>
                 <Plus className="w-4 h-4 mr-2" />
                 Create Event
               </Button>
@@ -1530,11 +1564,25 @@ Write your markdown here..."
           {/* ================= UPCOMING TAB ================= */}
           <TabsContent value="upcoming" className="mt-6">
             <div className="grid md:grid-cols-3 gap-4">
-              {sortedEvents.map((event) => {
-                const formatted = formatDate(event.startTime);
-                const status = getEventStatus(event);
-                return (
-                  <Card key={event.id} className="border-border/50">
+              {loading.upcoming ? (
+                <div className="w-full col-span-3">
+                  <Loading />
+                </div>
+              ) : (
+                sortedEvents.length === 0 ? (
+                  <div className="w-full col-span-3">
+                    <EmptyState
+                      title="No Active Events"
+                      desc="There are no active events for this club at the moment."
+                      icon={<CalendarDays className="w-8 h-8 text-muted-foreground" />}
+                      />
+                  </div>
+                ) : (
+                sortedEvents.map((event) => {
+                  const formatted = formatDate(event.startTime);
+                  const status = getEventStatus(event);
+                  return (
+                    <Card key={event.id} className="border-border/50">
                     {event.image && (
                       <img
                         src={event.image}
@@ -1644,14 +1692,27 @@ Write your markdown here..."
                     </CardContent>
                   </Card>
                 );
-              })}
+              })))}
             </div>
           </TabsContent>
 
           {/* ================= FINISHED TAB (CHANGED UI) ================= */}
           <TabsContent value="finished" className="mt-6">
             <div className="grid md:grid-cols-3 gap-4">
-              {pastEvents.map((event) => {
+              {loading.past ? (
+                <div className="w-full col-span-3">
+                  <Loading />
+                </div>
+              ) : pastEvents.length === 0 ? (
+                <div className="w-full col-span-3">
+                  <EmptyState
+                    title="No Finished Events"
+                    desc="There are no finished events for this club yet."
+                    icon={<CalendarCheck className="w-8 h-8 text-muted-foreground" />}
+                    />
+                </div>
+              ) : (
+              pastEvents.map((event) => {
                 const formatted = formatDate(event.startTime);
 
                 return (
@@ -1723,7 +1784,7 @@ Write your markdown here..."
                     </CardContent>
                   </Card>
                 );
-              })}
+              }))}
             </div>
           </TabsContent>
         </Tabs>

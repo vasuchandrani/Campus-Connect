@@ -45,7 +45,7 @@ const JournalistWritePage = () => {
         if (!routeProtection("JOURNALIST")) {
           navigate("/auth");
         }
-      },[]);
+      },[navigate, routeProtection]);
 
   /* Load Draft Data */
   useEffect(() => {

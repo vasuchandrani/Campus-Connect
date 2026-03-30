@@ -19,7 +19,6 @@ import {
 import { Textarea } from "../ui/Textarea";
 import { ArrowLeft, Building2, Check, Crown, Zap, Star, CheckCircle  } from "lucide-react";
 import {toast} from "../../hooks/use-toast"
-import { set } from "date-fns";
 
 // Get the raw string, or an empty array string if undefined
 const rawPlans = import.meta.env.VITE_SUBSCRIPTION_PLANS || "[]";
@@ -67,6 +66,59 @@ const CollegeSignup = ({ onBack }) => {
     description: "",
     adminName: "",
   });
+
+  const handleChecks = (e) => {
+    e.preventDefault();
+    if(formData.name.trim()===""){
+      toast({
+        title: "Error",
+        description: "College name cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if(formData.adminName.trim()===""){
+      toast({
+        title: "Error",
+        description: "Admin name cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if(formData.password.trim()==="" || formData.password.length<6){
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if(formData.phone.trim()!=="" && !/^\d{10}$/.test(formData.phone.trim())){
+      toast({
+        title: "Error",
+        description: "Phone number must be 10 digits.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if(formData.address.trim()===""){
+      toast({
+        title: "Error",
+        description: "Address cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+    }
+     if(formData.domain.trim()===""){
+      toast({
+        title: "Error",
+        description: "Domain cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setStep(4);
+  }
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -387,8 +439,7 @@ const CollegeSignup = ({ onBack }) => {
 
             <form
               onSubmit={(e) => {
-                e.preventDefault();
-                setStep(4);
+                handleChecks(e);
               }}
               className="space-y-4"
             >
