@@ -1,0 +1,30 @@
+package com.campusconnect.campusconnectbackend.event.dto.req;
+
+import jakarta.validation.constraints.NotBlank;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.util.*;
+import java.time.LocalDateTime;
+
+@Getter
+@Setter
+public class EventRequestDto {
+
+    @NotBlank(message = "Event title is required")
+    private String title;
+
+    private String description;
+
+    private LocalDateTime registrationEnd;
+
+    private LocalDateTime startTime;
+
+    private LocalDateTime endTime;
+
+    private String location;
+
+    private List<EventSponsorRequestDto> sponsors;
+
+    private List<EventSpeakerRequestDto> speakers;
+}

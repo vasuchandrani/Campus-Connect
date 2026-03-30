@@ -1,6 +1,6 @@
 package com.campusconnect.campusconnectbackend.college.controller;
 
-import com.campusconnect.campusconnectbackend.college.College;
+import com.campusconnect.campusconnectbackend.college.entity.College;
 import com.campusconnect.campusconnectbackend.college.service.CollegeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;

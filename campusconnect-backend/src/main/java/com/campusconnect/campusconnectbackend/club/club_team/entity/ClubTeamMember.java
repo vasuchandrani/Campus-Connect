@@ -1,7 +1,7 @@
 package com.campusconnect.campusconnectbackend.club.club_team.entity;
 
 import com.campusconnect.campusconnectbackend.club.club_team.entity.id.ClubTeamMemberId;
-import com.campusconnect.campusconnectbackend.student.Student;
+import com.campusconnect.campusconnectbackend.student.entity.Student;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;

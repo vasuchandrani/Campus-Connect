@@ -7,9 +7,13 @@ import com.campusconnect.campusconnectbackend.journalist.dto.res.JournalistStatR
 import com.campusconnect.campusconnectbackend.journalist.entity.Journalist;
 import com.campusconnect.campusconnectbackend.journalist.repository.JournalistRepository;
 import com.campusconnect.campusconnectbackend.newspaper.repository.NewsPaperRepository;
-import com.campusconnect.campusconnectbackend.security.auth.AuthService;
-import org.springframework.transaction.annotation.Transactional;
+
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -18,8 +22,8 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class JournalistService {
+
     private final JournalistRepository journalistRepository;
-    private final AuthService authService;
     private final NewsPaperRepository newsPaperRepository;
 
     // get DTO
@@ -50,24 +54,24 @@ public class JournalistService {
         return response;
     }
 
-    // get journalist-name
-    public String getName(Long userId) {
-        Journalist journalist = journalistRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found!"));
-
-        return journalist.getFullName();
-    }
-
-    // get count of journalist in college
+    // get count of journalist in college (for backend-use)
     public int getJournalistsCountByCollege(Long collegeId) {
 
         return journalistRepository.countByCollege_Id(collegeId);
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "journalist_topNewsPapers", key = "#journalistId"),
+            @CacheEvict(value = "journalist_newsPapers", key = "#journalistId"),
+            @CacheEvict(value = "journalist_draftPapers", key = "#journalistId"),
+            @CacheEvict(value = "journalist_dashboard_stats", key = "#journalistId")
+    })
+    public void evictJournalistCaches(Long journalistId) {}
+
     // get all journalist of college
-    public List<JournalistResponseDto> getJournalists() {
-        // find college-id
-        Long collegeId = authService.getCurrentCollegeId();
+    @Cacheable(value = "journalists", key = "'college_' + #collegeId", sync = true)
+    public List<JournalistResponseDto> getJournalists(Long collegeId) {
+
         // find all journalists
         List<Journalist> journalists = journalistRepository.findAllByCollege_Id(collegeId);
 
@@ -76,6 +80,15 @@ public class JournalistService {
 
     // remove journalist
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "journalists", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "journalist_details", key = "#journalistId"),
+            @CacheEvict(value = "journalist_topNewsPapers", key = "journalistId"),
+            @CacheEvict(value = "journalist_newsPapers", key = "#journalistId"),
+            @CacheEvict(value = "journalist_draftPapers", key = "#journalistId"),
+            @CacheEvict(value = "journalist_dashboard_stats", key = "#journalistId"),
+            @CacheEvict(value = "college_dashboard_stats", key = "@authService.getCurrentCollegeId()"),
+    })
     public MessageResponseDto removeJournalist(Long journalistId) {
         // check if exist
         if (!journalistRepository.existsById(journalistId)) {
@@ -88,6 +101,7 @@ public class JournalistService {
     }
 
     // get stats
+    @Cacheable(value = "journalist_dashboard_stats", key = "#journalistId", sync = true)
     public JournalistStatResponseDto getStat(Long journalistId){
 
         // find stats
@@ -103,9 +117,10 @@ public class JournalistService {
     }
 
     // get journalist details
-    public JournalistDetailResponseDto getDetails(Long currentUserId) {
+    @Cacheable(value = "journalist_details", key = "#journalistId", sync = true)
+    public JournalistDetailResponseDto getDetails(Long journalistId) {
 
-        Journalist j = journalistRepository.findById(currentUserId).orElseThrow(
+        Journalist j = journalistRepository.findById(journalistId).orElseThrow(
                 () -> new RuntimeException("Journalist not found")
         );
 
@@ -113,6 +128,5 @@ public class JournalistService {
         dto.setName(j.getFullName());
         dto.setCollegeName(j.getCollege().getName());
         return dto;
-
     }
 }

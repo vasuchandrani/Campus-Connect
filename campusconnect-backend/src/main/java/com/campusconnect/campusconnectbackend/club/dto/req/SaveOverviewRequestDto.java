@@ -1,6 +1,6 @@
 package com.campusconnect.campusconnectbackend.club.dto.req;
 
-import com.campusconnect.campusconnectbackend.club.event.dto.req.EventWinnerRequestDto;
+import com.campusconnect.campusconnectbackend.event.dto.req.EventWinnerRequestDto;
 import lombok.Getter;
 import lombok.Setter;
 

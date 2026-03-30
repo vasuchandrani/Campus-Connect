@@ -1,6 +1,6 @@
 package com.campusconnect.campusconnectbackend.college.service;
 
-import com.campusconnect.campusconnectbackend.college.College;
+import com.campusconnect.campusconnectbackend.college.entity.College;
 import com.campusconnect.campusconnectbackend.college.repository.CollegeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,12 +18,10 @@ public class CollegeService {
         return new ArrayList<>(collegeRepository.findAll());
     }
 
-    public College getCollegeByName (String collegeName) {
-        return collegeRepository.findByName(collegeName).orElse(null);
-    }
-
     public College getCollegeById(Long collegeId) {
-        return collegeRepository.findById(collegeId).orElse(null);
+        return collegeRepository.findById(collegeId).orElseThrow(
+                () -> new RuntimeException("College not found")
+        );
     }
 
 }

@@ -1,8 +1,7 @@
 package com.campusconnect.campusconnectbackend.reviewer.controller;
 
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
-import com.campusconnect.campusconnectbackend.journalist.dto.res.JournalistDetailResponseDto;
-import com.campusconnect.campusconnectbackend.research_paper.ResearchPaperService;
+import com.campusconnect.campusconnectbackend.research_paper.service.ResearchPaperService;
 import com.campusconnect.campusconnectbackend.research_paper.dto.res.ResearchesResponseDto;
 import com.campusconnect.campusconnectbackend.reviewer.dto.req.ReviewRequestDto;
 import com.campusconnect.campusconnectbackend.reviewer.dto.res.ReviewerDetailResponseDto;
@@ -36,13 +35,13 @@ public class ReviewerController {
     // get stats
     @GetMapping("/stats")
     public ReviewerStatsResponseDto getReviewerStats() {
-        return reviewerService.getStats();
+        return reviewerService.getStats(authService.getCurrentUserId());
     }
 
     // get pending reviews
     @GetMapping("/pending")
     public List<ResearchesResponseDto> getPendingResearches() {
-        return researchPaperService.getAllPendingByReviewer();
+        return researchPaperService.getAllPendingByReviewer(authService.getCurrentUserId());
     }
 
     // accept any research-paper
@@ -60,7 +59,7 @@ public class ReviewerController {
     // get reviewed papers
     @GetMapping("/reviewed")
     public List<ResearchesResponseDto> getReviewedResearches() {
-        return researchPaperService.getAllReviewedByReviewer();
+        return researchPaperService.getAllReviewedByReviewer(authService.getCurrentUserId());
     }
 
     // get particular research

@@ -1,9 +1,9 @@
 package com.campusconnect.campusconnectbackend.security.jwt;
 
-import com.campusconnect.campusconnectbackend.college_admin.CollegeAdminRepository;
+import com.campusconnect.campusconnectbackend.college_admin.repository.CollegeAdminRepository;
 import com.campusconnect.campusconnectbackend.journalist.repository.JournalistRepository;
-import com.campusconnect.campusconnectbackend.reviewer.ReviewerRepository;
-import com.campusconnect.campusconnectbackend.student.StudentRepository;
+import com.campusconnect.campusconnectbackend.reviewer.repository.ReviewerRepository;
+import com.campusconnect.campusconnectbackend.student.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.security.core.userdetails.UserDetails;

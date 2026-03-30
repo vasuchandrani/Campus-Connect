@@ -1,19 +1,20 @@
 package com.campusconnect.campusconnectbackend.student.service;
 
-import com.campusconnect.campusconnectbackend.club.club_member.ClubMemberService;
-import com.campusconnect.campusconnectbackend.club.club_request.ClubRequestService;
+import com.campusconnect.campusconnectbackend.club.club_member.service.ClubMemberService;
+import com.campusconnect.campusconnectbackend.club.club_request.service.ClubRequestService;
 import com.campusconnect.campusconnectbackend.college_admin.service.CollegeAdminService;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.student.dto.req.ClubRequestDto;
 import com.campusconnect.campusconnectbackend.student.dto.res.StudentDashboardStatsDto;
-import com.campusconnect.campusconnectbackend.club.event.service.EventService;
+import com.campusconnect.campusconnectbackend.event.service.EventService;
 import com.campusconnect.campusconnectbackend.integrations.mail_service.dto.club_verification.ClubVerificationDto;
 import com.campusconnect.campusconnectbackend.integrations.mail_service.service.EmailDispatcherService;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
-import com.campusconnect.campusconnectbackend.student.Student;
+import com.campusconnect.campusconnectbackend.student.entity.Student;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.cache.annotation.Cacheable;
 
 @Service
 @RequiredArgsConstructor
@@ -28,16 +29,19 @@ public class StudentService {
     private final StudentRepoService studentRepoService;
 
     // get student-name
-    public String getName(Long userId) {
-        Student student = studentRepoService.getStudent(userId);
+    @Cacheable(value = "student_name", key = "#studentId", sync = true)
+    public String getName(Long studentId) {
+
+        Student student = studentRepoService.getStudent(studentId);
         return student.getFullName();
     }
 
     // get stats
-    public StudentDashboardStatsDto getStats() {
+    @Cacheable(value = "student_dashboard_stats", key = "#studentId", sync = true)
+    public StudentDashboardStatsDto getStats(Long studentId) {
 
-        int joinedClub = clubMemberService.getJoinedClubCount();
-        int upcomingEvents = eventService.getUpcomingEventsCountByCollege();
+        int joinedClub = clubMemberService.getJoinedClubCount(studentId);
+        int upcomingEvents = eventService.getActiveEventsByCollege(authService.getCurrentCollegeId()).size();
 
         StudentDashboardStatsDto dto = new StudentDashboardStatsDto();
         dto.setJoinedClubs(joinedClub);
@@ -61,10 +65,10 @@ public class StudentService {
         dto.setClubName(request.getClubName());
         dto.setAdminDashboardLink("/campusconnect/college-admin/dashboard");
 
-        if (reqSaved) {
-            emailDispatcherService.sendClubRequestToAdmin(dto);
+        if (!reqSaved) {
+            return new MessageResponseDto("Failed to save club request, Try again");
         }
-
+        emailDispatcherService.sendClubRequestToAdmin(dto);
         return new MessageResponseDto("Club Request sent successfully");
     }
 
