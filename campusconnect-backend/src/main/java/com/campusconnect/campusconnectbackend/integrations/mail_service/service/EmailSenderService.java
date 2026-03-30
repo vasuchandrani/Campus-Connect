@@ -1,33 +1,55 @@
 package com.campusconnect.campusconnectbackend.integrations.mail_service.service;
 
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
-import jakarta.mail.internet.MimeMessage;
-import lombok.AllArgsConstructor;
+import com.resend.Resend;
+import com.resend.core.exception.ResendException;
+import com.resend.services.emails.model.CreateEmailOptions;
+import com.resend.services.emails.model.CreateEmailResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
+
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Objects;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class EmailSenderService {
 
-    private final JavaMailSender mailSender;
-    private ResourceLoader resourceLoader;
+    private final Resend resend;
+    private final ResourceLoader resourceLoader;
 
-    // load html template
+    private final RestTemplate restTemplate = new RestTemplate();
+
+    @Value("${resend.from.email}")
+    private String fromEmail;
+
+    @Value("${resend.api.key}")
+    private String apiKey;
+
+    // Load HTML template
     public String loadEmailTemplate(String templateName) {
+
         try {
-            Resource resource = resourceLoader.getResource("classpath:templates/email_templates/" + templateName);
+
+            Resource resource =
+                    resourceLoader.getResource("classpath:templates/email_templates/" + templateName);
 
             if (!resource.exists()) {
                 throw new RuntimeException("Template not found: " + templateName);
@@ -36,38 +58,44 @@ public class EmailSenderService {
             try (InputStream is = resource.getInputStream()) {
                 return new String(is.readAllBytes(), StandardCharsets.UTF_8);
             }
-        } catch (IOException e) {
+
+        } catch (Exception e) {
             throw new RuntimeException("Failed to load email template: " + templateName, e);
         }
     }
 
-    // send mail
+    // Send HTML Email (SDK)
     public boolean sendHtmlEmail(String to, String subject, String htmlContent) {
+
         try {
-            // create message
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper =
-                    new MimeMessageHelper(message, true, "UTF-8");
 
-            // set
-            helper.setFrom("Campus-Connect <campusconnector.team@gmail.com>");
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(htmlContent, true);
+            CreateEmailOptions params = CreateEmailOptions.builder()
+                    .from(fromEmail)
+                    .to(to)
+                    .subject(subject)
+                    .html(htmlContent)
+                    .build();
 
-            // send mail
-            mailSender.send(message);
+            CreateEmailResponse response =
+                    resend.emails().send(params);
+
+            log.info("Email sent successfully. ID: {}", response.getId());
 
             return true;
-        }
-        catch (Exception e) {
-            System.out.println(e.getMessage());
+
+        } catch (ResendException e) {
+
+            log.error("Email sending failed", e);
             return false;
         }
     }
 
-    // send verification-code
-    public MessageResponseDto sendVerificationCode(String email, String code, String codeFor) {
+    // Send verification code email
+    public MessageResponseDto sendVerificationCode(
+            String email,
+            String code,
+            String codeFor
+    ) {
 
         if(email == null || email.isBlank())
             throw new IllegalArgumentException("Email cannot be empty");
@@ -79,65 +107,78 @@ public class EmailSenderService {
             codeFor = "Email Verification";
 
         try {
-            // create message
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper =
-                    new MimeMessageHelper(message, true, "UTF-8");
 
-            // set
-            helper.setFrom("Campus-Connect <campusconnector.team@gmail.com>");
-            helper.setTo(email);
-            helper.setSubject("Campus-Connect " + codeFor);
+            String htmlContent =
+                    loadEmailTemplate("verification_code.html")
+                            .replace("{{CODE}}", code)
+                            .replace("{{VERIFICATION_FOR}}", codeFor);
 
-            // load template
-            String htmlContent = loadEmailTemplate("verification_code.html")
-                    .replace("{{CODE}}", code)
-                    .replace("{{VERIFICATION_FOR}}", codeFor);
+            boolean sent =
+                    sendHtmlEmail(
+                            email,
+                            "Campus-Connect " + codeFor,
+                            htmlContent
+                    );
 
-            helper.setText(htmlContent, true);
+            if(sent)
+                return new MessageResponseDto("Verification code sent successfully");
 
-            // send mail
-            mailSender.send(message);
+            return new MessageResponseDto("Failed to send verification code");
 
-            return new MessageResponseDto("Verification code sent successfully");
-        }
-        catch (Exception e) {
-            System.out.println(e.getMessage());
-            return new MessageResponseDto("Failed to send verification code, please try again.");
+        } catch (Exception e) {
+
+            log.error("Verification email failed", e);
+            return new MessageResponseDto("Failed to send verification code");
         }
     }
 
+    // Send email with attachment (REST API)
     public boolean sendHtmlEmailWithAttachment(
             String to,
             String subject,
             String htmlContent,
             MultipartFile attachment
     ) {
+
         try {
 
-            MimeMessage message = mailSender.createMimeMessage();
+            String url = "https://api.resend.com/emails";
 
-            MimeMessageHelper helper =
-                    new MimeMessageHelper(message, true, "UTF-8");
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(apiKey);
 
-            helper.setFrom("Campus-Connect <campusconnector.team@gmail.com>");
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(htmlContent, true);
+            Map<String, Object> body = new HashMap<>();
 
-            if (attachment != null) {
-                helper.addAttachment(
-                        Objects.requireNonNull(attachment.getOriginalFilename()),
-                        attachment
+            body.put("from", fromEmail);
+            body.put("to", List.of(to));
+            body.put("subject", subject);
+            body.put("html", htmlContent);
+
+            if (attachment != null && !attachment.isEmpty()) {
+
+                Map<String, Object> file = new HashMap<>();
+
+                file.put("filename", attachment.getOriginalFilename());
+                file.put(
+                        "content",
+                        Base64.getEncoder().encodeToString(attachment.getBytes())
                 );
+
+                body.put("attachments", List.of(file));
             }
 
-            mailSender.send(message);
+            HttpEntity<Map<String, Object>> request =
+                    new HttpEntity<>(body, headers);
 
-            return true;
+            ResponseEntity<String> response =
+                    restTemplate.postForEntity(url, request, String.class);
+
+            return response.getStatusCode().is2xxSuccessful();
 
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+
+            log.error("Email with attachment failed", e);
             return false;
         }
     }
