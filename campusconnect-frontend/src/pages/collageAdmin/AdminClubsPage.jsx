@@ -308,6 +308,40 @@ const AdminClubsPage = () => {
     return 0;
   });
 
+  const deleteClub = async (clubId) => {
+    setRequesting(true);
+    await fetch(`${baseUrl}/clubs/${clubId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (data.message === "Club deleted successfully!") {
+          toast({
+            title: "Club deleted",
+            description: data.message,
+            variant: "destructive",
+          });
+          fetchClubs(); 
+        } else {
+          throw new Error(data.message || "Failed to delete club");
+        }
+      })
+      .catch((err) =>
+        toast({
+          title: "Error",
+          description: err.message || "Failed to delete club",
+          variant: "destructive",
+        }),
+      )
+      .finally(() => {
+        setRequesting(false);
+      });
+    };
+
   //for searching
   const filteredClubs = useMemo(() => {
     return clubs.filter((club) =>
@@ -446,9 +480,9 @@ const AdminClubsPage = () => {
 
                             <DropdownMenuItem
                               className="text-destructive"
-                              onClick={(e) => e.stopPropagation()}
+                              onClick={(e) => {deleteClub(club.id); e.stopPropagation();}}
                             >
-                              Suspend Club
+                              Delete Club
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
