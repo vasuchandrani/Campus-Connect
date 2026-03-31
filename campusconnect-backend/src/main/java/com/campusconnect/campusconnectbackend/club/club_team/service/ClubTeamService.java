@@ -176,7 +176,10 @@ public class ClubTeamService {
 
     // add team member
     @Transactional
-    @CacheEvict(value = "club_teams", key = "#clubId")
+    @Caching(evict = {
+            @CacheEvict(value = "club_teams", key = "#clubId"),
+            @CacheEvict(value = "club_team_names", key = "#clubId"),
+    })
     public MessageResponseDto addTeamMember(Long clubId, Long teamId, Long studentId) {
 
         // find club member
@@ -209,7 +212,10 @@ public class ClubTeamService {
 
     // delete team member
     @Transactional
-    @CacheEvict(value = "club_teams", key = "#clubId")
+    @Caching(evict = {
+            @CacheEvict(value = "club_teams", key = "#clubId"),
+            @CacheEvict(value = "club_team_names", key = "#clubId"),
+    })
     public MessageResponseDto deleteTeamMember(Long clubId, Long teamId, Long studentId) {
 
         // create id

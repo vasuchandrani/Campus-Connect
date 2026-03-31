@@ -33,6 +33,8 @@ import {
 import { studentNavItems } from "../../config/Navigation";
 import { toast } from "../../hooks/use-toast";
 import { useAuth } from "../../contexts/AuthContext";
+import EmptyState from "../../components/ui/EmptyState";
+
 
 const ClubDetailPage = () => {
   // Get clubId from URL params

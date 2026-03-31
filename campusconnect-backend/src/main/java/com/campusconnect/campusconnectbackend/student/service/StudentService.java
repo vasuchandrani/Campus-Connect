@@ -37,15 +37,14 @@ public class StudentService {
     }
 
     // get stats
-    @Cacheable(value = "student_dashboard_stats", key = "#studentId", sync = true)
     public StudentDashboardStatsDto getStats(Long studentId) {
 
         int joinedClub = clubMemberService.getJoinedClubCount(studentId);
-        int upcomingEvents = eventService.getActiveEventsByCollege(authService.getCurrentCollegeId()).size();
+        int activeEvents = eventService.getActiveEventsByCollege(authService.getCurrentCollegeId()).size();
 
         StudentDashboardStatsDto dto = new StudentDashboardStatsDto();
         dto.setJoinedClubs(joinedClub);
-        dto.setUpcomingEvents(upcomingEvents);
+        dto.setUpcomingEvents(activeEvents);
 
         return dto;
     }

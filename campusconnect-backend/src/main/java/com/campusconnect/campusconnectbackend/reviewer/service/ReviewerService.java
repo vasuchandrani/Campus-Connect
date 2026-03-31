@@ -74,7 +74,7 @@ public class ReviewerService {
 
     // create reviewer
     @Transactional
-    @CacheEvict(value = "reviewers", key = "@authService.getCurrentCollegeId()")
+    @CacheEvict(value = "reviewers", key = "'college_' + @authService.getCurrentCollegeId()")
     public MessageResponseDto store(AddReviewerRequestDto request) {
         // generate password
         String password = generatePassword();
@@ -129,7 +129,7 @@ public class ReviewerService {
             @CacheEvict(value = "reviewer_details", key = "#reviewerId"),
             @CacheEvict(value = "pending_researches", key = "#reviewerId"),
             @CacheEvict(value = "reviewed_researches", key = "#reviewerId"),
-            @CacheEvict(value = "reviewers", key = "'college' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "reviewers", key = "'college_' + @authService.getCurrentCollegeId()"),
     })
     public MessageResponseDto removeReviewer(Long reviewerId) {
 

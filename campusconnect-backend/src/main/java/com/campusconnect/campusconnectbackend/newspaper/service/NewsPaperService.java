@@ -119,7 +119,7 @@ public class NewsPaperService {
             @CacheEvict(value = "college_dashboard_stats", key = "@authService.getCurrentCollegeId()"),
             @CacheEvict(value = "top_newsPapers", key = "'college_' + @authService.getCurrentCollegeId()"),
             @CacheEvict(value = "latest_news", key = "'college_' + @authService.getCurrentCollegeId()"),
-            @CacheEvict(value = "college_newsPapers", key = "'college_' + @authService.currentCollegeId()"),
+            @CacheEvict(value = "college_newsPapers", key = "'college_' + @authService.getCurrentCollegeId()"),
     })
     public MessageResponseDto unpublishNewsPaper(Long newsPaperId) {
         // check if exist
@@ -186,7 +186,7 @@ public class NewsPaperService {
 
     // create draft (save as draft)
     @Transactional
-    @CacheEvict(value = "journalist_draftNewsPapers", key = "'journalist' + #journalistId")
+    @CacheEvict(value = "journalist_draftPapers", key = "#journalistId")
     public MessageResponseDto createDraft(Long journalistId, NewsPaperRequestDto request, MultipartFile image) {
 
         // find journalist
@@ -215,7 +215,7 @@ public class NewsPaperService {
 
     // modify any draft
     @Transactional
-    @CacheEvict(value = "journalist_draftNewsPapers", key = "'journalist' + #journalistId")
+    @CacheEvict(value = "journalist_draftPapers", key = "#journalistId")
     public MessageResponseDto updateDraft(Long  journalistId, Long draftId, NewsPaperRequestDto request, MultipartFile image) {
         // find draft
         NewsPaper draftNewsPaper = newsPaperRepository.findById(draftId).orElseThrow(

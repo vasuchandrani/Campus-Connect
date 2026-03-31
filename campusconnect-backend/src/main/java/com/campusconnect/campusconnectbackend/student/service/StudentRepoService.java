@@ -1,6 +1,7 @@
 package com.campusconnect.campusconnectbackend.student.service;
 
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
+import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import com.campusconnect.campusconnectbackend.student.dto.req.StudentRegisterRequestDto;
 import com.campusconnect.campusconnectbackend.student.dto.req.StudentSignupRequestDto;
 import com.campusconnect.campusconnectbackend.student.dto.res.StudentResponseDto;
@@ -31,6 +32,7 @@ public class StudentRepoService {
     private final StudentRepository studentRepository;
     private final StudentAuth studentAuth;
     private final EmailDispatcherService emailDispatcherService;
+    private final AuthService authService;
 
     // get DTO
     private StudentResponseDto getDto(Student student) {
