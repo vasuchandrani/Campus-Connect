@@ -227,6 +227,9 @@ public class ClubTeamService {
         if (!clubTeamMemberRepository.existsById(id)) {
             throw new RuntimeException("Team-member does not exist");
         }
+
+        clubTeamMemberRepository.deleteById(id);
+
         return new MessageResponseDto("Team-member removed successfully");
     }
 }
