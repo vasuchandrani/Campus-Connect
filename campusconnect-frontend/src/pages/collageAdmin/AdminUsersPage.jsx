@@ -471,7 +471,8 @@ const AdminUsersPage = () => {
     })
       .then(async (res) => {
         const data = await res.json();
-        if (data.message === "All Students registered successfully!") {
+
+        if (data.message === "Students registered successfully!") {
           toast({
             title: "Success",
             description: data.message,
@@ -496,6 +497,42 @@ const AdminUsersPage = () => {
     setStudentOpen(false);
   };
 
+  const removeStudent = async (id) => {
+    if (!id) return;
+
+    setRequesting(true);
+
+    await fetch(`${baseUrl}/students/delete/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    })
+      .then(async (res) => {
+        const data = await res.json();
+
+        if (data.message.startsWith("Student with id")) {
+          toast({
+            title: "Success",
+            description: data.message,
+            variant: "success",
+          });
+
+          await fetchStudents();
+        } else {
+          throw new Error(data.message);
+        }
+      })
+      .catch((err) => {
+        toast({
+          title: "Error",
+          description: err.message || "Failed to remove student",
+          variant: "destructive",
+        });
+      })
+      .finally(() => setRequesting(false));
+  };
+
   //------------------------------UI--------------------------------------------//
   return (
     <DashboardLayout navItems={navItems} title="Manage Users">
@@ -516,7 +553,7 @@ const AdminUsersPage = () => {
               Journalist Requests ({journalistRequests.length})
             </TabsTrigger>
             <TabsTrigger value="journalists">
-              Journalists ({journalists.length})
+              Journalists ({journalists.length}) 
             </TabsTrigger>
             <TabsTrigger value="reviewers">
               Reviewers ({reviewers.length})
@@ -1002,9 +1039,28 @@ const AdminUsersPage = () => {
                           </div>
                         </div>
 
-                        <Badge variant="outline">
-                          {student.department} • {student.year}
-                        </Badge>
+                        <div className="flex items-center gap-4">
+                          <Badge variant="outline">Student</Badge>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                disabled={requesting}
+                              >
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => removeStudent(student.id)}
+                              >
+                                Remove
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
                     ))
                   )}

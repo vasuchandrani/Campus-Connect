@@ -441,6 +441,7 @@ const ResearchPage = () => {
                     id="title"
                     name="title"
                     placeholder="Enter the title of your research paper"
+                    value={formData.title}
                     onChange={handleChange}
                   />
                 </div>
@@ -452,6 +453,7 @@ const ResearchPage = () => {
                     name="abstract"
                     placeholder="Write a brief summary of your research..."
                     className="min-h-32"
+                    value={formData.abstract}
                     onChange={handleChange}
                   />
                 </div>
@@ -461,6 +463,7 @@ const ResearchPage = () => {
                   <Input
                     name="department"
                     id="department"
+                    value={formData.department}
                     placeholder="e.g., Computer Science"
                     onChange={handleChange}
                   />
@@ -470,6 +473,7 @@ const ResearchPage = () => {
                   <Input
                     name="subject"
                     id="subject"
+                    value={formData.subject}
                     placeholder="e.g., Machine Learning"
                     onChange={handleChange}
                   />
@@ -571,16 +575,19 @@ const ResearchPage = () => {
                               {paper.status}
                             </Badge>
                           </div>
-
+                          {console.log(paper)}
                           <h3 className="font-semibold mb-1">{paper.title}</h3>
 
                           <p className="text-sm text-muted-foreground">
-                            Submitted on {paper.submittedDate}
+                            Submitted on {paper.createdAt.split("T")[0]}
                           </p>
 
-                          <p className="text-sm text-muted-foreground">
+                         {paper.reviewerFeedback && <p className="text-sm text-muted-foreground">
                             Feedback:{paper.reviewerFeedback}
-                          </p>
+                          </p>}
+                          {!paper.reviewerFeedback &&<p className="text-sm text-muted-foreground">
+                            Feedback: Pending
+                          </p>}
                         </div>
 
                         <Button

@@ -138,9 +138,15 @@ const StudentLogin = ({
     setRequesting(false);
   };
 
+  const handleLogin = async (e) => {
+    setRequesting(true);
+    await handleSimpleLogin(e);
+    setRequesting(false);
+  }
+
   if (step === "login") {
     return (
-      <form onSubmit={handleSimpleLogin} className="space-y-4">
+      <form onSubmit={handleLogin} className="space-y-4">
 
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>

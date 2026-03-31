@@ -73,7 +73,12 @@ const FeaturesSection = () => {
       <div className="container mx-auto px-4 relative z-10">
         
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+          <div
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-accent font-medium text-sm mb-4"
+            style={{
+              backgroundColor: "hsl(var(--accent) / 0.15)",
+            }}
+          >
             Features
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">

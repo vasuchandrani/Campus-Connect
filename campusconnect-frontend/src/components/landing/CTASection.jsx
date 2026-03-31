@@ -29,7 +29,7 @@ const CTASection = () => {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button variant="hero" size="xl" asChild>
               <a href="/auth">
-                Start Free Trial
+                Start
                 <ArrowRight className="w-5 h-5" />
               </a>
             </Button>

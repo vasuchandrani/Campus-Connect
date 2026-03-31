@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
@@ -13,7 +13,7 @@ import {
   DialogTrigger,
   DialogDescription,
 } from "../../components/ui/Dialog";
-import { Plus, Clock, MapPin, Edit, Trash2, Eye,Calendar } from "lucide-react";
+import { Plus, Clock, MapPin, Edit, Trash2, Eye, Calendar } from "lucide-react";
 import { clubAdminNavItems } from "../../config/Navigation";
 import { useParams } from "react-router-dom";
 import { toast } from "../../hooks/use-toast";
@@ -40,12 +40,12 @@ const ClubAdminEventsPage = () => {
   const navigate = useNavigate();
 
   //---------Navs------------//
-  const updatenavItems = () => {
+  const updatenavItems = useCallback(() => {
     return clubAdminNavItems.map((item) => ({
       ...item,
       href: item.href.replace(":clubId", clubId),
     }));
-  };
+  }, [clubId]);
 
   // State variables
   const [upcomingEvents, setUpcomingEvents] = useState([]);
@@ -205,8 +205,9 @@ const ClubAdminEventsPage = () => {
         description: "Failed to fetch events",
         variant: "destructive",
       });
+    } finally {
+      setLoading((prev) => ({ ...prev, past: false }));
     }
-    finally {      setLoading((prev) => ({ ...prev, past: false }));  }
   };
 
   const fetchUpcomingEvents = async () => {
@@ -1530,130 +1531,131 @@ Write your markdown here..."
                 <div className="col-span-full text-center py-8">
                   <Loading />
                 </div>
-              ):(
-                sortedEvents.length === 0 ? (
+              ) : sortedEvents.length === 0 ? (
+                <div className="col-span-full">
                   <EmptyState
                     icon={<Calendar className="w-12 h-12" />}
                     title="No Active Events"
                     description="You don't have any active events. Click the button above to create your first event!"
                   />
-              
+                </div>
               ) : (
                 sortedEvents.map((event) => {
                   const formatted = formatDate(event.startTime);
                   const status = getEventStatus(event);
                   return (
                     <Card key={event.id} className="border-border/50">
-                    {event.image && (
-                      <img
-                        src={event.image}
-                        alt={event.title}
-                        className="w-full h-48 object-cover rounded-t-lg"
-                      />
-                    )}
+                      {event.image && (
+                        <img
+                          src={event.image}
+                          alt={event.title}
+                          className="w-full h-48 object-cover rounded-t-lg"
+                        />
+                      )}
 
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between mb-2">
-                        <Badge
-                          variant={
-                            status === "LIVE"
-                              ? "destructive"
-                              : status === "UPCOMING"
-                                ? "secondary"
-                                : "default"
-                          }
-                        >
-                          {status}
-                        </Badge>
-                        <div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            disabled={requesting}
-                            onClick={() => {
-                              setSelectedEvent(event);
-                              setDialogType("view");
-                            }}
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between mb-2">
+                          <Badge
+                            variant={
+                              status === "LIVE"
+                                ? "destructive"
+                                : status === "UPCOMING"
+                                  ? "secondary"
+                                  : "default"
+                            }
                           >
-                            <Eye className="w-4 h-4" />
-                          </Button>
+                            {status}
+                          </Badge>
+                          <div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              disabled={requesting}
+                              onClick={() => {
+                                setSelectedEvent(event);
+                                setDialogType("view");
+                              }}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
 
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            disabled={requesting}
-                            onClick={() => {
-                              const { date, time } = formatDate(
-                                event.startTime,
-                              );
-                              const { date: endDate, time: endTime } =
-                                formatDate(event.endTime);
-                              const regEnd = formatDate(
-                                event.registrationEnd,
-                              ).date;
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              disabled={requesting}
+                              onClick={() => {
+                                const { date, time } = formatDate(
+                                  event.startTime,
+                                );
+                                const { date: endDate, time: endTime } =
+                                  formatDate(event.endTime);
+                                const regEnd = formatDate(
+                                  event.registrationEnd,
+                                ).date;
 
-                              setSelectedEvent({
-                                ...event,
-                                date,
-                                time,
-                                endDate,
-                                endTime,
-                                registrationEndDate: regEnd,
-                              });
-                              setSpeakers(event.speakers || []);
-                              setSponsors(event.sponsors || []);
-                              setDialogType("edit");
-                            }}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
+                                setSelectedEvent({
+                                  ...event,
+                                  date,
+                                  time,
+                                  endDate,
+                                  endTime,
+                                  registrationEndDate: regEnd,
+                                });
+                                setSpeakers(event.speakers || []);
+                                setSponsors(event.sponsors || []);
+                                setDialogType("edit");
+                              }}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
 
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive"
-                            onClick={() => handleDelete(event.id)}
-                            disabled={requesting}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-
-                      <h3 className="text-xl font-semibold mb-3">
-                        {event.title}
-                      </h3>
-
-                      <p className="text-muted-foreground text-sm mb-4">
-                        {event.description.substring(0, 100)}
-                        {event.description.length > 100 && "..."}
-                      </p>
-
-                      <div className="space-y-2 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4" />
-                          <span>
-                            {formatted.date} at {formatted.time}
-                          </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive"
+                              onClick={() => handleDelete(event.id)}
+                              disabled={requesting}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4" />
-                          <span>{event.location}</span>
-                        </div>
-                        <div>
-                          {event.startTime && event.endTime && (
-                            <span className="text-sm">
-                              Duration:{" "}
-                              {getDuration(event.startTime, event.endTime)}
+                        <h3 className="text-xl font-semibold mb-3">
+                          {event.title}
+                        </h3>
+
+                        <p className="text-muted-foreground text-sm mb-4">
+                          {event.description.substring(0, 100)}
+                          {event.description.length > 100 && "..."}
+                        </p>
+
+                        <div className="space-y-2 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4" />
+                            <span>
+                              {formatted.date} at {formatted.time}
                             </span>
-                          )}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4" />
+                            <span>{event.location}</span>
+                          </div>
+                          <div>
+                            {event.startTime && event.endTime && (
+                              <span className="text-sm">
+                                Duration:{" "}
+                                {getDuration(event.startTime, event.endTime)}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })))}
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              )}
             </div>
           </TabsContent>
 
@@ -1664,85 +1666,89 @@ Write your markdown here..."
                 <div className="col-span-full text-center py-8">
                   <Loading />
                 </div>
-              ) : (
-                pastEvents.length === 0 ? (
+              ) : pastEvents.length === 0 ? (
+                <div className="col-span-full">
                   <EmptyState
                     icon={<Calendar className="w-12 h-12" />}
-                    title="No Finished Events"
-                    description="Your past events will appear here once they are finished."
+                    title="No Active Events"
+                    description="You don't have any active events. Click the button above to create your first event!"
                   />
-                ) : (
+                </div>
+              ) : (
                 pastEvents.map((event) => {
                   const formatted = formatDate(event.startTime);
 
-                return (
-                  <Card
-                    key={event.id}
-                    className="border-border/50 overflow-hidden"
-                  >
-                    {event.image && (
-                      <img
-                        src={event.image}
-                        alt={event.title}
-                        className="w-full h-48 object-cover rounded-t-lg"
-                      />
-                    )}
+                  return (
+                    <Card
+                      key={event.id}
+                      className="border-border/50 overflow-hidden"
+                    >
+                      {event.image && (
+                        <img
+                          src={event.image}
+                          alt={event.title}
+                          className="w-full h-48 object-cover rounded-t-lg"
+                        />
+                      )}
 
-                    <CardContent className="p-6">
-                      <div className="flex justify-between items-center mb-3">
-                        <h3 className="text-xl font-semibold">{event.title}</h3>
-                        <span className="text-xs bg-secondary px-2 py-1 rounded">
-                          Finished
-                        </span>
-                      </div>
-
-                      <p className="text-muted-foreground text-sm mb-4">
-                        {event.description.substring(0, 40) +
-                          (event.description.length > 40 ? "..." : "")}
-                      </p>
-
-                      <div className="space-y-2 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4" />
-                          <span>
-                            {formatted.date} at {formatted.time}
+                      <CardContent className="p-6">
+                        <div className="flex justify-between items-center mb-3">
+                          <h3 className="text-xl font-semibold">
+                            {event.title}
+                          </h3>
+                          <span className="text-xs bg-secondary px-2 py-1 rounded">
+                            Finished
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4" />
-                          <span>{event.location}</span>
-                        </div>
-                      </div>
+                        <p className="text-muted-foreground text-sm mb-4">
+                          {event.description.substring(0, 40) +
+                            (event.description.length > 40 ? "..." : "")}
+                        </p>
 
-                      <div className="mt-4 flex flex-col sm:flex-row gap-2 justify-center">
-                        <Button
-                          variant="outline"
-                          className="w-auto"
-                          disabled={requesting}
-                          onClick={() =>
-                            navigate(
-                              `/campus-connect/club-admin/${clubId}/events/${event.id}`,
-                            )
-                          }
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          View Details
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          className="w-auto"
-                          disabled={requesting}
-                          onClick={() => fetchEventOverviewDetails(event.id)}
-                        >
-                          <FileText className="w-4 h-4 mr-2" />
-                          Add Overview
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })))}
+                        <div className="space-y-2 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4" />
+                            <span>
+                              {formatted.date} at {formatted.time}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4" />
+                            <span>{event.location}</span>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 flex flex-col sm:flex-row gap-2 justify-center">
+                          <Button
+                            variant="outline"
+                            className="w-auto"
+                            disabled={requesting}
+                            onClick={() =>
+                              navigate(
+                                `/campus-connect/club-admin/${clubId}/events/${event.id}`,
+                              )
+                            }
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Details
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            className="w-auto"
+                            disabled={requesting}
+                            onClick={() => fetchEventOverviewDetails(event.id)}
+                          >
+                            <FileText className="w-4 h-4 mr-2" />
+                            Add Overview
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              )}
             </div>
           </TabsContent>
         </Tabs>

@@ -2,7 +2,7 @@ import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 import { Badge } from "../../components/ui/Badge";
-import { BellOff, Eye, Heart } from "lucide-react";
+import { BellOff, Heart } from "lucide-react";
 import { CalendarDays, UserCheck, UsersRound } from "lucide-react";
 import { clubAdminNavItems } from "../../config/Navigation";
 import { useParams } from "react-router-dom";
