@@ -10,12 +10,15 @@ import com.campusconnect.campusconnectbackend.announcement.dto.req.AnnouncementR
 import com.campusconnect.campusconnectbackend.announcement.dto.res.AnnouncementResponseDto;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 
+import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.data.domain.PageRequest;
@@ -24,8 +27,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-
 @Service
 @RequiredArgsConstructor
 public class AnnouncementService {
@@ -34,6 +35,7 @@ public class AnnouncementService {
     private final ClubService clubService;
     private final ClubFollowerService clubFollowerService;
     private final RedisTemplate<Object, Object> redisTemplate;
+    private final AuthService authService;
 
     // get DTO
     private AnnouncementResponseDto getDto (Announcement a) {
@@ -68,10 +70,25 @@ public class AnnouncementService {
 
         String pattern = "campusconnect::notifications::college_" + collegeId + "_student_*";
 
-        Set<Object> keys = redisTemplate.keys(pattern);
+        List<String> keysToDelete = new ArrayList<>();
+        redisTemplate.executeWithStickyConnection(connection -> {
+            try (Cursor<byte[]> cursor = connection.keyCommands().scan(
+                    ScanOptions.scanOptions()
+                            .match(pattern)
+                            .count(100)
+                            .build()
+            )) {
+                while (cursor.hasNext()) {
+                    keysToDelete.add(new String(cursor.next()));
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("Error while scanning Redis keys", e);
+            }
+            return null;
+        });
 
-        if (keys != null && !keys.isEmpty()) {
-            redisTemplate.delete(keys);
+        if (!keysToDelete.isEmpty()) {
+            redisTemplate.delete(keysToDelete);
         }
     }
 
@@ -215,11 +232,14 @@ public class AnnouncementService {
     })
     public MessageResponseDto deleteAnnouncement(Long annId, Long clubId) {
 
-        if (!announcementRepository.existsById(annId)) {
-            throw new RuntimeException("Announcement not found");
-        }
+        Announcement announcement = announcementRepository.findById(annId).orElseThrow(
+                () -> new RuntimeException("Announcement not found")
+        );
 
-        announcementRepository.deleteById(annId);
+        evictNotificationsByCollege(announcement.getClub().getCollege().getId());
+
+        announcementRepository.delete(announcement);
+
         return new MessageResponseDto("Announcement deleted successfully");
     }
 }

@@ -8,6 +8,8 @@ import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.student.entity.Student;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,6 +48,9 @@ public class ClubMemberManagementService {
 
     // add club-member
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "joined_club_count", key = "#student.id")
+    })
     public MessageResponseDto addClubMember(Club club, Student student, String role) {
 
         // check if member exist
@@ -64,6 +69,9 @@ public class ClubMemberManagementService {
 
     // remove club-member
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "joined_club_count", key = "#studentId")
+    })
     public MessageResponseDto removeClubMember(Long clubId, Long studentId) {
 
         if (!clubMemberRepository.existsByStudent_IdAndClub_Id(studentId, clubId)) {

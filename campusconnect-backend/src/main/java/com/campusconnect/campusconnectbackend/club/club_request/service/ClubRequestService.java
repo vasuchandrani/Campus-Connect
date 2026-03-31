@@ -7,6 +7,7 @@ import com.campusconnect.campusconnectbackend.club.repository.ClubRepository;
 import com.campusconnect.campusconnectbackend.club.service.ClubMemberManagementService;
 import com.campusconnect.campusconnectbackend.college.entity.College;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
+import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import com.campusconnect.campusconnectbackend.student.dto.req.ClubRequestDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.ClubRequestResponseDto;
 import com.campusconnect.campusconnectbackend.integrations.mail_service.dto.club_verification.ClubVerifiedDto;
@@ -34,6 +35,7 @@ public class ClubRequestService {
     private final ClubRepository clubRepository;
     private final EmailDispatcherService emailDispatcherService;
     private final ClubMemberManagementService clubMemberManagementService;
+    private final AuthService authService;
 
     @Value("${CLUB_DEFAULT_IMAGE}")
     private String clubDefaultImage;

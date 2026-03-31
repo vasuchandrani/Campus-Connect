@@ -288,8 +288,8 @@ public class EventService {
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "active_events", key = "'college_' + @authService.getCurrentCollegeId()"),
-            @CacheEvict(value = "upcoming_eventCount", key = "'college' + @authService.getCurrentCollegeId()"),
-            @CacheEvict(value = "topActive_events", key = "'college' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "active_clubEvents", key = "#clubId"),
+            @CacheEvict(value = "topActive_events", key = "'college_' + @authService.getCurrentCollegeId()"),
             @CacheEvict(value = "topActive_clubEvents", key = "#clubId")
     })
     public MessageResponseDto createEvent(EventRequestDto request, Long clubId, MultipartFile image) {
@@ -331,8 +331,7 @@ public class EventService {
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "active_events", key = "'college_' + @authService.getCurrentCollegeId()"),
-            @CacheEvict(value = "upcoming_eventCount", key = "'college' + @authService.getCurrentCollegeId()"),
-            @CacheEvict(value = "topActive_events", key = "'college' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "topActive_events", key = "'college_' + @authService.getCurrentCollegeId()"),
             @CacheEvict(value = "topActive_clubEvents", key = "#clubId"),
             @CacheEvict(value = "active_clubEvents", key = "#clubId"),
             @CacheEvict(value = "finished_clubEvents", key = "#clubId")
@@ -399,9 +398,9 @@ public class EventService {
     @Caching(evict = {
             @CacheEvict(value = "active_events", key = "'college_' + @authService.getCurrentCollegeId()"),
             @CacheEvict(value = "finished_events", key = "'college_' + @authService.getCurrentCollegeId()"),
-            @CacheEvict(value = "upcoming_eventCount", key = "'college' + @authService.getCurrentCollegeId()"),
-            @CacheEvict(value = "topActive_events", key = "'college' + @authService.getCurrentCollegeId()"),
-            @CacheEvict(value = "topActive_clubEvents", key = "#clubId")
+            @CacheEvict(value = "topActive_events", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "topActive_clubEvents", key = "#clubId"),
+            @CacheEvict(value = "active_clubEvents", key = "#clubId")
     })
     public MessageResponseDto deleteEvent(Long eventId, Long clubId) {
 

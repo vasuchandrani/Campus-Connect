@@ -26,6 +26,7 @@ public class ClubMemberService {
     }
 
     // get joined clubs
+    @Cacheable(value = "joined_club_count", key = "#studentId")
     public int getJoinedClubCount(Long studentId) {
         return clubMemberRepository.countByStudent_Id(studentId);
     }

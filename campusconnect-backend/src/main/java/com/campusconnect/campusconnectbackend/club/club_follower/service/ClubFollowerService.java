@@ -9,7 +9,6 @@ import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.student.service.StudentRepoService;
 
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 
 import org.springframework.transaction.annotation.Transactional;
