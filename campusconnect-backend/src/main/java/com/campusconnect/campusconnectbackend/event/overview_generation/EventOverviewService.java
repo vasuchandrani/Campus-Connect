@@ -7,6 +7,9 @@ import com.campusconnect.campusconnectbackend.integrations.cloudinary.service.Cl
 import com.campusconnect.campusconnectbackend.club.dto.req.SaveOverviewRequestDto;
 import com.campusconnect.campusconnectbackend.event.dto.req.EventWinnerRequestDto;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
+import com.campusconnect.campusconnectbackend.security.auth.AuthService;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,6 +30,7 @@ public class EventOverviewService {
     private final EventSpeakerRepository eventSpeakerRepository;
     private final EventWinnerRepository eventWinnerRepository;
     private final CloudinaryService cloudinaryService;
+    private final AuthService authService;
 
     // get event sponsors-name list
     private List<String> getSponsors(Long eventId) {
@@ -65,7 +69,6 @@ public class EventOverviewService {
     }
 
     // generate markdown overview for an event
-    @Transactional
     public String generateOverview(Long eventId) {
 
         // find event
@@ -85,17 +88,15 @@ public class EventOverviewService {
         String prompt = promptBuilder.buildPrompt(event, sponsors, speakers, winners);
 
         // generate markdown overview by open-ai
-        String markdownOverview = aiService.generateText(prompt);
-
-        // save in db
-        event.setOverview(markdownOverview);
-        eventRepository.save(event);
-
-        return markdownOverview;
+        return aiService.generateText(prompt);
     }
 
     // save overview
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "finished_events", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "finished_clubEvents", key = "#clubId")
+    })
     public MessageResponseDto saveOverview(Long clubId, Long eventId, SaveOverviewRequestDto request, List<MultipartFile> images) {
 
         // find event

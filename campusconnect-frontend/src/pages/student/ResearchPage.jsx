@@ -145,7 +145,6 @@ const ResearchPage = () => {
         }
       })
       .catch((err) => {
-        console.error("Error submitting research paper:", err);
         toast({
           title: "Error",
           description:
@@ -237,7 +236,6 @@ const ResearchPage = () => {
       const data = await res.json();
       setMySubmissionsData(data);
     } catch (err) {
-      console.error("Error fetching my submissions:", err);
       toast({
         title: "Error",
         description: "Failed to fetch my submissions",
@@ -258,7 +256,6 @@ const ResearchPage = () => {
       const data = await res.json();
       setResearchPapers(data);
     } catch (err) {
-      console.error("Error fetching research papers:", err);
       toast({
         title: "Error",
         description: "Failed to fetch research papers",
@@ -575,7 +572,6 @@ const ResearchPage = () => {
                               {paper.status}
                             </Badge>
                           </div>
-                          {console.log(paper)}
                           <h3 className="font-semibold mb-1">{paper.title}</h3>
 
                           <p className="text-sm text-muted-foreground">
