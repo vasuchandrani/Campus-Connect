@@ -41,6 +41,12 @@ import StudentSetting from "./pages/student/studentSetting";
 import ClubSettingsPage from "./pages/club-admin/clubSetting";
 import StudentNotificationPage from "./pages/student/StudentNotificationPage";
 import { Toaster } from "./components/ui/Toaster";
+import AboutPage from "./pages/info/AboutPage";
+import ContactPage from "./pages/info/ContactPage";
+import BlogPage from "./pages/info/BlogPage";
+import DocumentationPage from "./pages/info/DocumentationPage";
+import PrivacyPolicyPage from "./pages/info/PrivacyPolicyPage";
+import TermsOfServicePage from "./pages/info/TermsOfServicePage";
 
 function App() {
   return (
@@ -48,7 +54,13 @@ function App() {
     <Routes>
       <Route path="/auth" element={<Auth />} />
       <Route path="/" element={<Index />} />
-
+      <Route path="/about" element={<AboutPage />} />
+      <Route path="/contact" element={<ContactPage />} />
+      <Route path="/blog" element={<BlogPage />} />
+      <Route path="/documentation" element={<DocumentationPage />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+      <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+      
       <Route path="/campus-connect/journalist/dashboard" element={<JournalistDashboard />} />
       <Route path="/campus-connect/admin-dashboard" element={<div>Admin Dashboard</div>} />
       <Route path="/campus-connect/reviewer/dashboard" element={<ReviewerDashboard/>} />
