@@ -5,25 +5,29 @@ const steps = [
     step: "01",
     icon: Building2,
     title: "College Registration",
-    description: "Your institution registers on CampusConnect and sets up the organizational structure.",
+    description:
+      "Your institution registers on CampusConnect and sets up the organizational structure.",
   },
   {
     step: "02",
     icon: Users,
     title: "Club & Role Setup",
-    description: "Clubs register under the college, and admins assign roles to team members and journalists.",
+    description:
+      "Clubs register under the college, and admins assign roles to team members and journalists.",
   },
   {
     step: "03",
     icon: CheckCircle2,
     title: "Student Verification",
-    description: "Students join using verified institutional credentials and customize their interests.",
+    description:
+      "Students join using verified institutional credentials and customize their interests.",
   },
   {
     step: "04",
     icon: Rocket,
     title: "Go Live",
-    description: "Start publishing news, announcements, research, and events. The campus is now connected!",
+    description:
+      "Start publishing news, announcements, research, and events. The campus is now connected!",
   },
 ];
 
@@ -32,9 +36,15 @@ const HowItWorksSection = () => {
     <section id="how-it-works" className="py-24 bg-background relative">
       <div className="container mx-auto px-4">
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 text-accent text-sm font-medium mb-4">
+          <div
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-accent font-medium text-sm mb-4"
+            style={{
+              backgroundColor: "hsl(var(--accent) / 0.15)",
+            }}
+          >
             How It Works
           </div>
+
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             Get Started in 4 Simple Steps
           </h2>
@@ -95,9 +105,5 @@ const HowItWorksSection = () => {
     </section>
   );
 };
-
-
-
-
 
 export default HowItWorksSection;
