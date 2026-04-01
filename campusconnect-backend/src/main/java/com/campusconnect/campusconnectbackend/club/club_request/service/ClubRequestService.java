@@ -5,6 +5,7 @@ import com.campusconnect.campusconnectbackend.club.club_request.repository.ClubR
 import com.campusconnect.campusconnectbackend.club.entity.Club;
 import com.campusconnect.campusconnectbackend.club.repository.ClubRepository;
 import com.campusconnect.campusconnectbackend.club.service.ClubMemberManagementService;
+import com.campusconnect.campusconnectbackend.club.service.ClubService;
 import com.campusconnect.campusconnectbackend.college.entity.College;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
@@ -36,6 +37,7 @@ public class ClubRequestService {
     private final EmailDispatcherService emailDispatcherService;
     private final ClubMemberManagementService clubMemberManagementService;
     private final AuthService authService;
+    private final ClubService clubService;
 
     @Value("${CLUB_DEFAULT_IMAGE}")
     private String clubDefaultImage;
@@ -93,7 +95,7 @@ public class ClubRequestService {
     @Caching(evict = {
             @CacheEvict(value = "club_requests", key = "@authService.getCurrentCollegeId()"),
             @CacheEvict(value = "college_dashboard_stats", key = "@authService.getCurrentCollegeId()"),
-            @CacheEvict(value = "clubs_college", key = "@authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "clubs", key = "'college_' + @authService.getCurrentCollegeId()"),
     })
     public MessageResponseDto acceptRequest(Long clubReqId) {
         // find club-request
@@ -125,6 +127,8 @@ public class ClubRequestService {
         dto.setClubDashboardLink("/campusconnect/clubs/" + clubId + "/admin");
         // send
         emailDispatcherService.sendClubApprovedToStudent(dto);
+
+        clubService.evictJoinedClubsByCollege(clubRequest.getCollege().getId());
 
         return new MessageResponseDto("Club-request approved successfully");
     }
