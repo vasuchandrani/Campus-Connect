@@ -277,7 +277,7 @@ const deleteClub = async () => {
   })
     .then(async(res) => await res.json())
     .then((data) => {
-      if (data.message === "Club deleted successfully") {
+      if (data.message === "Club deleted successfully!") {
         toast({
           title: "Success",
           description: data.message,

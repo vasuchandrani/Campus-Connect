@@ -108,7 +108,8 @@ const StudentNewspaperPage = () => {
     })
       .then(async (res) => {
         const data = await res.json();
-        if (data.message === "Your journalist has been sent successfully") {
+        console.log(data);
+        if (data.message === "Your journalist request has been sent successfully") {
           toast({
             title: "Request Submitted",
             description:
