@@ -26,7 +26,8 @@ public class ClubAdminService {
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "club_dashboard_stats", key = "#clubId"),
-            @CacheEvict(value = "club_member_count", key = "#clubId")
+            @CacheEvict(value = "club_member_count", key = "#clubId"),
+            @CacheEvict(value = "club_members", key = "#clubId")
     })
     public MessageResponseDto addMember(Long clubId, AddMemberRequestDto request) {
 
@@ -41,7 +42,7 @@ public class ClubAdminService {
     @Caching(evict = {
             @CacheEvict(value = "club_dashboard_stats", key = "#clubId"),
             @CacheEvict(value = "club_member_count", key = "#clubId"),
-            @CacheEvict(value = "club_member_role", key = "#clubId + '_' + #studentId")
+            @CacheEvict(value = "club_members", key = "#clubId")
     })
     public MessageResponseDto removeMember(Long clubId, Long studentId) {
 

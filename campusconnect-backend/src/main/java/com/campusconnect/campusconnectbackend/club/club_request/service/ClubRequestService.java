@@ -128,8 +128,6 @@ public class ClubRequestService {
         // send
         emailDispatcherService.sendClubApprovedToStudent(dto);
 
-        clubService.evictJoinedClubsByCollege(clubRequest.getCollege().getId());
-
         return new MessageResponseDto("Club-request approved successfully");
     }
 
