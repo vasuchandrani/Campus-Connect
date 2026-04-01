@@ -201,18 +201,6 @@ const ClubAdminAnnouncementsPage = () => {
     )
   }
 
-  if(!loading && clubAnnouncements.length === 0){
-    return (
-      <DashboardLayout navItems={updatenavItems()} title="Announcements">
-        <EmptyState
-          icon={<Megaphone className="text-4xl" />}
-          title="No Announcements"
-          desc="There are no announcements for this club yet."
-        />
-      </DashboardLayout>
-    );
-  }
-
   return (
     <DashboardLayout navItems={updatenavItems()} title="Announcements">
       <div className="space-y-6">
@@ -300,14 +288,10 @@ const ClubAdminAnnouncementsPage = () => {
         <div className="space-y-4">
           {/* If no announcements, show empty state */}
           {clubAnnouncements.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <Megaphone className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">
-                  No Announcements Yet
-                </h3>
-              </CardContent>
-            </Card>
+            <EmptyState
+              title="No Announcements"
+              desc="You haven't created any announcements yet."
+              icon={<Megaphone className="text-4xl" />} />
           ) : (
             clubAnnouncements.map((announcement) => (
               <Card key={announcement.id}>

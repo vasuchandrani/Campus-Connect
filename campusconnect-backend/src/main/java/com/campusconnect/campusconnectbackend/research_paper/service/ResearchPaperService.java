@@ -95,7 +95,7 @@ public class ResearchPaperService {
     // submit(create) new research-paper
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "myResearch", key = "'student_' + #studentId"),
+            @CacheEvict(value = "myResearches", key = "'student_' + #studentId"),
             @CacheEvict(value = "not_reviewed_researches", key = "'college_' + @authService.getCurrentCollegeId()")
     })
     public MessageResponseDto submitPaper(ResearchRequestDto request, MultipartFile pdf, Long studentId) {
