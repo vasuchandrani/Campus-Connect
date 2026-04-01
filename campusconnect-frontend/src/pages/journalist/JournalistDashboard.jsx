@@ -116,8 +116,7 @@ const JournalistDashboard = () => {
         description: err.message || "Failed to fetch top articles",
         variant: "destructive",
       });
-    }
-    finally {      
+    } finally {
       setLoading(false);
     }
   };
@@ -178,30 +177,45 @@ const JournalistDashboard = () => {
                   <Loading />
                 </CardContent>
               </Card>
-            ) : (topArticles.length === 0 ? (
+            ) : topArticles.length === 0 ? (
               <Card>
                 <CardContent className="p-6 text-center">
                   <EmptyState
                     title="No Articles"
                     desc="You haven't published any articles yet."
-                    icon={<FileText className="text-4xl" />} />
+                    icon={<FileText className="text-4xl" />}
+                  />
                 </CardContent>
               </Card>
             ) : (
+              topArticles.map((article) => (
+                <Card
+                  key={article.id}
+                  className="border-border/50 hover:shadow-soft transition-shadow cursor-pointer"
+                >
+                  <CardContent className="p-4 pt-4">
+                    <div className="flex gap-4 items-center">
+                      <img
+                        src={article.imageUrl}
+                        alt={article.title}
+                        className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
+                      />
 
-            topArticles.map((article) => (
-              <Card key={article.id}>
-                <CardContent className="p-4">
-                  <h4 className="font-semibold text-lg">{article.title}</h4>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    {article.content.substring(0, 100)}...
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {article.createdAt.split("T")[0]}
-                  </p>
-                </CardContent>
-              </Card>
-            ))))}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium line-clamp-2 mb-1">
+                          {article.title}
+                        </h4>
+
+                        <p className="text-xs text-muted-foreground">
+                          {article.createdAt.split("T")[0]} by{" "}
+                          {article.journalistName}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </div>
       </div>

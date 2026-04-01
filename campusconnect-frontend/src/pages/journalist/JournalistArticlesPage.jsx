@@ -73,8 +73,7 @@ const JournalistArticlesPage = () => {
         description: err.message || "Failed to fetch published articles",
         variant: "destructive",
       });
-    }
-    finally {
+    } finally {
       setLoading((prev) => ({ ...prev, published: false }));
     }
   };
@@ -101,8 +100,7 @@ const JournalistArticlesPage = () => {
         description: err.message || "Failed to fetch draft articles",
         variant: "destructive",
       });
-    }
-    finally {
+    } finally {
       setLoading((prev) => ({ ...prev, drafts: false }));
     }
   };
@@ -229,47 +227,61 @@ const JournalistArticlesPage = () => {
             ) : published.length === 0 ? (
               <div className="text-center py-12">
                 <EmptyState
-                  icon={<MegaphoneOff className="w-8 h-8 text-muted-foreground" />}
+                  icon={
+                    <MegaphoneOff className="w-8 h-8 text-muted-foreground" />
+                  }
                   title="No published articles"
                   desc="You haven't published any articles yet."
                 />
               </div>
             ) : (
-            published.map((article) => (
-              <Card key={article.id} className="mb-4">
-                <CardContent className="p-4 flex justify-between items-center">
-                  <div>
-                    <h4 className="font-semibold">{article.title}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {article.content.substring(0, 100)}...
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {article.createdAt.split("T")[0]}
-                    </p>
-                  </div>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {published.map((article) => (
+                  <Card
+                    key={article.id}
+                    className="border-border/50 overflow-hidden"
+                  >
+                    <img
+                      src={article.imageUrl || "/placeholder.jpg"}
+                      alt={article.title}
+                      className="w-full h-40 object-cover"
+                    />
 
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={requesting}
-                      onClick={() => setViewArticle(article)}
-                    >
-                      View
-                    </Button>
+                    <CardContent className="p-4 pt-4">
+                      <h4 className="font-semibold line-clamp-2 mb-2">
+                        {article.title}
+                      </h4>
 
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      disabled={requesting}
-                      onClick={() => handleUnpublish(article.id)}
-                    >
-                      Unpublish
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )))}
+                      <p className="text-sm text-muted-foreground mb-3">
+                        {article.createdAt.split("T")[0]}
+                      </p>
+
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          disabled={requesting}
+                          onClick={() => setViewArticle(article)}
+                        >
+                          View
+                        </Button>
+
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="flex-1"
+                          disabled={requesting}
+                          onClick={() => handleUnpublish(article.id)}
+                        >
+                          Unpublish
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           {/* Drafts */}
@@ -287,38 +299,53 @@ const JournalistArticlesPage = () => {
                 />
               </div>
             ) : (
-              drafts.map((article) => (
-                <Card key={article.id} className="mb-4">
-                  <CardContent className="p-4 flex justify-between items-center">
-                    <div>
-                      <h4 className="font-semibold">{article.title}</h4>
-                      <p className="text-sm text-muted-foreground">
-                      Last edited: {article.createdAt.split("T")[0]}
-                    </p>
-                  </div>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {drafts.map((article) => (
+                  <Card
+                    key={article.id}
+                    className="border-border/50 overflow-hidden"
+                  >
+                    <img
+                      src={article.imageUrl || "/placeholder.jpg"}
+                      alt={article.title}
+                      className="w-full h-40 object-cover"
+                    />
 
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={requesting}
-                      onClick={() => handleEdit(article)}
-                    >
-                      Continue Editing
-                    </Button>
+                    <CardContent className="p-4 pt-4">
+                      <h4 className="font-semibold line-clamp-2 mb-2">
+                        {article.title}
+                      </h4>
 
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      disabled={requesting}
-                      onClick={() => handleDelete(article.id)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )))}
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Last edited: {article.createdAt.split("T")[0]}
+                      </p>
+
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          disabled={requesting}
+                          onClick={() => handleEdit(article)}
+                        >
+                          Continue Editing
+                        </Button>
+
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="flex-1"
+                          disabled={requesting}
+                          onClick={() => handleDelete(article.id)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>
