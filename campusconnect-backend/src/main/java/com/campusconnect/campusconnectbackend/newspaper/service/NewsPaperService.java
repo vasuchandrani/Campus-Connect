@@ -12,6 +12,7 @@ import com.campusconnect.campusconnectbackend.newspaper.entity.NewsPaper;
 import com.campusconnect.campusconnectbackend.newspaper.repository.NewsPaperRepository;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
@@ -34,8 +35,17 @@ public class NewsPaperService {
     private final CloudinaryService cloudinaryService;
     private final JournalistService journalistService;
 
+
+    @Value("${NEWS_PAPER_DEFAULT}")
+    private String newsPaperDefaultImage;
+
     // upload image on cloudinary and get url
     private String getUploadedImageUrl (MultipartFile image, Long journalistId) {
+
+        if (image == null || image.isEmpty()) {
+            return newsPaperDefaultImage;
+        }
+
         // upload image and get url
         String path = "news_papers/" +  journalistId;
 
@@ -256,8 +266,8 @@ public class NewsPaperService {
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "top_newsPapers", key = "'college_' + @authService.getCurrentCollegeId()"),
-            @CacheEvict(value = "latest_news", key = "'college_' + @authService.currentUserId()"),
-            @CacheEvict(value = "college_newsPapers", key = "'college_' + @authService.currentCollegeId()"),
+            @CacheEvict(value = "latest_news", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "college_newsPapers", key = "'college_' + @authService.getCurrentCollegeId()"),
             @CacheEvict(value = "college_dashboard_stats", key = "@authService.getCurrentCollegeId()")
     })
     public MessageResponseDto publishDraftPaper(Long draftId) {
@@ -281,9 +291,10 @@ public class NewsPaperService {
     @Caching(evict = {
             @CacheEvict(value = "journalist_newsPapers", key = "@authService.getCurrentUserId()"),
             @CacheEvict(value = "journalist_topNewsPapers", key = "@authService.getCurrentUserId()"),
+            @CacheEvict(value = "journalist_dashboard_stats", key = "@authService.getCurrentUserId()"),
             @CacheEvict(value = "top_newsPapers", key = "'college_' + @authService.getCurrentCollegeId()"),
-            @CacheEvict(value = "latest_news", key = "'college_' + @authService.currentUserId()"),
-            @CacheEvict(value = "college_newsPapers", key = "'college_' + @authService.currentCollegeId()"),
+            @CacheEvict(value = "latest_news", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "college_newsPapers", key = "'college_' + @authService.getCurrentCollegeId()"),
             @CacheEvict(value = "college_dashboard_stats", key = "@authService.getCurrentCollegeId()")
     })
     public MessageResponseDto publishNewspaper(NewsPaperRequestDto request, MultipartFile image) {

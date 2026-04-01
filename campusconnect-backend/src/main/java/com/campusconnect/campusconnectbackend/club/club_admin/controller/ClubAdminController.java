@@ -247,7 +247,7 @@ public class ClubAdminController {
     public MessageResponseDto modifyClubProfile(
             @PathVariable Long clubId,
             @RequestPart("profile") ClubProfileDto request,
-            @RequestPart("image") MultipartFile image
+            @RequestPart(value = "image", required = false) MultipartFile image
     ) {
         return clubService.modifyClubProfile(clubId, request, image);
     }

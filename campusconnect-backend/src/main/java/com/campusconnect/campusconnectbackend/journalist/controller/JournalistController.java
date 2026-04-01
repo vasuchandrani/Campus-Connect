@@ -80,7 +80,7 @@ public class JournalistController {
     @PostMapping("/write/draft")
     public MessageResponseDto saveDraft(
             @RequestPart("newspaper") NewsPaperRequestDto request,
-            @RequestPart("image") MultipartFile image
+            @RequestPart(value = "image", required = false) MultipartFile image
     ){
         return newsPaperService.createDraft(authService.getCurrentUserId(), request, image);
     }
@@ -105,7 +105,7 @@ public class JournalistController {
     @PostMapping("/write/publish")
     public MessageResponseDto publishNewsPaper(
             @RequestPart("newspaper") NewsPaperRequestDto request,
-            @RequestPart("image") MultipartFile image
+            @RequestPart(value = "image", required = false) MultipartFile image
     ){
         return newsPaperService.publishNewspaper(request, image);
     }

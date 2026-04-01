@@ -5,6 +5,7 @@ import com.campusconnect.campusconnectbackend.club.club_member.entity.ClubMember
 import com.campusconnect.campusconnectbackend.club.club_member.repository.ClubMemberRepository;
 import com.campusconnect.campusconnectbackend.club.club_member.entity.id.ClubMemberId;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
+import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import com.campusconnect.campusconnectbackend.student.entity.Student;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ClubMemberManagementService {
 
     private final ClubMemberRepository clubMemberRepository;
+    private final AuthService authService;
 
     @Value("${CLUB_MEMBER_MALE}")
     private String maleMemberDefaultImage;
@@ -49,7 +51,8 @@ public class ClubMemberManagementService {
     // add club-member
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "joined_club_count", key = "#student.id")
+            @CacheEvict(value = "joined_club_count", key = "#student.id"),
+            @CacheEvict(value = "joined_clubs", key = "'college_' + @authService.getCurrentCollegeId() + '_student_' + #student.id")
     })
     public MessageResponseDto addClubMember(Club club, Student student, String role) {
 
@@ -70,7 +73,8 @@ public class ClubMemberManagementService {
     // remove club-member
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "joined_club_count", key = "#studentId")
+            @CacheEvict(value = "joined_club_count", key = "#studentId"),
+            @CacheEvict(value = "joined_clubs", key = "'college_' + @authService.getCurrentCollegeId() + '_student_' + #studentId")
     })
     public MessageResponseDto removeClubMember(Long clubId, Long studentId) {
 
