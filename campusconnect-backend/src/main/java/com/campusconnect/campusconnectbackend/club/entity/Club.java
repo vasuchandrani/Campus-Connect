@@ -1,7 +1,11 @@
 package com.campusconnect.campusconnectbackend.club.entity;
 
+import com.campusconnect.campusconnectbackend.announcement.entity.Announcement;
+import com.campusconnect.campusconnectbackend.club.club_follower.entity.ClubFollower;
+import com.campusconnect.campusconnectbackend.club.club_member.entity.ClubMember;
 import com.campusconnect.campusconnectbackend.club.club_team.entity.ClubTeam;
 import com.campusconnect.campusconnectbackend.college.entity.College;
+import com.campusconnect.campusconnectbackend.event.entity.Event;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -45,4 +49,20 @@ public class Club {
     @OneToMany(mappedBy = "club", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private Set<ClubTeam> teams = new HashSet<>();
+
+    @OneToMany(mappedBy = "club", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private Set<ClubMember> members = new HashSet<>();
+
+    @OneToMany(mappedBy = "club", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private Set<ClubFollower> followers = new HashSet<>();
+
+    @OneToMany(mappedBy = "club", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private Set<Event> events = new HashSet<>();
+
+    @OneToMany(mappedBy = "club", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private Set<Announcement> announcements = new HashSet<>();
 }

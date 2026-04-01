@@ -56,7 +56,7 @@ public class ClubService {
     private final RedisTemplate<Object, Object> redisTemplate;
 
     // eviction method for clear joined-clubs cache
-    private void evictJoinedClubsByCollege(Long collegeId) {
+    public void evictJoinedClubsByCollege(Long collegeId) {
 
         String pattern = "campusconnect::joined_clubs::college_" + collegeId + "_student_*";
 
@@ -271,7 +271,7 @@ public class ClubService {
     @Caching(evict = {
             @CacheEvict(value = "club_profile", key = "#clubId"),
             @CacheEvict(value = "club_details", key = "#clubId"),
-            @CacheEvict(value = "clubs_college", key = "@authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "clubs", key = "'college_' + @authService.getCurrentCollegeId()"),
     })
     public MessageResponseDto modifyClubProfile(Long clubId, ClubProfileDto request, MultipartFile image) {
 
@@ -291,6 +291,9 @@ public class ClubService {
         club.setName(request.getClubName());
         club.setDescription(request.getClubDescription());
         club.setWebsite(request.getWebsite());
+
+        // manually clear only particular college joined-clubs
+        evictJoinedClubsByCollege(authService.getCurrentCollegeId());
 
         clubRepository.save(club);
 

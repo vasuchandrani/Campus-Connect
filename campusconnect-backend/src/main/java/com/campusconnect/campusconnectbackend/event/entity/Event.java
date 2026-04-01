@@ -1,6 +1,7 @@
 package com.campusconnect.campusconnectbackend.event.entity;
 
 import com.campusconnect.campusconnectbackend.club.entity.Club;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -58,9 +59,23 @@ public class Event {
     private Club club;
 
     @OneToMany(mappedBy = "event", cascade =  CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private Set<EventSpeaker> speakers =  new HashSet<>();
 
     @OneToMany(mappedBy = "event", cascade =  CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private Set<EventSponsor> sponsors =  new HashSet<>();
+
+    @OneToMany(mappedBy = "event", cascade =  CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private Set<EventWinner> winners =  new HashSet<>();
+
+    @OneToMany(mappedBy = "event", cascade =  CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private Set<EventImages> images =  new HashSet<>();
+
+    @OneToMany(mappedBy = "event", cascade =  CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private Set<EventRegistration> registrations =  new HashSet<>();
 
 }
