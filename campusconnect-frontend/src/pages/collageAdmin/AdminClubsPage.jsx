@@ -90,7 +90,7 @@ const AdminClubsPage = () => {
           toast({
             title: "Club approved",
             description: data.message,
-            variant: "destructive",
+            variant: "success",
           });
           fetchClubRequest(); // Refresh pending clubs list
           fetchClubs(); // Refresh active clubs list
@@ -164,7 +164,6 @@ const AdminClubsPage = () => {
     })
       .then(async (res) => {
         const data = await res.json();
-
         if (data.message === "Club-request rejected successfully") {
           toast({
             title: "Club request rejected",

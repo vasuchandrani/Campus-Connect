@@ -150,6 +150,9 @@ const ClubAdminEventsPage = () => {
   //preview for overview
   const renderedPreview = marked.parse(overviewMarkdown || "");
 
+  const today = new Date().toISOString().split("T")[0];
+  const currentTime = now.toTimeString().slice(0, 5);
+
   //upload image for overview
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
@@ -248,9 +251,67 @@ const ClubAdminEventsPage = () => {
     }
   };
 
+const checkEventDetails = (event) => {
+  const start = new Date(`${event.date}T${event.time}`);
+  const end = new Date(`${event.endDate}T${event.endTime}`);
+  const registrationEnd = new Date(`${event.registrationEnd}T23:59:59`);
+
+  const todayDate = new Date();
+  todayDate.setHours(0, 0, 0, 0);
+
+  if (new Date(event.date) < todayDate) {
+    toast({
+      title: "Invalid date",
+      description: "Event start date cannot be in the past.",
+      variant: "destructive",
+    });
+    return true;
+  }
+
+  if (new Date(event.registrationEnd) < todayDate) {
+    toast({
+      title: "Invalid date",
+      description: "Registration end cannot be in the past.",
+      variant: "destructive",
+    });
+    return true;
+  }
+
+  if (registrationEnd >= start) {
+    toast({
+      title: "Invalid registration date",
+      description: "Registration must close before the event starts.",
+      variant: "destructive",
+    });
+    return true;
+  }
+
+  if (end <= start) {
+    toast({
+      title: "Invalid event time",
+      description: "Event end must be after event start.",
+      variant: "destructive",
+    });
+    return true;
+  }
+
+  if (start < new Date()) {
+    toast({
+      title: "Invalid Time",
+      description: "Event start time cannot be in the past",
+      variant: "destructive",
+    });
+    return true;
+  }
+
+  return false;
+};
+
   // Create event on form submission
   const handleCreateEvent = async () => {
     const token = localStorage.getItem("authToken");
+
+    if(checkEventDetails(newEvent)) return;
 
     const payload = {
       ...newEvent,
@@ -714,44 +775,61 @@ const ClubAdminEventsPage = () => {
                   <div>
                     <Label>EventDate</Label>
                     <Input
-                      type="date"
-                      value={newEvent.date}
-                      onChange={(e) =>
-                        setNewEvent({ ...newEvent, date: e.target.value })
-                      }
-                    />
+  type="date"
+  value={newEvent.date}
+  min={today}
+  onChange={(e) =>
+    setNewEvent({ ...newEvent, date: e.target.value })
+  }
+/>
                   </div>
                   <div>
                     <Label>EventTime</Label>
-                    <Input
-                      type="time"
-                      value={newEvent.time}
-                      onChange={(e) =>
-                        setNewEvent({ ...newEvent, time: e.target.value })
-                      }
-                    />
+<Input
+  type="time"
+  value={newEvent.time}
+  min={newEvent.date === today ? currentTime : undefined}
+  onChange={(e) =>
+    setNewEvent({
+      ...newEvent,
+      time: e.target.value,
+    })
+  }
+/>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Event End Date</Label>
                     <Input
-                      type="date"
-                      value={newEvent.endDate}
-                      onChange={(e) =>
-                        setNewEvent({ ...newEvent, endDate: e.target.value })
-                      }
-                    />
+  type="date"
+  value={newEvent.endDate}
+  min={newEvent.date || today}
+  onChange={(e) =>
+    setNewEvent({
+      ...newEvent,
+      endDate: e.target.value,
+    })
+  }
+/>
                   </div>
                   <div>
                     <Label>Event End Time</Label>
                     <Input
-                      type="time"
-                      value={newEvent.endTime}
-                      onChange={(e) =>
-                        setNewEvent({ ...newEvent, endTime: e.target.value })
-                      }
-                    />
+  type="time"
+  value={newEvent.endTime}
+  min={
+    newEvent.date === newEvent.endDate
+      ? newEvent.time
+      : undefined
+  }
+  onChange={(e) =>
+    setNewEvent({
+      ...newEvent,
+      endTime: e.target.value,
+    })
+  }
+/>
                   </div>
                 </div>
 
@@ -759,6 +837,7 @@ const ClubAdminEventsPage = () => {
                 <Input
                   type="date"
                   value={newEvent.registrationEnd}
+                  max={newEvent.date || ""}
                   onChange={(e) =>
                     setNewEvent({
                       ...newEvent,

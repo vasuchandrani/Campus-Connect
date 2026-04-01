@@ -27,6 +27,7 @@ import {
   Clock,
   MapPin,
   User,
+  CalendarSearch,
   CalendarOff, 
   Megaphone 
 } from "lucide-react";
