@@ -169,7 +169,7 @@ public class ClubAdminController {
             @PathVariable Long clubId,
             @PathVariable Long eventId,
             @RequestPart("overview") SaveOverviewRequestDto request,
-            @RequestPart("images") List<MultipartFile> images
+            @RequestPart(value = "images", required = false) List<MultipartFile> images
     ) {
         return eventOverviewService.saveOverview(clubId, eventId, request, images);
     }

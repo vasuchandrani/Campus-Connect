@@ -127,8 +127,8 @@ public class ReviewerService {
             @CacheEvict(value = "reviewer_name", key = "#reviewerId"),
             @CacheEvict(value = "reviewer_stats", key = "#reviewerId"),
             @CacheEvict(value = "reviewer_details", key = "#reviewerId"),
-            @CacheEvict(value = "pending_researches", key = "#reviewerId"),
-            @CacheEvict(value = "reviewed_researches", key = "#reviewerId"),
+            @CacheEvict(value = "pending_researches", key = "'reviewer' + #reviewerId"),
+            @CacheEvict(value = "reviewed_researches", key = "'reviewer' + #reviewerId"),
             @CacheEvict(value = "reviewers", key = "'college_' + @authService.getCurrentCollegeId()"),
     })
     public MessageResponseDto removeReviewer(Long reviewerId) {
@@ -149,7 +149,7 @@ public class ReviewerService {
             @CacheEvict(value = "research_papers", key = "'college_' + @authService.getCurrentCollegeId()"),
             @CacheEvict(value = "not_reviewed_researches", key = "'college_' + @authService.getCurrentCollegeId()"),
             @CacheEvict(value = "under_review_researches", key = "'college_' + @authService.getCurrentCollegeId()"),
-            @CacheEvict(value = "pending_researches", key = "#reviewerId"),
+            @CacheEvict(value = "pending_researches", key = "'reviewer' + #reviewerId"),
             @CacheEvict(value = "reviewer_stats", key = "#reviewerId"),
     })
     public MessageResponseDto assignReviewer(Long id, Long reviewerId) {
