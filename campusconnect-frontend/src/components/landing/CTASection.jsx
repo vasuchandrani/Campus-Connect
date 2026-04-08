@@ -1,7 +1,9 @@
+import React, { useState } from "react";
 import { Button } from "../ui/Button";
 import { ArrowRight, Sparkles } from "lucide-react";
 
 const CTASection = () => {
+  const [showVideo, setShowVideo] = useState(false);
   return (
     <section className="py-24 bg-gradient-hero relative overflow-hidden">
 
@@ -19,11 +21,14 @@ const CTASection = () => {
 
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6">
             Ready to Transform Your <br />
-            <span className="text-gradient-primary">Campus Communication?</span>
+            <span className="text-gradient-primary">
+              Campus Communication?
+            </span>
           </h2>
 
           <p className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto">
-            Join hundreds of colleges already using CampusConnect to build stronger communities and amplify student voices.
+            Join hundreds of colleges already using CampusConnect to build
+            stronger communities and amplify student voices.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -33,13 +38,21 @@ const CTASection = () => {
                 <ArrowRight className="w-5 h-5" />
               </a>
             </Button>
-            <Button variant="hero-outline" size="xl" asChild>
-              <a href="/auth">Schedule a Demo</a>
+
+            <Button
+              variant="hero-outline"
+              size="xl"
+              onClick={() => setShowVideo(true)}
+            >
+              Watch Demo
             </Button>
           </div>
 
           <div className="mt-12 pt-8 border-t border-border/50">
-            <p className="text-sm text-muted-foreground mb-4">Trusted by leading institutions</p>
+            <p className="text-sm text-muted-foreground mb-4">
+              Trusted by leading institutions
+            </p>
+
             <div className="flex flex-wrap items-center justify-center gap-8">
               {["MIT", "Stanford", "Harvard", "Yale", "Princeton"].map((uni) => (
                 <span
@@ -53,6 +66,28 @@ const CTASection = () => {
           </div>
         </div>
       </div>
+
+      {showVideo && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="relative w-[90%] md:w-[800px] bg-black rounded-xl overflow-hidden shadow-xl">
+
+            <button
+              className="absolute top-2 right-3 text-white text-2xl z-10"
+              onClick={() => setShowVideo(false)}
+            >
+              ✕
+            </button>
+
+            <iframe
+              className="w-full h-[500px]"
+              src="https://drive.google.com/file/d/1KYezlOvG9dG_si8wyVmejUaaTnvtvMGu/preview"
+              allow="autoplay"
+              allowFullScreen
+            ></iframe>
+
+          </div>
+        </div>
+      )}
     </section>
   );
 };
