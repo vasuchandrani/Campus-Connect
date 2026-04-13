@@ -19,12 +19,15 @@ import com.campusconnect.campusconnectbackend.club.dto.res.club_card.ClubMemberD
 import com.campusconnect.campusconnectbackend.club.dto.res.club_admin_member.TeamNameDto;
 import com.campusconnect.campusconnectbackend.event.dto.res.EventResponseDto;
 import com.campusconnect.campusconnectbackend.event.overview_generation.EventOverviewService;
+import com.campusconnect.campusconnectbackend.event.service.EventRegistrationService;
 import com.campusconnect.campusconnectbackend.event.service.EventService;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import com.campusconnect.campusconnectbackend.security.security_management.dto.res.ClubProfileDto;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -43,6 +46,7 @@ public class ClubAdminController {
     private final EventOverviewService eventOverviewService;
     private final AuthService authService;
     private final ClubMemberService clubMemberService;
+    private final EventRegistrationService eventRegistrationService;
 
     /* Home */
 
@@ -154,6 +158,19 @@ public class ClubAdminController {
         return eventService.deleteEvent(eventId, clubId);
     }
 
+
+    // download event registration
+    @GetMapping("/events/{eventId}/registrations/download")
+    public ResponseEntity<byte[]> downloadRegistrations(@PathVariable Long eventId) {
+
+        byte[] excelData = eventRegistrationService.generateExcel(eventId);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=event_registrations.xlsx")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(excelData);
+    }
 
     /* Generate Overview */
 

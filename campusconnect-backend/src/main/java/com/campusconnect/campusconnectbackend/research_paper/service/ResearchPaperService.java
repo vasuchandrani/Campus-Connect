@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -31,6 +32,7 @@ public class ResearchPaperService {
     private final StudentRepoService studentRepoService;
     private final ReviewerRepository reviewerRepository;
     private final CloudinaryService cloudinaryService;
+    private final RedisTemplate<Object, Object> redisTemplate;
 
     // get DTO
     private ResearchesResponseDto getDto(ResearchPaper paper) {
@@ -70,6 +72,12 @@ public class ResearchPaperService {
             response.add(getDto(paper));
         }
         return response;
+    }
+
+    // clear cache
+    private void evictMyResearchesByStudent(Long studentId) {
+        String key = "campusconnect::myResearches::student_" + studentId;
+        redisTemplate.delete(key);
     }
 
     // get my research-papers
@@ -219,6 +227,8 @@ public class ResearchPaperService {
 
         researchPaperRepository.save(research);
 
+        evictMyResearchesByStudent(research.getStudent().getId());
+
         studentRepoService.evictStudentResearchCaches(research.getStudent().getId());
 
         return new MessageResponseDto("Research-Paper has been accepted & published");
@@ -249,6 +259,8 @@ public class ResearchPaperService {
         research.setStatus("REJECTED");
 
         researchPaperRepository.save(research);
+
+        evictMyResearchesByStudent(research.getStudent().getId());
 
         studentRepoService.evictStudentResearchCaches(research.getStudent().getId());
 
