@@ -396,25 +396,42 @@ const AdminClubsPage = () => {
 
         {/* Tabs for Active Clubs, Pending Requests, Announcements, Events */}
         <Tabs defaultValue="active">
-          <TabsList>
-            <TabsTrigger value="active">
-              Active Clubs ({clubs.length})
-            </TabsTrigger>
-            <TabsTrigger value="pending">
-              Pending Approval ({pendingClubs.length})
-            </TabsTrigger>
-            <TabsTrigger value="announcements">
-              Announcements ({announcements.length})
-            </TabsTrigger>
+<TabsList className="flex flex-wrap gap-2 mb-15 w-full sm:w-fit">
+  <TabsTrigger
+    value="active"
+    className="w-[48%] sm:w-auto text-center"
+  >
+    Active Clubs ({clubs.length})
+  </TabsTrigger>
 
-            <TabsTrigger value="upcoming">
-              Active Events ({filteredUpcomingEvents.length})
-            </TabsTrigger>
+  <TabsTrigger
+    value="pending"
+    className="w-[48%] sm:w-auto text-center"
+  >
+    Pending Approval ({pendingClubs.length})
+  </TabsTrigger>
 
-            <TabsTrigger value="completed">
-              Completed Events ({filteredCompletedEvents.length})
-            </TabsTrigger>
-          </TabsList>
+  <TabsTrigger
+    value="announcements"
+    className="w-[48%] sm:w-auto text-center"
+  >
+    Announcements ({announcements.length})
+  </TabsTrigger>
+
+  <TabsTrigger
+    value="upcoming"
+    className="w-[48%] sm:w-auto text-center"
+  >
+    Active Events ({filteredUpcomingEvents.length})
+  </TabsTrigger>
+
+  <TabsTrigger
+    value="completed"
+    className="w-[48%] sm:w-auto text-center"
+  >
+    Completed Events ({filteredCompletedEvents.length})
+  </TabsTrigger>
+</TabsList>
 
           <TabsContent value="active" className="mt-6">
             {/* Clubs Grid */}

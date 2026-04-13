@@ -221,7 +221,9 @@ const ClubMemberAnnouncementsPage = () => {
           {/* Create Announcement Button */}
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => setEditingId(null)} disabled={requesting}>
+              <Button onClick={() =>{
+                resetForm();
+               setEditingId(null)}} disabled={requesting}>
                 <Plus className="w-4 h-4 mr-2" />
                 New Announcement
               </Button>

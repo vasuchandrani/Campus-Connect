@@ -531,6 +531,8 @@ const ClubMemberEventsPage = () => {
       formData.append("images", file);
     });
 
+    console.log(overviewRequest);
+
     try {
       const response = await fetch(
         `${baseUrl}/events/finished/${overviewEvent.id}/save-overview`,
@@ -1762,7 +1764,7 @@ Write your markdown here..."
                           disabled={requesting}
                           onClick={() =>
                             navigate(
-                              `/campus-connect/club-admin/${clubId}/events/${event.id}`,
+                              `/campus-connect/club-member/${clubId}/events/${event.id}`,
                             )
                           }
                         >

@@ -49,6 +49,8 @@ const AdminSettingsPage = () => {
   const [subscription, setSubscription] = useState(null);
   const [invoices, setInvoices] = useState([]);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [planDialogOpen, setPlanDialogOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState(null);
 
   const navigate = useNavigate();
   const { routeProtection } = useAuth();
@@ -57,8 +59,7 @@ const AdminSettingsPage = () => {
     if (!routeProtection("COLLEGE_ADMIN")) {
       navigate("/auth");
     }
-  }, [navigate,routeProtection]);
-
+  }, [navigate, routeProtection]);
 
   const handleChange = (e) => {
     setProfile({
@@ -70,6 +71,18 @@ const AdminSettingsPage = () => {
   //baseurl
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/college-admin`;
 
+  //for show plans on subscription tab
+  const rawPlans = import.meta.env.VITE_SUBSCRIPTION_PLANS || "[]";
+
+  const getSubscriptionPlans = () => {
+    try {
+      return JSON.parse(rawPlans);
+    } catch {
+      return [];
+    }
+  };
+
+  const subscriptionPlans = getSubscriptionPlans();
 
   // call API for subscription
   const getSubscription = async () => {
@@ -84,7 +97,7 @@ const AdminSettingsPage = () => {
       const data = await response.json();
       setSubscription(data);
     } catch (error) {
-      console.error("Error fetching subscription:", error); 
+      console.error("Error fetching subscription:", error);
       toast({
         title: "Error",
         description: "Failed to load subscription data",
@@ -104,7 +117,6 @@ const AdminSettingsPage = () => {
       });
 
       const data = await response.json();
-     
 
       setInvoices(data);
     } catch (error) {
@@ -129,46 +141,46 @@ const AdminSettingsPage = () => {
 
   //save profile
   const saveProfile = async () => {
-    if(profile.adminName.trim()===""){
+    if (profile.adminName.trim() === "") {
       toast({
         title: "Error",
         description: "Admin name cannot be empty.",
         variant: "destructive",
       });
       return;
-     }
-     if(profile.adminEmail.trim()===""){
+    }
+    if (profile.adminEmail.trim() === "") {
       toast({
         title: "Error",
         description: "Admin email cannot be empty.",
         variant: "destructive",
       });
       return;
-     }
-      if(profile.institutionName.trim()===""){
+    }
+    if (profile.institutionName.trim() === "") {
       toast({
         title: "Error",
         description: "Institution name cannot be empty.",
         variant: "destructive",
       });
       return;
-     }
-       if(profile.institutionDomain.trim()===""){
+    }
+    if (profile.institutionDomain.trim() === "") {
       toast({
         title: "Error",
         description: "Institution domain cannot be empty.",
         variant: "destructive",
       });
       return;
-     }
-      if(profile.address.trim()===""){
+    }
+    if (profile.address.trim() === "") {
       toast({
         title: "Error",
         description: "College address cannot be empty.",
         variant: "destructive",
       });
       return;
-     }
+    }
     try {
       const payload = {
         fullName: profile.adminName,
@@ -250,42 +262,42 @@ const AdminSettingsPage = () => {
   }, []);
 
   const downloadPdf = async (url, title) => {
-  try {
-    const token = localStorage.getItem("authToken");
+    try {
+      const token = localStorage.getItem("authToken");
 
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-    const blob = await response.blob();
+      const blob = await response.blob();
 
-    const downloadUrl = window.URL.createObjectURL(blob);
+      const downloadUrl = window.URL.createObjectURL(blob);
 
-    const link = document.createElement("a");
-    link.href = downloadUrl;
-    link.download = `${title}.pdf`; // force pdf name
-    document.body.appendChild(link);
-    link.click();
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = `${title}.pdf`;
+      document.body.appendChild(link);
+      link.click();
 
-    link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
-  } catch (error) {
-    console.error("Download failed:", error);
-  }
-};
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error("Download failed:", error);
+    }
+  };
   //change password
   const changePassword = async () => {
-    if(newPassword.length<6||newPassword.trim()===""){
+    if (newPassword.length < 6 || newPassword.trim() === "") {
       toast({
         title: "Error",
         description: "New password must be at least 6 characters long.",
         variant: "destructive",
       });
-       return;
-     }
+      return;
+    }
     if (newPassword !== confirmPassword) {
       toast({
         title: "Error",
@@ -295,18 +307,21 @@ const AdminSettingsPage = () => {
       return;
     }
     setRequesting(true);
-    await fetch(`${import.meta.env.VITE_BACKEND_URL}/campus-connect/security/change-pwd`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+    await fetch(
+      `${import.meta.env.VITE_BACKEND_URL}/campus-connect/security/change-pwd`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+        body: JSON.stringify({
+          oldPassword: currentPassword,
+          newPassword,
+          role: "COLLEGE_ADMIN",
+        }),
       },
-      body: JSON.stringify({
-        oldPassword: currentPassword,
-        newPassword,
-        role: "COLLEGE_ADMIN",
-      }),
-    })
+    )
       .then(async (res) => await res.json())
       .then((res) => {
         if (res.message === "Your password changed successfully!") {
@@ -337,6 +352,60 @@ const AdminSettingsPage = () => {
         });
       })
       .finally(() => setRequesting(false));
+  };
+
+  //handle plan confirmation on selecting subscription plan
+  const handlePlanConfirm = async () => {
+    if (!selectedPlan) return;
+
+    const plan = subscriptionPlans.find((p) => p.id === selectedPlan);
+
+    try {
+      const orderRes = await fetch(`${baseUrl}/create-order`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+        body: JSON.stringify({
+          amount: plan.amount,
+          currency: "INR",
+        }),
+      });
+
+      const orderData = await orderRes.json();
+
+      const options = {
+        key: orderData.key,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        order_id: orderData.orderId,
+        name: "Campus Connect",
+        description: `${plan.name} Subscription`,
+        handler: function (response) {
+          // payment success
+          updatePackage({
+            planName: plan.name,
+            amount: plan.amount,
+            paymentId: response.razorpay_payment_id,
+            orderId: response.razorpay_order_id,
+          });
+        },
+        theme: {
+          color: "#10b981",
+        },
+      };
+
+      const razor = new window.Razorpay(options);
+      razor.open();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  //update package after successful payment
+  const updatePackage = (data) => {
+    alert("Payment successful for plan: " + data.planName);
   };
 
   return (
@@ -526,8 +595,13 @@ const AdminSettingsPage = () => {
                     View Invoice History
                   </Button>
 
-                  {subscription?.planName==null && (
-                    <Button disabled={requesting}>Upgrade Plan</Button>
+                  {subscription?.planName == null && (
+                    <Button
+                      disabled={requesting}
+                      onClick={() => setPlanDialogOpen(true)}
+                    >
+                      Upgrade Plan
+                    </Button>
                   )}
                 </div>
               </CardContent>
@@ -612,7 +686,12 @@ const AdminSettingsPage = () => {
 
                       <Button
                         size="sm"
-                        onClick={() => downloadPdf(invoice.invoiceUrl, `CampusConnect_Invoice_${invoice.startDate.split("T")[0]}`)}
+                        onClick={() =>
+                          downloadPdf(
+                            invoice.invoiceUrl,
+                            `CampusConnect_Invoice_${invoice.startDate.split("T")[0]}`,
+                          )
+                        }
                       >
                         Download
                       </Button>
@@ -620,6 +699,48 @@ const AdminSettingsPage = () => {
                   </Card>
                 ))}
               </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Plan Upgrade Dialog  */}
+          <Dialog open={planDialogOpen} onOpenChange={setPlanDialogOpen}>
+            <DialogContent className="max-w-4xl">
+              <DialogHeader>
+                <DialogTitle>Select Subscription Plan</DialogTitle>
+              </DialogHeader>
+
+              <div className="grid md:grid-cols-3 gap-4">
+                {subscriptionPlans.map((plan) => (
+                  <Card
+                    key={plan.id}
+                    className={`cursor-pointer ${
+                      selectedPlan === plan.id
+                        ? "border-primary ring-2 ring-primary"
+                        : ""
+                    }`}
+                    onClick={() => setSelectedPlan(plan.id)}
+                  >
+                    <CardHeader>
+                      <CardTitle>{plan.name}</CardTitle>
+                      <CardDescription>{plan.price}</CardDescription>
+                    </CardHeader>
+
+                    <CardContent>
+                      {plan.features.map((f, i) => (
+                        <p key={i}>✔ {f}</p>
+                      ))}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <Button
+                className="mt-4 w-full"
+                disabled={!selectedPlan}
+                onClick={handlePlanConfirm}
+              >
+                Continue
+              </Button>
             </DialogContent>
           </Dialog>
         </Tabs>
