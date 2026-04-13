@@ -29,6 +29,7 @@ import { marked } from "marked";
 import { Badge } from "../../components/ui/Badge";
 import Loading from "../../components/ui/Loading";
 import EmptyState from "../../components/ui/EmptyState";
+import { Download } from "lucide-react";
 
 const ClubAdminEventsPage = () => {
   // Get clubId from URL params
@@ -251,67 +252,67 @@ const ClubAdminEventsPage = () => {
     }
   };
 
-const checkEventDetails = (event) => {
-  const start = new Date(`${event.date}T${event.time}`);
-  const end = new Date(`${event.endDate}T${event.endTime}`);
-  const registrationEnd = new Date(`${event.registrationEnd}T23:59:59`);
+  const checkEventDetails = (event) => {
+    const start = new Date(`${event.date}T${event.time}`);
+    const end = new Date(`${event.endDate}T${event.endTime}`);
+    const registrationEnd = new Date(`${event.registrationEnd}T23:59:59`);
 
-  const todayDate = new Date();
-  todayDate.setHours(0, 0, 0, 0);
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
 
-  if (new Date(event.date) < todayDate) {
-    toast({
-      title: "Invalid date",
-      description: "Event start date cannot be in the past.",
-      variant: "destructive",
-    });
-    return true;
-  }
+    if (new Date(event.date) < todayDate) {
+      toast({
+        title: "Invalid date",
+        description: "Event start date cannot be in the past.",
+        variant: "destructive",
+      });
+      return true;
+    }
 
-  if (new Date(event.registrationEnd) < todayDate) {
-    toast({
-      title: "Invalid date",
-      description: "Registration end cannot be in the past.",
-      variant: "destructive",
-    });
-    return true;
-  }
+    if (new Date(event.registrationEnd) < todayDate) {
+      toast({
+        title: "Invalid date",
+        description: "Registration end cannot be in the past.",
+        variant: "destructive",
+      });
+      return true;
+    }
 
-  if (registrationEnd >= start) {
-    toast({
-      title: "Invalid registration date",
-      description: "Registration must close before the event starts.",
-      variant: "destructive",
-    });
-    return true;
-  }
+    if (registrationEnd >= start) {
+      toast({
+        title: "Invalid registration date",
+        description: "Registration must close before the event starts.",
+        variant: "destructive",
+      });
+      return true;
+    }
 
-  if (end <= start) {
-    toast({
-      title: "Invalid event time",
-      description: "Event end must be after event start.",
-      variant: "destructive",
-    });
-    return true;
-  }
+    if (end <= start) {
+      toast({
+        title: "Invalid event time",
+        description: "Event end must be after event start.",
+        variant: "destructive",
+      });
+      return true;
+    }
 
-  if (start < new Date()) {
-    toast({
-      title: "Invalid Time",
-      description: "Event start time cannot be in the past",
-      variant: "destructive",
-    });
-    return true;
-  }
+    if (start < new Date()) {
+      toast({
+        title: "Invalid Time",
+        description: "Event start time cannot be in the past",
+        variant: "destructive",
+      });
+      return true;
+    }
 
-  return false;
-};
+    return false;
+  };
 
   // Create event on form submission
   const handleCreateEvent = async () => {
     const token = localStorage.getItem("authToken");
 
-    if(checkEventDetails(newEvent)) return;
+    if (checkEventDetails(newEvent)) return;
 
     const payload = {
       ...newEvent,
@@ -686,6 +687,26 @@ const checkEventDetails = (event) => {
 
     return `${hours}h ${minutes}m`;
   }
+
+  const downloadExcel = function (eventId) {
+    setRequesting(true);
+    fetch(`${baseUrl}/events/${eventId}/registrations/download`, {
+      method: "GET",
+    })
+      .then((response) => response.blob())
+      .then((blob) => {
+        const url = window.URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "event_registrations.xlsx";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      })
+      .catch((err) => console.error("Download failed", err))
+      .finally(() => setRequesting(false));
+  };
   //---------------------------UI---------------------------//
 
   return (
@@ -775,61 +796,61 @@ const checkEventDetails = (event) => {
                   <div>
                     <Label>EventDate</Label>
                     <Input
-  type="date"
-  value={newEvent.date}
-  min={today}
-  onChange={(e) =>
-    setNewEvent({ ...newEvent, date: e.target.value })
-  }
-/>
+                      type="date"
+                      value={newEvent.date}
+                      min={today}
+                      onChange={(e) =>
+                        setNewEvent({ ...newEvent, date: e.target.value })
+                      }
+                    />
                   </div>
                   <div>
                     <Label>EventTime</Label>
-<Input
-  type="time"
-  value={newEvent.time}
-  min={newEvent.date === today ? currentTime : undefined}
-  onChange={(e) =>
-    setNewEvent({
-      ...newEvent,
-      time: e.target.value,
-    })
-  }
-/>
+                    <Input
+                      type="time"
+                      value={newEvent.time}
+                      min={newEvent.date === today ? currentTime : undefined}
+                      onChange={(e) =>
+                        setNewEvent({
+                          ...newEvent,
+                          time: e.target.value,
+                        })
+                      }
+                    />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Event End Date</Label>
                     <Input
-  type="date"
-  value={newEvent.endDate}
-  min={newEvent.date || today}
-  onChange={(e) =>
-    setNewEvent({
-      ...newEvent,
-      endDate: e.target.value,
-    })
-  }
-/>
+                      type="date"
+                      value={newEvent.endDate}
+                      min={newEvent.date || today}
+                      onChange={(e) =>
+                        setNewEvent({
+                          ...newEvent,
+                          endDate: e.target.value,
+                        })
+                      }
+                    />
                   </div>
                   <div>
                     <Label>Event End Time</Label>
                     <Input
-  type="time"
-  value={newEvent.endTime}
-  min={
-    newEvent.date === newEvent.endDate
-      ? newEvent.time
-      : undefined
-  }
-  onChange={(e) =>
-    setNewEvent({
-      ...newEvent,
-      endTime: e.target.value,
-    })
-  }
-/>
+                      type="time"
+                      value={newEvent.endTime}
+                      min={
+                        newEvent.date === newEvent.endDate
+                          ? newEvent.time
+                          : undefined
+                      }
+                      onChange={(e) =>
+                        setNewEvent({
+                          ...newEvent,
+                          endTime: e.target.value,
+                        })
+                      }
+                    />
                   </div>
                 </div>
 
@@ -1729,6 +1750,17 @@ Write your markdown here..."
                               </span>
                             )}
                           </div>
+                        </div>
+                        <div className="mt-4 ">
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            disabled={requesting}
+                            onClick={() =>downloadExcel(event.id)}
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Download Registrations
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>

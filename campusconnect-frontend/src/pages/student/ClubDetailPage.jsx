@@ -200,7 +200,9 @@ const ClubDetailPage = () => {
           <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
             <div>
               <h1 className="text-3xl text-white font-bold">{club.name}</h1>
-              <p className="text-white/80">{club.description}</p>
+              <p className="hidden sm:block text-white/80">
+  {club.description}
+</p>
             </div>
             <Button onClick={toggleFollow} disabled={changeFollow}>
               {isFollowed ? (
@@ -308,7 +310,7 @@ const ClubDetailPage = () => {
           </TabsContent>
 
           <TabsContent value="events">
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {events.length === 0 ? (
                 <div className="col-span-full w-full">
                 <EmptyState className="col-span-full"

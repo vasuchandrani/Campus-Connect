@@ -548,17 +548,34 @@ const AdminUsersPage = () => {
 
         {/* List Tabs */}
         <Tabs defaultValue="journalist-requests">
-          <TabsList>
-            <TabsTrigger value="journalist-requests">
-              Journalist Requests ({journalistRequests.length})
+          <TabsList className="flex flex-wrap gap-2 mb-6 w-fit">
+            <TabsTrigger
+              value="journalist-requests"
+              className="w-[48%] sm:w-auto text-center"
+            >
+              Requests ({journalistRequests.length})
             </TabsTrigger>
-            <TabsTrigger value="journalists">
-              Journalists ({journalists.length}) 
+
+            <TabsTrigger
+              value="journalists"
+              className="w-[48%] sm:w-auto text-center"
+            >
+              Journalists ({journalists.length})
             </TabsTrigger>
-            <TabsTrigger value="reviewers">
+
+            <TabsTrigger
+              value="reviewers"
+              className="w-[48%] sm:w-auto text-center"
+            >
               Reviewers ({reviewers.length})
             </TabsTrigger>
-            <TabsTrigger value="students">Students</TabsTrigger>
+
+            <TabsTrigger
+              value="students"
+              className="w-[48%] sm:w-auto text-center"
+            >
+              Students
+            </TabsTrigger>
           </TabsList>
 
           {/* confirmation dialog */}
@@ -1025,7 +1042,7 @@ const AdminUsersPage = () => {
                         key={student.id}
                         className="flex items-center justify-between p-4 hover:bg-muted/50"
                       >
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 shrink-0">
                           <Avatar>
                             <AvatarFallback>
                               {student.fullName.charAt(0)}

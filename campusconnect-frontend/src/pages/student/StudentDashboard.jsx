@@ -56,6 +56,7 @@ const StudentDashboard = () => {
   const [loadingClubs, setLoadingClubs] = useState(true);
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [loadingNews, setLoadingNews] = useState(true);
+  const [now, setNow] = useState(new Date());
 
   // Base URL for API calls related to student dashboard
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/student`;
@@ -272,6 +273,23 @@ const fetchNews = async () => {
     }
   };
 
+  useEffect(() => {
+  const interval = setInterval(() => {
+    setNow(new Date());
+  }, 30000); // 30 sec
+
+  return () => clearInterval(interval); 
+}, []);
+
+const getEventStatus = (event) => {
+  const start = new Date(event.startTime);
+  const end = new Date(event.endTime);
+
+  if (now >= start && now <= end) return "LIVE";
+  if (now < start) return "UPCOMING";
+  return "FINISHED";
+};
+
   return (
     <DashboardLayout navItems={navItems} title="Student Dashboard" bell={true}>
       <div className="space-y-6">
@@ -481,14 +499,14 @@ const fetchNews = async () => {
                       <Badge
                         className="absolute top-4 right-4"
                         variant={
-                          event.status === "UPCOMING"
+                          getEventStatus(event) === "UPCOMING"
                             ? "default"
-                            : event.status === "LIVE"
+                            : getEventStatus(event) === "LIVE"
                               ? "destructive"
                               : "secondary"
                         }
                       >
-                        {event.status}
+                        {getEventStatus(event)}
                       </Badge>
 
                       <h4 className="font-medium mb-2">{event.title}</h4>
