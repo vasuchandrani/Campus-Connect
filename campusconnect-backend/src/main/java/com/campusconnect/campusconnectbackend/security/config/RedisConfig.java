@@ -74,12 +74,12 @@ public class RedisConfig implements CachingConfigurer {
         cacheConfigs.put("reviewer_name", baseConfig.entryTtl(Duration.ofDays(7)));
         cacheConfigs.put("reviewers", baseConfig.entryTtl(Duration.ofDays(3)));
 
-        cacheConfigs.put("myResearch", baseConfig.entryTtl(Duration.ofDays(3)));
+        cacheConfigs.put("myResearch", baseConfig.entryTtl(Duration.ofHours(3)));
         cacheConfigs.put("research_papers",  baseConfig.entryTtl(Duration.ofHours(12)));
         cacheConfigs.put("not_reviewed_researches",  baseConfig.entryTtl(Duration.ofHours(12)));
         cacheConfigs.put("under_review_researches",  baseConfig.entryTtl(Duration.ofHours(12)));
         cacheConfigs.put("reviewed_researches",  baseConfig.entryTtl(Duration.ofHours(12)));
-        cacheConfigs.put("pending_researches",  baseConfig.entryTtl(Duration.ofDays(12)));
+        cacheConfigs.put("pending_researches",  baseConfig.entryTtl(Duration.ofHours(12)));
 
         cacheConfigs.put("joined_clubs", baseConfig.entryTtl(Duration.ofDays(7)));
         cacheConfigs.put("clubs", baseConfig.entryTtl(Duration.ofDays(7)));

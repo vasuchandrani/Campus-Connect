@@ -15,10 +15,13 @@ import com.campusconnect.campusconnectbackend.club.dto.res.club_admin_member.Clu
 import com.campusconnect.campusconnectbackend.club.dto.res.club_card.ClubMemberDto;
 import com.campusconnect.campusconnectbackend.event.dto.res.EventResponseDto;
 import com.campusconnect.campusconnectbackend.event.overview_generation.EventOverviewService;
+import com.campusconnect.campusconnectbackend.event.service.EventRegistrationService;
 import com.campusconnect.campusconnectbackend.event.service.EventService;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -36,6 +39,7 @@ public class ClubMemberController {
     private final ClubRepository clubRepository;
     private final ClubService clubService;
     private final EventOverviewService eventOverviewService;
+    private final EventRegistrationService eventRegistrationService;
 
     /* Home */
 
@@ -119,6 +123,18 @@ public class ClubMemberController {
         return eventService.deleteEvent(eventId, clubId);
     }
 
+    // download event registration
+    @GetMapping("/events/{eventId}/registrations/download")
+    public ResponseEntity<byte[]> downloadRegistrations(@PathVariable Long eventId) {
+
+        byte[] excelData = eventRegistrationService.generateExcel(eventId);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=event_registrations.xlsx")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(excelData);
+    }
 
     /* Generate Overview */
 
