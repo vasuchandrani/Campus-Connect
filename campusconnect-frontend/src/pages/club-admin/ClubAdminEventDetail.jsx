@@ -18,11 +18,13 @@ import { marked } from "marked";
 import { useMemo,useEffect,useState, useCallback } from "react";
 import { toast } from "../../hooks/use-toast";
 import Loading from "../../components/ui/Loading";
+import { useAuth } from "../../contexts/AuthContext";
 
 
 const ClubAdminEventDetailPage = () => {
   const { clubId, id } = useParams();
   const navigate = useNavigate();
+  const { isClubAdmin } = useAuth();
 
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/admin/events/finished/${id}`;
 
@@ -72,7 +74,32 @@ const ClubAdminEventDetailPage = () => {
 
   // Fetch event details on component mount
   useEffect(() => {
-     fetchEventDetails();
+    const checkAdminAndFetchData = async () => { 
+      try {
+        const admin = await isClubAdmin(clubId);
+        if (!admin) {
+          toast({
+            title: "Unauthorized",
+            description: "You are not an admin of this club",
+            variant: "destructive",
+          });
+          navigate(-1);
+          return;
+        }
+        fetchEventDetails();
+      }
+        catch (error) {
+          toast({
+            title: "Unauthorized",
+            description: "You are not an admin of this club",
+            variant: "destructive",
+          });
+
+          navigate(-1);
+          return;
+       }
+    };
+    checkAdminAndFetchData();
   }, []);
 
 

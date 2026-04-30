@@ -33,9 +33,11 @@ import {
 } from "../../components/ui/Dialog";
 import { useRef } from "react";
 import { toast } from "../../hooks/use-toast";
+import { useAuth } from "../../contexts/AuthContext";
 
 const ClubSettingsPage = () => {
   let { clubId } = useParams();
+  const { isClubAdmin } = useAuth();
   const [openTransferDialog, setOpenTransferDialog] = useState(false);
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -338,7 +340,29 @@ const getDetails = async () => {
 };
 
 useState(() => {
-  getDetails();
+  const checkAdminAndFetchDetails = async () => {
+    try {
+      const admin = await isClubAdmin(clubId);
+      if (!admin) {
+        toast({
+          title: "Unauthorized",
+          description: "You are not an admin of this club",
+          variant: "destructive",
+        });
+        navigate(-1);
+        return;
+      }
+      getDetails();
+    } catch (error) {
+      toast({
+        title: "Unauthorized",
+        description: "You are not an admin of this club",
+        variant: "destructive",
+      });
+      navigate(-1);
+    }
+  };
+  checkAdminAndFetchDetails();
 }, []);
 
   return (

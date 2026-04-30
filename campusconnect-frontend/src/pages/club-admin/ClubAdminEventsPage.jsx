@@ -30,10 +30,12 @@ import { Badge } from "../../components/ui/Badge";
 import Loading from "../../components/ui/Loading";
 import EmptyState from "../../components/ui/EmptyState";
 import { Download } from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
 
 const ClubAdminEventsPage = () => {
   // Get clubId from URL params
   let { clubId } = useParams();
+  const { isClubAdmin } = useAuth();
 
   // Base URL for API calls related to this club
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/admin`;
@@ -498,7 +500,31 @@ const ClubAdminEventsPage = () => {
 
   // load events on component mount and whenever clubId changes
   useEffect(() => {
-    fetchClubEvents();
+    const checkAdminAndFetchData = async () => {
+      try {
+        const admin = await isClubAdmin(clubId);
+        if (!admin) {
+          toast({
+            title: "Unauthorized",
+            description: "You are not an admin of this club",
+            variant: "destructive",
+          });
+          navigate(-1);
+          return;
+        }
+        fetchClubEvents();
+      } catch (error) {
+        toast({
+          title: "Unauthorized",
+          description: "You are not an admin of this club",
+          variant: "destructive",
+        });
+        navigate(-1);
+        return;
+        }
+      }
+      checkAdminAndFetchData();
+      
   }, [clubId]);
 
   //sort events - live events first, then upcoming sorted by registration status and date
@@ -688,12 +714,30 @@ const ClubAdminEventsPage = () => {
     return `${hours}h ${minutes}m`;
   }
 
-  const downloadExcel = function (eventId) {
+  const downloadExcel = async function (eventId) {
     setRequesting(true);
-    fetch(`${baseUrl}/events/${eventId}/registrations/download`, {
+    const token = localStorage.getItem("authToken");
+
+    await fetch(`${baseUrl}/events/${eventId}/registrations/download`, {
       method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     })
-      .then((response) => response.blob())
+      .then(async (response) => {
+        if (!response.ok) {
+          let errorMessage = "Failed to download registrations";
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData?.message || errorMessage;
+          } catch {
+            // Ignore JSON parse errors and keep default message.
+          }
+          throw new Error(errorMessage);
+        }
+
+        return response.blob();
+      })
       .then((blob) => {
         const url = window.URL.createObjectURL(blob);
 
@@ -703,8 +747,17 @@ const ClubAdminEventsPage = () => {
         document.body.appendChild(a);
         a.click();
         a.remove();
+
+        window.URL.revokeObjectURL(url);
       })
-      .catch((err) => console.error("Download failed", err))
+      .catch((err) => {
+        console.error("Download failed", err);
+        toast({
+          variant: "destructive",
+          title: "Download failed",
+          description: err.message || "Unable to download registrations",
+        });
+      })
       .finally(() => setRequesting(false));
   };
   //---------------------------UI---------------------------//

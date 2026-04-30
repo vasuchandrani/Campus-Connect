@@ -16,14 +16,17 @@ import {
 } from "../../components/ui/Dialog";
 import { Megaphone, Plus, Eye, Edit, Trash2 } from "lucide-react";
 import { clubAdminNavItems } from "../../config/Navigation";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "../../hooks/use-toast";
 import Loading from "../../components/ui/Loading";
 import EmptyState from "../../components/ui/EmptyState";
+import { useAuth } from "../../contexts/AuthContext";
 
 const ClubAdminAnnouncementsPage = () => {
   //Take clubId from URL params
   const { clubId } = useParams();
+  const { isClubAdmin } = useAuth();
+  const navigate = useNavigate();
   //Base URL for API calls
   const baseurl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/admin`;
 
@@ -188,7 +191,30 @@ const ClubAdminAnnouncementsPage = () => {
 
   //Fetch announcements on component mount and whenever clubId changes
   useEffect(() => {
-    fetchClubAnnouncements();
+    const checkAdminAndFetchData = async () => {
+      try {
+        const admin = await isClubAdmin(clubId);
+        if (!admin) {
+          toast({
+            title: "Unauthorized",
+            description: "You are not an admin of this club",
+            variant: "destructive",
+          });
+          navigate(-1);
+          return;
+        }
+        fetchClubAnnouncements();
+      } catch (error) {
+        toast({
+          title: "Unauthorized",
+          description: "You are not an admin of this club",
+          variant: "destructive",
+        });
+        navigate(-1);
+        return;
+       }
+      };
+      checkAdminAndFetchData();
   }, [clubId]);
 
 
@@ -225,7 +251,7 @@ const ClubAdminAnnouncementsPage = () => {
               </Button>
             </DialogTrigger>
 
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {editingId ? "Edit Announcement" : "Create Announcement"}

@@ -18,10 +18,13 @@ import { marked } from "marked";
 import { useMemo,useEffect,useState, useCallback } from "react";
 import { toast } from "../../hooks/use-toast";
 import Loading from "../../components/ui/Loading";
+import { useAuth } from "../../contexts/AuthContext";
+
 
 const ClubMemberEventDetailPage = () => {
   const { clubId, id } = useParams();
   const navigate = useNavigate();
+  const { isClubMember } = useAuth();
 
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/member/events/finished/${id}`;
 
@@ -63,7 +66,33 @@ const ClubMemberEventDetailPage = () => {
 
   //load event details on component mount
   useEffect(() => {
-    fetchEventDetails();
+    const checkMembershipAndFetchData = async () => {
+      try {
+        const member = await isClubMember(clubId);
+        if (!member) {
+          toast({
+            title: "Unauthorized",
+            description: "You are not a member of this club",
+            variant: "destructive",
+          });
+          navigate(-1);
+          return;
+        }
+        else{
+          fetchEventDetails();
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error.message || "An error occurred while checking membership",
+          variant: "destructive",
+        });
+        navigate(-1);
+      }
+    }
+    checkMembershipAndFetchData();
+
+    
   }, []);
 
   //--------------Nav---------------//

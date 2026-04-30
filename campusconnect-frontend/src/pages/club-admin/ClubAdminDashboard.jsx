@@ -12,10 +12,12 @@ import { ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Loading from "../../components/ui/Loading";
 import EmptyState from "../../components/ui/EmptyState";
+import { useAuth } from "../../contexts/AuthContext";
 
 const ClubAdminDashboard = () => {
   // Get clubId from URL params
   let { clubId } = useParams();
+  const { isClubAdmin } = useAuth();
 
   const navigate = useNavigate();
   // Base URL for API calls related to this club
@@ -145,18 +147,42 @@ const ClubAdminDashboard = () => {
   };
 
   // Fetch all necessary data on component mount and whenever clubId changes
-useEffect(() => {
-  const fetchData = async () => {
-    await Promise.all([
-      fetchClubName(),
-      fetchStats(),
-      fetchClubAnnouncements(),
-      fetchTeams(),
-    ]);
-  };
+  useEffect(() => {
+    const checkAdminAndFetchData = async () => {
+      try {
+        const admin = await isClubAdmin(clubId);
+        if (!admin) {
+          toast({
+            title: "Unauthorized",
+            description: "You are not an admin of this club",
+            variant: "destructive",
+          });
+          navigate(-1);
+          return;
+        } else {
+          const fetchData = async () => {
+            await Promise.all([
+              fetchClubName(),
+              fetchStats(),
+              fetchClubAnnouncements(),
+              fetchTeams(),
+            ]);
+          };
 
-  fetchData();
-}, [clubId]);
+          fetchData();
+        }
+      } catch (error) {
+        toast({
+          title: "Unauthorized",
+          description: "You are not an admin of this club",
+          variant: "destructive",
+        });
+        navigate(-1);
+        return;
+      }
+    };
+    checkAdminAndFetchData();
+  }, [clubId]);
 
   return (
     <DashboardLayout navItems={updatenavItems()} title="Club Dashboard">
@@ -249,14 +275,13 @@ useEffect(() => {
               {loading.announcements ? (
                 <Loading />
               ) : clubAnnouncements.length === 0 ? (
-                <EmptyState 
+                <EmptyState
                   title="No Announcements"
                   desc="There are no announcements for this club yet."
                   icon={<BellOff className="w-8 h-8 text-muted-foreground" />}
                 />
               ) : (
-              
-              clubAnnouncements &&
+                clubAnnouncements &&
                 clubAnnouncements.map((announcement) => (
                   <Card
                     key={announcement.id}
@@ -284,7 +309,8 @@ useEffect(() => {
                       </div>
                     </CardContent>
                   </Card>
-                )))}
+                ))
+              )}
             </div>
           </div>
 
@@ -312,31 +338,31 @@ useEffect(() => {
                 <div className="space-y-3">
                   {loading.teams ? (
                     <Loading />
+                  ) : teams.length === 0 ? (
+                    <EmptyState
+                      title="No Teams"
+                      desc="There are no teams created for this club yet."
+                      icon={
+                        <UsersRound className="w-8 h-8 text-muted-foreground" />
+                      }
+                    />
                   ) : (
-                     teams.length === 0 ? (
-                      <EmptyState
-                        title="No Teams"
-                        desc="There are no teams created for this club yet."
-                        icon={<UsersRound className="w-8 h-8 text-muted-foreground" />}
-                      />
-                     ):(
-                  teams.map((team) => (
-                    <div
-                      key={team.name}
-                      className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/40 transition"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">
-                          {team.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {team.description}
-                        </p>
+                    teams.map((team) => (
+                      <div
+                        key={team.name}
+                        className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/40 transition"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">
+                            {team.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {team.description}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))))}
-
-                 
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
