@@ -8,12 +8,16 @@ import { useState, useEffect, useCallback } from "react";
 import { toast } from "../../hooks/use-toast";
 import Loading from "../../components/ui/Loading";
 import EmptyState from "../../components/ui/EmptyState";
+import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const ClubMembersPage = () => {
 
   // Get clubId from URL params
   const { clubId } = useParams();
   const [loading, setLoading] = useState(false);
+  const { isClubMember } = useAuth();
+  const navigate = useNavigate();
 
   // Base URL for API calls related to this club
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/member`;
@@ -56,7 +60,32 @@ const ClubMembersPage = () => {
 
   //load members on component mount
   useEffect(() => {
-    fetchClubMembers();
+    const checkMembershipAndFetchData = async () => {
+      try {
+        const member = await isClubMember(clubId);
+        if (!member) {
+          toast({
+            title: "Unauthorized",
+            description: "You are not a member of this club",
+            variant: "destructive",
+          });
+          navigate(-1);
+          return;
+        }
+        else{
+          fetchClubMembers();
+        }
+      } catch (error) {
+        toast({
+          title: "Unauthorized",
+          description: "You are not a member of this club",
+          variant: "destructive",
+        });
+        navigate(-1);
+        return;
+       }
+      }
+      checkMembershipAndFetchData();
   }, []);
 
   if(loading){

@@ -324,7 +324,7 @@ const AdminClubsPage = () => {
             description: data.message,
             variant: "destructive",
           });
-          fetchClubs(); 
+          fetchClubs();
         } else {
           throw new Error(data.message || "Failed to delete club");
         }
@@ -339,7 +339,7 @@ const AdminClubsPage = () => {
       .finally(() => {
         setRequesting(false);
       });
-    };
+  };
 
   //for searching
   const filteredClubs = useMemo(() => {
@@ -396,42 +396,42 @@ const AdminClubsPage = () => {
 
         {/* Tabs for Active Clubs, Pending Requests, Announcements, Events */}
         <Tabs defaultValue="active">
-<TabsList className="flex flex-wrap gap-2 mb-15 w-full sm:w-fit">
-  <TabsTrigger
-    value="active"
-    className="w-[48%] sm:w-auto text-center"
-  >
-    Active Clubs ({clubs.length})
-  </TabsTrigger>
+          <TabsList className="flex flex-wrap gap-2 mb-15 w-full sm:w-fit">
+            <TabsTrigger
+              value="active"
+              className="w-[48%] sm:w-auto text-center"
+            >
+              Active Clubs ({filteredClubs.length})
+            </TabsTrigger>
 
-  <TabsTrigger
-    value="pending"
-    className="w-[48%] sm:w-auto text-center"
-  >
-    Pending Approval ({pendingClubs.length})
-  </TabsTrigger>
+            <TabsTrigger
+              value="pending"
+              className="w-[48%] sm:w-auto text-center"
+            >
+              Pending Approval ({filteredPendingClubs.length})
+            </TabsTrigger>
 
-  <TabsTrigger
-    value="announcements"
-    className="w-[48%] sm:w-auto text-center"
-  >
-    Announcements ({announcements.length})
-  </TabsTrigger>
+            <TabsTrigger
+              value="announcements"
+              className="w-[48%] sm:w-auto text-center"
+            >
+              Announcements ({filteredAnnouncements.length})
+            </TabsTrigger>
 
-  <TabsTrigger
-    value="upcoming"
-    className="w-[48%] sm:w-auto text-center"
-  >
-    Active Events ({filteredUpcomingEvents.length})
-  </TabsTrigger>
+            <TabsTrigger
+              value="upcoming"
+              className="w-[48%] sm:w-auto text-center"
+            >
+              Active Events ({filteredUpcomingEvents.length})
+            </TabsTrigger>
 
-  <TabsTrigger
-    value="completed"
-    className="w-[48%] sm:w-auto text-center"
-  >
-    Completed Events ({filteredCompletedEvents.length})
-  </TabsTrigger>
-</TabsList>
+            <TabsTrigger
+              value="completed"
+              className="w-[48%] sm:w-auto text-center"
+            >
+              Completed Events ({filteredCompletedEvents.length})
+            </TabsTrigger>
+          </TabsList>
 
           <TabsContent value="active" className="mt-6">
             {/* Clubs Grid */}
@@ -496,7 +496,10 @@ const AdminClubsPage = () => {
 
                             <DropdownMenuItem
                               className="text-destructive"
-                              onClick={(e) => {deleteClub(club.id); e.stopPropagation();}}
+                              onClick={(e) => {
+                                deleteClub(club.id);
+                                e.stopPropagation();
+                              }}
                             >
                               Delete Club
                             </DropdownMenuItem>
@@ -691,7 +694,7 @@ const AdminClubsPage = () => {
               open={!!viewAnnouncement}
               onOpenChange={(open) => !open && setViewAnnouncement(null)}
             >
-              <DialogContent>
+              <DialogContent className="max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Announcement Details</DialogTitle>
                 </DialogHeader>

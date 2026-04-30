@@ -9,147 +9,195 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem("authToken", token);
   };
 
-
   // handle login for different roles
   const login = async (email, password, role) => {
-  let url = "";
-  let roleName = "";
+    let url = "";
+    let roleName = "";
 
-  if (role === "journalist") {
-    url = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/journalist/login`;
-    roleName = "JOURNALIST";
-  } 
-  else if (role === "reviewer") {
-    url = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/reviewer/login`;
-    roleName = "REVIEWER";
-  } 
-  else if (role === "student") {
-    url = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/student/login`;
-    roleName = "STUDENT";
-  } 
-  else if (role === "collegeAdmin") {
-    url = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/college-admin/login`;
-    roleName = "COLLEGE_ADMIN";
-  }
-  // call backend API for login
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email,
-        password,
-        role: roleName,
-      }),
-    });
-
-    const data = await res.json();
-
-    if (data && data.token) {
-      setToken(data.token);
-      localStorage.setItem("role",roleName);
-      setUser({ email, role });
-      return data.redirectUrl; 
+    if (role === "journalist") {
+      url = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/journalist/login`;
+      roleName = "JOURNALIST";
+    } else if (role === "reviewer") {
+      url = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/reviewer/login`;
+      roleName = "REVIEWER";
+    } else if (role === "student") {
+      url = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/student/login`;
+      roleName = "STUDENT";
+    } else if (role === "collegeAdmin") {
+      url = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/college-admin/login`;
+      roleName = "COLLEGE_ADMIN";
     }
-    else if(data && data.role=="EXPIRE"){
-      return "EXPIRE subscription";
+    // call backend API for login
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+          role: roleName,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data && data.token) {
+        setToken(data.token);
+        localStorage.setItem("role", roleName);
+        setUser({ email, role });
+        return data.redirectUrl;
+      } else if (data && data.role == "EXPIRE") {
+        return "EXPIRE subscription";
+      }
+
+      return "Invalid credentials";
+    } catch (err) {
+      console.error(err);
+      return "Invalid credentials";
     }
-    
+  };
 
-    return "Invalid credentials";
-  } catch (err) {
-    console.error(err);
-    return "Invalid credentials";
-  }
-};
-
-// handle logout
-  const logout = () =>{ 
+  // handle logout
+  const logout = () => {
     setUser(null);
     localStorage.removeItem("authToken");
     localStorage.removeItem("role");
-  }
-
+  };
 
   // collage admin signup
   const collegeSignup = async (payload) => {
-    try{
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/campus-connect/college-admin/signup`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/campus-connect/college-admin/signup`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
 
       const data = await res.json();
       setToken(data.token);
       localStorage.setItem("role", "COLLEGE_ADMIN");
       setUser({ email: payload.email, role: "COLLEGE_ADMIN" });
-      return data.redirectUrl; 
-    }
-    catch(error) {
+      return data.redirectUrl;
+    } catch (error) {
       console.error("Register student error:", error);
       throw error;
     }
-};
+  };
 
-// student signup
-const studentSignup = async (formData) => {
-  try {
-    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/campus-connect/student/signup`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(formData),
-    });
-    
+  // student signup
+  const studentSignup = async (formData) => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/campus-connect/student/signup`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        },
+      );
 
-    if (!response.ok) {
-      throw new Error("Student registration failed");
+      if (!response.ok) {
+        throw new Error("Student registration failed");
+      }
+
+      const data = await response.json();
+
+      setUser({
+        email: formData.email,
+        role: "STUDENT",
+        college: formData.collegeName,
+      });
+
+      setToken(data.token);
+      localStorage.setItem("role", "STUDENT");
+      return data.redirectUrl;
+    } catch (error) {
+      console.error("Register student error:", error);
+      throw error;
     }
+  };
 
-    const data = await response.json();
+  const routeProtection = (roleName) => {
+    const authToken = localStorage.getItem("authToken");
+    const role = localStorage.getItem("role");
+    if (!authToken || !role) {
+      return false;
+    } else if (role !== roleName) {
+      return false;
+    }
+    return true;
+  };
 
-    setUser({
-      email: formData.email,
-      role: "STUDENT",
-      college: formData.collegeName,
-    });
+  const isClubAdmin = async (clubId) => {
+    const authToken = localStorage.getItem("authToken");
+    const role = localStorage.getItem("role");
+    if (role !== "STUDENT") {
+      return false;
+    }
+    await fetch(
+      `${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/admin/check-role`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+      },
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        return data.role === "CLUB_ADMIN";
+      })
+      .catch((error) => {
+        return false;
+      });
+    
+  };
 
-    setToken(data.token);
-    localStorage.setItem("role","STUDENT");
-    return data.redirectUrl;
-  } catch (error) {
-    console.error("Register student error:", error);
-    throw error;
-  }
-};
-
-const routeProtection=(roleName)=>{
-  const authToken=localStorage.getItem("authToken");
-  const role=localStorage.getItem("role");
-  if(!authToken || !role){
-    return false;
-  }
-  else if(role!==roleName){
-    return false;
-  }
-  return true;
-}
-
-
+  const isClubMember = async (clubId) => {
+    const authToken = localStorage.getItem("authToken");
+    const role = localStorage.getItem("role");
+    console.log("Checking club member role for clubId:", clubId, "with role:", role);
+    if (role !== "STUDENT") {
+      return false;
+    }
+    await fetch(
+      `${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/member/check-role`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+      },
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        return data.role === "CLUB_MEMBER";
+      })
+      .catch((error) => {
+        return false;
+      });
+  };
+  
   return (
-<AuthContext.Provider
-  value={{
-    login,
-    logout,
-    collegeSignup,
-    studentSignup,
-    user,
-    routeProtection,
-  }}
->
-
+    <AuthContext.Provider
+      value={{
+        login,
+        logout,
+        collegeSignup,
+        studentSignup,
+        user,
+        routeProtection,
+        isClubAdmin,
+        isClubMember,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -19,10 +19,12 @@ import { toast } from "../../hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import EmptyState from "../../components/ui/EmptyState";
 import Loading from "../../components/ui/Loading";
+import { useAuth } from "../../contexts/AuthContext";
 
 const ClubMemberDashboard = () => {
   // Get clubId from URL params
   const { clubId } = useParams();
+  const { isClubMember } = useAuth();
 
   const navigate = useNavigate();
 
@@ -166,9 +168,34 @@ const ClubMemberDashboard = () => {
       }
     };
 
-    fetchData();
-  }, [clubId]);
+    const checkMembershipAndFetchData = async () => {
+     
+      try {
+      const member = await isClubMember(clubId);
 
+      if (!member) {
+        toast({
+          title: "Unauthorized",
+          description: "You are not a member of this club",
+          variant: "destructive",
+        });
+        navigate(-1);
+      } else {
+        await fetchData();
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message || "Membership check failed",
+        variant: "destructive",
+      });
+      navigate(-1);
+
+    } 
+  };
+
+    checkMembershipAndFetchData();
+  }, [clubId]);
   //---------------------------UI----------------------------//
   return (
     <DashboardLayout navItems={updateNavItems()} title="Club Member Dashboard">

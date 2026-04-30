@@ -29,10 +29,12 @@ import { marked } from "marked";
 import { Badge } from "../../components/ui/Badge";
 import Loading from "../../components/ui/Loading";
 import EmptyState from "../../components/ui/EmptyState";
+import { useAuth } from "../../contexts/AuthContext";
 
 const ClubMemberEventsPage = () => {
   // Get clubId from URL params
   const { clubId } = useParams();
+  const { isClubMember } = useAuth();
 
   // Base URL for API calls related to this club
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/member`;
@@ -271,7 +273,7 @@ const ClubMemberEventsPage = () => {
       }
 
       const response = await fetch(
-        `https://campus-connect-nzc9.onrender.com/campus-connect/clubs/${clubId}/member/events/active`,
+        `${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/member/events/active`,
         {
           method: "POST",
           headers: {
@@ -424,7 +426,33 @@ const ClubMemberEventsPage = () => {
 
   //load events on component mount and whenever clubId changes
   useEffect(() => {
-    fetchClubEvents();
+    const checkMembershipAndFetchData = async () => {
+        try {
+        const member = await isClubMember(clubId);
+        if (!member) {
+          toast({
+            title: "Unauthorized",
+            description: "You are not a member of this club",
+            variant: "destructive",
+          });
+          navigate(-1);
+          return;
+        }
+        else{
+          fetchClubEvents();
+        }
+      }
+        catch (error) {
+          toast({
+            title: "Error",
+            description: "Failed to verify club membership",
+            variant: "destructive",
+          });
+            navigate(-1);
+        }
+      }
+
+    checkMembershipAndFetchData();
   }, [clubId]);
 
   //sort upcoming events - live first, then registration open, then by date
@@ -531,7 +559,6 @@ const ClubMemberEventsPage = () => {
       formData.append("images", file);
     });
 
-    console.log(overviewRequest);
 
     try {
       const response = await fetch(

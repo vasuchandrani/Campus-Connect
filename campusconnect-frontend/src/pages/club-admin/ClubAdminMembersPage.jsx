@@ -35,12 +35,16 @@ import { useParams } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "../../hooks/use-toast";
 import Loading from "../../components/ui/Loading";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 /* ================= COMPONENT ================= */
 
 const ClubAdminMembersPage = () => {
   // Get clubId from URL params
   let { clubId } = useParams();
+  const navigate = useNavigate();
+  const { isClubAdmin } = useAuth();
 
   // Base URL for API calls related to this club
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/admin`;
@@ -163,7 +167,30 @@ const ClubAdminMembersPage = () => {
 
   //load members on component mount and whenever clubId changes
   useEffect(() => {
-    fetchClubMembers();
+    const checkAdminAndFetchData = async () => {
+      try {
+        const admin = await isClubAdmin(clubId);
+        if (!admin) {
+          toast({
+            title: "Unauthorized",
+            description: "You are not an admin of this club",
+            variant: "destructive",
+          });
+          navigate(-1);
+          return;
+        }
+        fetchClubMembers();
+      } catch (error) {
+        toast({
+          title: "Unauthorized",
+          description: "You are not an admin of this club",
+          variant: "destructive",
+        });
+        navigate(-1);
+        return;
+       }
+      }
+      checkAdminAndFetchData();
   }, [clubId]);
 
   if(loading){

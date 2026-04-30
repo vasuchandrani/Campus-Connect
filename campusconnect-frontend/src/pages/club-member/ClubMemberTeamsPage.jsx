@@ -13,9 +13,13 @@ import { toast } from "../../hooks/use-toast";
 import { useParams } from "react-router-dom";
 import EmptyState from "../../components/ui/EmptyState";
 import Loading from "../../components/ui/Loading";
+import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const ClubMemberTeamsPage = () => {
   let { clubId } = useParams();
+  const { isClubMember } = useAuth();
+  const navigate = useNavigate();
 
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/member`;
   const token = localStorage.getItem("authToken");
@@ -51,7 +55,29 @@ const ClubMemberTeamsPage = () => {
   };
 
   useEffect(() => {
-    fetchTeams();
+    const checkMembershipAndFetchData = async () => {
+      try {
+        const member = await isClubMember(clubId);
+        if (!member) {
+          toast({
+            title: "Unauthorized",
+            description: "You are not a member of this club",
+            variant: "destructive",
+          });
+          navigate(-1);
+          return;
+        }
+        fetchTeams();
+      } catch (error) {
+        toast({
+          title: "Unauthorized",
+          description: "You are not a member of this club",
+          variant: "destructive",
+        });
+        navigate(-1);
+      }
+    };
+    checkMembershipAndFetchData();
   }, [clubId]);
 
   if(loading) {
