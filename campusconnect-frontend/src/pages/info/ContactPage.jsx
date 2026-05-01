@@ -5,8 +5,7 @@ import { MapPin, Mail, Phone } from "lucide-react";
 
 const ContactPage = () => {
   const contactDetails = [
-    { icon: MapPin, title: "Address", detail: "123 Innovation Hub, Tech Park, Bangalore, India 560001" },
-    { icon: Mail, title: "Email", detail: "hello@campusconnect.com" },
+    { icon: Mail, title: "Email", detail: "campusconnector.team@gmail.com" },
     { icon: Phone, title: "Phone", detail: "+91 1800-123-4567" },
   ];
 

@@ -33,7 +33,8 @@ public class ClubFollowerService {
     // follow-unfollow
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "club_dashboard_stats", key = "#clubId")
+            @CacheEvict(value = "club_dashboard_stats", key = "#clubId", beforeInvocation = true),
+            @CacheEvict(value = "club_details", key = "#clubId", beforeInvocation = true)
     })
     public MessageResponseDto changeFollow(Long studentId, Long clubId, boolean follow) {
 

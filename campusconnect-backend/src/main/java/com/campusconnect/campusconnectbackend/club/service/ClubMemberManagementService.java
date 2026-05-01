@@ -85,4 +85,11 @@ public class ClubMemberManagementService {
 
         return new MessageResponseDto("ClubMember removed successfully");
     }
+
+    public String getRole(Long clubId) {
+
+        Long studentId = authService.getCurrentUserId();
+
+        return clubMemberRepository.findRoleByClubIdAndStudentId(clubId, studentId).toString();
+    }
 }

@@ -3,6 +3,7 @@ package com.campusconnect.campusconnectbackend.club.club_admin.controller;
 import com.campusconnect.campusconnectbackend.announcement.service.AnnouncementService;
 import com.campusconnect.campusconnectbackend.club.club_admin.service.ClubAdminService;
 import com.campusconnect.campusconnectbackend.club.club_member.service.ClubMemberService;
+import com.campusconnect.campusconnectbackend.club.service.ClubMemberManagementService;
 import com.campusconnect.campusconnectbackend.club.service.ClubService;
 import com.campusconnect.campusconnectbackend.club.repository.ClubRepository;
 import com.campusconnect.campusconnectbackend.club.club_team.service.ClubTeamService;
@@ -47,8 +48,16 @@ public class ClubAdminController {
     private final AuthService authService;
     private final ClubMemberService clubMemberService;
     private final EventRegistrationService eventRegistrationService;
+    private final ClubMemberManagementService clubMemberManagementService;
 
     /* Home */
+
+    // get-role
+    @GetMapping("/check-role")
+    public String getRole(@PathVariable Long clubId) {
+        return clubMemberManagementService.getRole(clubId);
+    }
+
 
     // get club-name
     @GetMapping("/club-name")
@@ -168,7 +177,8 @@ public class ClubAdminController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=event_registrations.xlsx")
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .body(excelData);
     }
 

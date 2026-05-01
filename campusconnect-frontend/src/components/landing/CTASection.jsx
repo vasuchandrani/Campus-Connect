@@ -48,22 +48,6 @@ const CTASection = () => {
             </Button>
           </div>
 
-          <div className="mt-12 pt-8 border-t border-border/50">
-            <p className="text-sm text-muted-foreground mb-4">
-              Trusted by leading institutions
-            </p>
-
-            <div className="flex flex-wrap items-center justify-center gap-8">
-              {["MIT", "Stanford", "Harvard", "Yale", "Princeton"].map((uni) => (
-                <span
-                  key={uni}
-                  className="text-lg font-semibold text-muted-foreground/50"
-                >
-                  {uni}
-                </span>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
 
@@ -79,11 +63,11 @@ const CTASection = () => {
             </button>
 
             <iframe
-              className="w-full h-[500px]"
-              src="https://drive.google.com/file/d/1KYezlOvG9dG_si8wyVmejUaaTnvtvMGu/preview"
-              allow="autoplay"
-              allowFullScreen
-            ></iframe>
+  className="w-full h-[500px]"
+  src="https://drive.google.com/file/d/1tBYrTQ13bBBB32nB8N_UMBczI57JWAij/preview"
+  allow="autoplay"
+  allowFullScreen
+></iframe>
 
           </div>
         </div>
