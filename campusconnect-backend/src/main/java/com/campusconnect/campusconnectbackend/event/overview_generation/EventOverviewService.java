@@ -95,7 +95,8 @@ public class EventOverviewService {
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "finished_events", key = "'college_' + @authService.getCurrentCollegeId()"),
-            @CacheEvict(value = "finished_clubEvents", key = "#clubId")
+            @CacheEvict(value = "finished_clubEvents", key = "#clubId"),
+            @CacheEvict(value = "finished_event",key = "#eventId")
     })
     public MessageResponseDto saveOverview(Long clubId, Long eventId, SaveOverviewRequestDto request, List<MultipartFile> images) {
 

@@ -210,7 +210,7 @@ public class EventService {
     }
 
     // get particular event
-    @Cacheable(value = "event", key = "#eventId", sync = true)
+    @Cacheable(value = "finished_event", key = "#eventId", sync = true)
     public EventResponseDto getEvent(Long eventId) {
 
         Event e = eventRepository.findEventById(eventId).orElseThrow(

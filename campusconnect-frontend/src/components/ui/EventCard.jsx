@@ -44,39 +44,44 @@ const EventCard = ({
           {event.description}
         </p>
 
-        <div className="flex gap-2">
-          {isRegistrationOpen(event) ? (
-            <Button
-              className="flex-1"
-              variant={isRegistered ? "outline" : "default"}
-              onClick={() => toggleRegistration(event.id)}
-              disabled={requesting}
-            >
-              {isRegistered ? (
-                <>
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Registered
-                </>
-              ) : (
-                "Register"
-              )}
-            </Button>
-          ) : (
-            <Button disabled className="flex-1">
-              {isRegistered ? "Registered" : "Registration Closed"}
-            </Button>
-          )}
+<div className="flex flex-col sm:flex-row gap-2 mt-4">
+  {/* PRIMARY BUTTON */}
+  {isRegistrationOpen(event) ? (
+    <Button
+      className="w-full sm:w-auto flex-1 sm:flex-none"
+      variant={isRegistered ? "outline" : "default"}
+      onClick={() => toggleRegistration(event.id)}
+      disabled={requesting}
+    >
+      {isRegistered ? (
+        <>
+          <CheckCircle className="w-4 h-4 mr-2" />
+          Registered
+        </>
+      ) : (
+        "Register"
+      )}
+    </Button>
+  ) : (
+    <Button
+      disabled
+      className="w-full sm:w-auto flex-1 sm:flex-none"
+    >
+      {isRegistered ? "Registered" : "Registration Closed"}
+    </Button>
+  )}
 
-          <Button
-            variant="outline"
-            className="flex-1"
-            disabled={requesting}
-            onClick={() => setSelectedEvent(event)}
-          >
-            <Eye className="w-4 h-4 mr-2" />
-            Details
-          </Button>
-        </div>
+  {/* SECONDARY BUTTON */}
+  <Button
+    variant="outline"
+    className="w-full sm:w-auto flex-1 sm:flex-none flex items-center justify-center"
+    disabled={requesting}
+    onClick={() => setSelectedEvent(event)}
+  >
+    <Eye className="w-4 h-4 mr-2" />
+    Details
+  </Button>
+</div>
       </CardContent>
     </Card>
   );

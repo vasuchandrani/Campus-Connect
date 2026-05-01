@@ -13,6 +13,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 
 @Configuration
 public class SecurityConfig {
@@ -27,11 +29,15 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
+                .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
+
+                        // allow CORS preflight requests
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         // public routes
                         .requestMatchers(
@@ -67,6 +73,10 @@ public class SecurityConfig {
 
                         .requestMatchers("/campus-connect/reviewer/**")
                         .hasRole("REVIEWER")
+
+                        // club routes are used by student accounts with club member/admin role mapping
+                        .requestMatchers("/campus-connect/clubs/**")
+                        .hasRole("STUDENT")
 
                         .anyRequest().authenticated()
                 )
