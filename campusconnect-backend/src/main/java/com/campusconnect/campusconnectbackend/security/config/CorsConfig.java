@@ -17,32 +17,37 @@ public class CorsConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         // Allowed Frontend Origins
-        config.setAllowedOrigins(List.of(
-                "http://localhost:5173",
-                "http://127.0.0.1:5173",
-                "https://campus-connect-seven-alpha.vercel.app",
-                "https://campus-conect.xyz",
-                "https://www.campus-conect.xyz",
-                "*"
-        ));
+//        config.setAllowedOrigins(List.of(
+//                "http://localhost:5173",
+//                "http://127.0.0.1:5173",
+//                "https://campus-connect-seven-alpha.vercel.app",
+//                "https://campus-conect.xyz",
+//                "https://www.campus-conect.xyz",
+//                "*"
+//        ));
+
+
+        config.setAllowedOriginPatterns(List.of("*"));
+        config.setAllowedMethods(List.of("*"));
+        config.setAllowedHeaders(List.of("*"));
 
         // Allowed HTTP Methods
-        config.setAllowedMethods(List.of(
-                "GET",
-                "POST",
-                "PUT",
-                "DELETE",
-                "PATCH",
-                "OPTIONS"
-        ));
-
-        // Allowed Headers
-        config.setAllowedHeaders(List.of(
-                "Authorization",
-                "Content-Type",
-                "Accept",
-                "Origin"
-        ));
+//        config.setAllowedMethods(List.of(
+//                "GET",
+//                "POST",
+//                "PUT",
+//                "DELETE",
+//                "PATCH",
+//                "OPTIONS"
+//        ));
+//
+//        // Allowed Headers
+//        config.setAllowedHeaders(List.of(
+//                "Authorization",
+//                "Content-Type",
+//                "Accept",
+//                "Origin"
+//        ));
 
         // Allow cookies / auth headers
         config.setAllowCredentials(true);
