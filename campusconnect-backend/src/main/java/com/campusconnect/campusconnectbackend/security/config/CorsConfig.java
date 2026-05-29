@@ -22,7 +22,8 @@ public class CorsConfig {
                 "http://127.0.0.1:5173",
                 "https://campus-connect-seven-alpha.vercel.app",
                 "https://campus-conect.xyz",
-                "https://www.campus-conect.xyz"
+                "https://www.campus-conect.xyz",
+                "*"
         ));
 
         // Allowed HTTP Methods
