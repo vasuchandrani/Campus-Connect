@@ -14,65 +14,87 @@ Most colleges rely on scattered emails, outdated notice boards, and unorganized 
 
 CampusConnect consolidates academic, cultural, and campus-wide communication by enabling:
 
-- 📰 A university digital newspaper, managed by approved student journalists, delivering daily campus updates.
-- 📚 A research paper publishing system, where students submit monthly research work for review and publication.
-- 📬 Clubs to publish targeted announcements.
-- 📝 Easy event registrations with pre-filled details.
-- 👩‍🎓 Students to follow only the clubs and sections relevant to them.
-- 🔐 Verified institution-based access for colleges, clubs, journalists, researchers, and students.
+-  A university digital newspaper, managed by approved student journalists, delivering daily campus updates.
+-  A research paper publishing system, where students submit monthly research work for review and publication by professors.
+-  Clubs to publish targeted announcements and college-wide official notices.
+-  Dynamic event registration with tiered pricing (free / paid / paid only for outsiders).
+-  Students to follow only the clubs and sections relevant to them.
+-  Verified institution-based access for colleges, clubs, journalists, professors, and students.
 
 ---
 
-## 👥 User Roles & Responsibilities
+## User Roles & Responsibilities
 
-### 🏫 **College**
-- Registers the institution on the platform  
-- Verifies clubs and student journalists  
-- Oversees the research paper selection and publishing cycle  
-- Ensures authenticity and smooth operation across the ecosystem  
+### **College Admin**
+- Registers the institution on the platform
+- Verifies clubs, student journalists, and professors
+- Oversees the research paper review and publishing cycle
+- Monitors campus-wide announcements, events, newspapers and research-paper activity
 
-### 🧑‍💼 **Club Admin**
-- Registers the club under their verified college  
-- Manages club profile and team members  
-- Publishes announcements, events, and updates  
-- Engages with subscribed students  
+### **Club Admin**
+- Registers the club under their verified college
+- Manages club profile, members, and teams
+- Publishes announcements, events, and updates
+- Create/Generate the overview of finished event
 
-### 🧑‍🤝‍🧑 **Club Members**
-- Access club features based on assigned permissions  
-- Support content posting, event management, or profile updates  
+### **Club Members**
+- Access club features
+- Support content posting, event coordination, and team activities
 
-### 👩‍🎓 **Students**
-- Join using verified institutional credentials  
-- Subscribe to clubs of interest  
-- Receive instant updates and notifications  
-- Register for events with one click  
-- Submit monthly research papers for evaluation and publication  
-- Read the university digital newspaper  
+### **Students**
+- Join using verified institutional credentials
+- Follow clubs of interest and receive prioritized updates
+- Register for events (free or paid) with one click
+- Submit monthly research papers for evaluation and publication
+- Read the university digital newspaper and college official notices
 
-### 📰 **Journalists (Student Role)**
-- Approved by the college  
-- Collect and publish campus news, academic updates, and event highlights  
-- Maintain the quality and accuracy of the university newspaper  
+### **Journalists (Student Role)**
+- Approved by the college
+- Publish campus news, academic updates, and event highlights
+- Maintain the quality and accuracy of the university newspaper
 
----
-
-## 📲 Key Features
-
-- 📰 University Digital Newspaper  
-- 📚 Monthly Research Paper Submission & Publication  
-- 🎯 Interest-Based Club Updates  
-- 🔔 Real-Time Notifications  
-- 📝 Dynamic Event Registration  
-- 🔐 Role-Based Access for All User Types  
-- 🏛️ Verified Multi-College Support  
-- 📦 Optimized Announcement & Event Management  
+### **Professors**
+- Added directly by the College Admin
+- Review and grade student research paper submissions
+- Linked to subjects relevant to their expertise
 
 ---
 
-## 🛠️ Current Status
+## Key Features
 
-🚧 The project is actively in development, expanding with new academic-focused and student-centric features.
+-  University Digital Newspaper
+-  Monthly Research Paper Submission & Review
+-  Interest-Based Club Follows & Updates
+-  Real-Time In-App Notifications
+-  Dynamic Event Registration with Custom Fields
+-  Excel Export of Event Registrations
+-  Role-Based Access for All User Types
+-  Verified Multi-College Support
 
 ---
+
+## Upcoming / Future Implementations
+
+These features are planned and will be added in upcoming releases:
+
+-  **Mobile App** — Native mobile experience with system-level push notifications (currently a PWA)
+-  **Cross-College Newspapers** — Browse and read newspapers published by other colleges
+-  **Cross-College Research Papers** — Discover and access research work from students across other institutions
+-  **College-Announcements** - College Official Notices with Priority Levels
+-  **All Event feature** - Tiered Event Pricing (Free / Paid / Paid for Outsiders)
+-  **Online Meetings (Club Dashboards)** — In-app video calls for club meetings
+-  **Club Broadcast** — Real-time broadcast/chat channel for club-wide announcements
+-  **Attendance Tab** — Self-tracking attendance calculator (75% projection) plus official attendance published by professors
+-  **Notify Todos** - Student Day Planner & Task Management
+
+---
+
+## 🚧 Current Status
+
+- Web is deployed on campus-conect.xyz.
+- further features and Mobile-app are in development.
+
+---
+
 
 **“Code. Create. Empower.”**

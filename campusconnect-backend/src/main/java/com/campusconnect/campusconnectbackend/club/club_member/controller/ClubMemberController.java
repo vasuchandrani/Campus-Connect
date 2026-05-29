@@ -3,6 +3,7 @@ package com.campusconnect.campusconnectbackend.club.club_member.controller;
 import com.campusconnect.campusconnectbackend.announcement.service.AnnouncementService;
 import com.campusconnect.campusconnectbackend.club.club_member.service.ClubMemberService;
 import com.campusconnect.campusconnectbackend.club.repository.ClubRepository;
+import com.campusconnect.campusconnectbackend.club.service.ClubMemberManagementService;
 import com.campusconnect.campusconnectbackend.club.service.ClubService;
 import com.campusconnect.campusconnectbackend.club.club_team.service.ClubTeamService;
 import com.campusconnect.campusconnectbackend.announcement.dto.req.AnnouncementPatchRequestDto;
@@ -40,8 +41,16 @@ public class ClubMemberController {
     private final ClubService clubService;
     private final EventOverviewService eventOverviewService;
     private final EventRegistrationService eventRegistrationService;
+    private final ClubMemberManagementService clubMemberManagementService;
 
     /* Home */
+
+    // get-role
+    @GetMapping("/check-role")
+    public String getRole(@PathVariable Long clubId) {
+        return clubMemberManagementService.getRole(clubId);
+    }
+
 
     // get club-name
     @GetMapping("/club-name")
