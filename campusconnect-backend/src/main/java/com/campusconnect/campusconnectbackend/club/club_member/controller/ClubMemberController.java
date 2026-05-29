@@ -132,7 +132,8 @@ public class ClubMemberController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=event_registrations.xlsx")
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+            .contentType(MediaType.parseMediaType(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .body(excelData);
     }
 
