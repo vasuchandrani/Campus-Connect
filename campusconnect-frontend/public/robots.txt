@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /auth
+Disallow: /campus-connect/
+
+Sitemap: https://campus-conect.xyz/sitemap.xml
