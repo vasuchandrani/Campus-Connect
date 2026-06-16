@@ -74,11 +74,6 @@ public class ResearchPaperService {
         return response;
     }
 
-    // clear cache
-    private void evictMyResearchesByStudent(Long studentId) {
-        String key = "campusconnect::myResearches::student_" + studentId;
-        redisTemplate.delete(key);
-    }
 
     // get my research-papers
     @Cacheable(value = "myResearches", key = "'student_' + #studentId", sync = true)
@@ -200,6 +195,14 @@ public class ResearchPaperService {
         return getDtoList(researches);
     }
 
+    public Long getStudentId(Long researchId) {
+        return researchPaperRepository.findById(researchId)
+                .orElseThrow()
+                .getStudent()
+                .getId();
+    }
+
+
     // research paper accepted
     @Transactional
     @Caching(evict = {
@@ -209,6 +212,10 @@ public class ResearchPaperService {
             @CacheEvict(value = "pending_researches", key = "'reviewer_' + #reviewerId"),
             @CacheEvict(value = "reviewed_researches", key = "'reviewer_' + #reviewerId"),
             @CacheEvict(value = "reviewer_stats", key = "#reviewerId"),
+            @CacheEvict(
+                    value = "myResearches",
+                    key = "'student_' + @researchPaperService.getStudentId(#researchId)"
+            )
     })
     public MessageResponseDto acceptResearch(Long researchId, ReviewRequestDto request, Long reviewerId) {
 
@@ -227,7 +234,6 @@ public class ResearchPaperService {
 
         researchPaperRepository.save(research);
 
-        evictMyResearchesByStudent(research.getStudent().getId());
 
         studentRepoService.evictStudentResearchCaches(research.getStudent().getId());
 
@@ -242,9 +248,12 @@ public class ResearchPaperService {
             @CacheEvict(value = "pending_researches", key = "'reviewer_' + #reviewerId"),
             @CacheEvict(value = "reviewed_researches", key = "'reviewer_' + #reviewerId"),
             @CacheEvict(value = "reviewer_stats", key = "#reviewerId"),
+            @CacheEvict(
+                    value = "myResearches",
+                    key = "'student_' + @researchPaperService.getStudentId(#researchId)"
+            )
     })
     public MessageResponseDto rejectResearch(Long researchId, ReviewRequestDto request, Long reviewerId) {
-
         // find reviewer
         Reviewer reviewer = reviewerRepository.findById(reviewerId).orElseThrow(
                 () -> new RuntimeException("Reviewer not found")
@@ -257,10 +266,10 @@ public class ResearchPaperService {
         research.setReviewer(reviewer);
         research.setReviewerFeedback(request.getFeedback());
         research.setStatus("REJECTED");
+        Long studentId=research.getStudent().getId();
 
         researchPaperRepository.save(research);
 
-        evictMyResearchesByStudent(research.getStudent().getId());
 
         studentRepoService.evictStudentResearchCaches(research.getStudent().getId());
 

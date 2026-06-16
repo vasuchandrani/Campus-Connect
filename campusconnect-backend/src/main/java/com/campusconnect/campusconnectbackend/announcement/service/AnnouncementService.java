@@ -34,7 +34,6 @@ public class AnnouncementService {
     private final AnnouncementRepository announcementRepository;
     private final ClubService clubService;
     private final ClubFollowerService clubFollowerService;
-    private final RedisTemplate<Object, Object> redisTemplate;
     private final AuthService authService;
 
     // get DTO
@@ -63,33 +62,6 @@ public class AnnouncementService {
             response.add(dto);
         }
         return response;
-    }
-
-    // eviction method for clear notifications cache
-    private void evictNotificationsByCollege(Long collegeId) {
-
-        String pattern = "campusconnect::notifications::college_" + collegeId + "_student_*";
-
-        List<String> keysToDelete = new ArrayList<>();
-        redisTemplate.executeWithStickyConnection(connection -> {
-            try (Cursor<byte[]> cursor = connection.keyCommands().scan(
-                    ScanOptions.scanOptions()
-                            .match(pattern)
-                            .count(100)
-                            .build()
-            )) {
-                while (cursor.hasNext()) {
-                    keysToDelete.add(new String(cursor.next()));
-                }
-            } catch (Exception e) {
-                throw new RuntimeException("Error while scanning Redis keys", e);
-            }
-            return null;
-        });
-
-        if (!keysToDelete.isEmpty()) {
-            redisTemplate.delete(keysToDelete);
-        }
     }
 
     // get all announcement of college
@@ -184,10 +156,6 @@ public class AnnouncementService {
         // save in db
         announcementRepository.save(announcement);
 
-        // get collegeId
-        Long collegeId = announcement.getClub().getCollege().getId();
-        // manually clear only particular college notifications
-        evictNotificationsByCollege(collegeId);
 
         return new MessageResponseDto("Announcement created successfully");
     }
@@ -215,11 +183,6 @@ public class AnnouncementService {
 
         announcementRepository.save(ann);
 
-        // get collegeId
-        Long collegeId = ann.getClub().getCollege().getId();
-        // manually clear only particular college notifications
-        evictNotificationsByCollege(collegeId);
-
         return new MessageResponseDto("Announcement updated successfully");
     }
 
@@ -235,8 +198,6 @@ public class AnnouncementService {
         Announcement announcement = announcementRepository.findById(annId).orElseThrow(
                 () -> new RuntimeException("Announcement not found")
         );
-
-        evictNotificationsByCollege(announcement.getClub().getCollege().getId());
 
         announcementRepository.delete(announcement);
 
