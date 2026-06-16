@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState,useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
@@ -52,7 +52,7 @@ const ClubDetailAdminPage = () => {
 
 
   // Fetch club details
-  const fetchClubDetails = () => {
+  const fetchClubDetails = useCallback(() => {
     setLoading(true);
     const token = localStorage.getItem("authToken");
 
@@ -84,7 +84,7 @@ const ClubDetailAdminPage = () => {
         setTeams(data.teams);
         setClubMembers(data.members);
       })
-      .catch((err) => {
+      .catch(() => {
         toast({
           title: "Error",
           description: "Failed to load club details",
@@ -93,12 +93,12 @@ const ClubDetailAdminPage = () => {
       }).finally(() => {
         setLoading(false);
       });
-  };
+  }, [baseUrl]);
 
   //load club details on component mount and whenever clubId changes
   useEffect(() => {
     fetchClubDetails();
-  }, [clubId]);
+  }, [clubId, fetchClubDetails]);
 
   if(loading) {
     return (
@@ -140,7 +140,7 @@ const ClubDetailAdminPage = () => {
 
         {/* Header */}
         <div className="relative rounded-2xl overflow-hidden">
-          <img src={club.logoUrl} className="w-full h-56 object-cover" />
+          <img src={club.logoUrl} className="w-full h-56 object-cover" alt="Club Logo" />
           <div className="absolute inset-0 bg-black/60" />
           <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
             <div>
@@ -250,7 +250,7 @@ const ClubDetailAdminPage = () => {
               ) : (
             events.map((e) => (
               <Card key={e.id} className="mb-3">
-                <img src={e.image} className="h-32 w-full object-cover" />
+                <img src={e.image} className="h-32 w-full object-cover" alt="Event Image" />
                 <CardContent className="p-4">
                   <p className="font-semibold">{e.title}</p>
                   <p className="text-sm text-muted-foreground flex items-center gap-2">
@@ -278,7 +278,7 @@ const ClubDetailAdminPage = () => {
                 <CardContent className="p-4">
                   {a.priority === "high" && <Badge variant="destructive">Important</Badge>}
                   <p className="font-semibold">{a.title}</p>
-                  <p className="text-sm text-muted-foreground">{a.content}</p>
+                  <p className="text-sm text-muted-foreground">{a.content.substring(0, 100)}{a.content.length > 100 && "..."}</p>
                 </CardContent>
               </Card>
             )))}

@@ -6,7 +6,7 @@ import { Label } from "../../components/ui/Label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/Tabs";
 import { Shield, User } from "lucide-react";
 import { journalistNavItems } from "../../config/Navigation";
-import {  useEffect, useState } from "react";
+import {  useEffect, useState,useCallback } from "react";
 import { toast } from "../../hooks/use-toast";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -46,7 +46,7 @@ const handleChange = (e) => {
   };
 
   //get Profile
-  const getProfile = async () => {
+  const getProfile = useCallback(async () => {
     try {
       const response = await fetch(
         `${baseUrl}/profile`,
@@ -67,11 +67,11 @@ const handleChange = (e) => {
     } catch (error) {
       console.error("Failed to fetch profile:", error);
     }
-  }
+  }, [baseUrl]);
 
   useEffect(() => {
     getProfile();
-  }, []);
+  }, [getProfile]);
 
   //update profile
 const saveChanges = async () => {
@@ -187,7 +187,7 @@ const saveChanges = async () => {
         });
       }
 
-    } catch (error) {
+    } catch {
       
       toast({
         title: "Error",
@@ -268,8 +268,6 @@ const saveChanges = async () => {
                       onChange={handleChange}
                     />
                   </div>
-
-                  
 
                 </div>
 

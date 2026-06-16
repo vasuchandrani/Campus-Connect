@@ -6,7 +6,7 @@ import { BellOff, Heart } from "lucide-react";
 import { CalendarDays, UserCheck, UsersRound } from "lucide-react";
 import { clubAdminNavItems } from "../../config/Navigation";
 import { useParams } from "react-router-dom";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "../../hooks/use-toast";
 import { ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -24,7 +24,7 @@ const ClubAdminDashboard = () => {
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/admin`;
 
   //---------Navs------------//
-  const updatenavItems = useCallback(() => {
+  const updatenavItems = useMemo(() => {
     return clubAdminNavItems.map((item) => {
       return {
         ...item,
@@ -49,7 +49,7 @@ const ClubAdminDashboard = () => {
   });
 
   //1) Fetch club details including stats, announcements, teams etc.
-  const fetchClubName = async () => {
+  const fetchClubName = useCallback(async () => {
     try {
       const res = await fetch(`${baseUrl}/club-name`, {
         method: "GET",
@@ -60,17 +60,17 @@ const ClubAdminDashboard = () => {
 
       const text = await res.text();
       setClubName(text);
-    } catch (err) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to fetch club details",
         status: "error",
       });
     }
-  };
+  }, [baseUrl]);
 
   //2) Fetch stats
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const res = await fetch(`${baseUrl}/stats`, {
         method: "GET",
@@ -78,6 +78,10 @@ const ClubAdminDashboard = () => {
           Authorization: `Bearer ${localStorage.getItem("authToken")}`,
         },
       });
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch");
+      }
 
       const data = await res.json();
 
@@ -87,17 +91,17 @@ const ClubAdminDashboard = () => {
         members: data.members,
         teams: data.teams,
       });
-    } catch (err) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to fetch stats",
         status: "error",
       });
     }
-  };
+  }, [baseUrl]);
 
   //3) Fetch teams
-  const fetchTeams = async () => {
+  const fetchTeams = useCallback(async () => {
     setLoading((prev) => ({ ...prev, teams: true }));
 
     try {
@@ -110,7 +114,7 @@ const ClubAdminDashboard = () => {
 
       const data = await res.json();
       setTeams(data);
-    } catch (err) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to fetch teams",
@@ -119,10 +123,10 @@ const ClubAdminDashboard = () => {
     } finally {
       setLoading((prev) => ({ ...prev, teams: false }));
     }
-  };
+  }, [baseUrl]);
 
   //4) Fetch recent announcements
-  const fetchClubAnnouncements = async () => {
+  const fetchClubAnnouncements = useCallback(async () => {
     setLoading((prev) => ({ ...prev, announcements: true }));
 
     try {
@@ -135,7 +139,7 @@ const ClubAdminDashboard = () => {
 
       const data = await res.json();
       setClubAnnouncements(data);
-    } catch (err) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to fetch announcements",
@@ -144,7 +148,7 @@ const ClubAdminDashboard = () => {
     } finally {
       setLoading((prev) => ({ ...prev, announcements: false }));
     }
-  };
+  }, [baseUrl]);
 
   // Fetch all necessary data on component mount and whenever clubId changes
   useEffect(() => {
@@ -171,7 +175,7 @@ const ClubAdminDashboard = () => {
 
           fetchData();
         }
-      } catch (error) {
+      } catch {
         toast({
           title: "Unauthorized",
           description: "You are not an admin of this club",
@@ -182,10 +186,10 @@ const ClubAdminDashboard = () => {
       }
     };
     checkAdminAndFetchData();
-  }, [clubId]);
+  }, [clubId, isClubAdmin, navigate,fetchClubAnnouncements, fetchStats, fetchTeams, fetchClubName]);
 
   return (
-    <DashboardLayout navItems={updatenavItems()} title="Club Dashboard">
+    <DashboardLayout navItems={updatenavItems} title="Club Dashboard">
       <div className="space-y-6">
         {/* Club Header */}
         <div className="bg-gradient-to-r from-primary/10 via-accent/10 to-primary/5 rounded-2xl p-6 border border-primary/20">

@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { collegeAdminNavItems } from "../../config/Navigation";
 import { marked } from "marked";
-import { useMemo,useEffect,useState, useCallback } from "react";
+import { useEffect,useState} from "react";
 import { toast } from "../../hooks/use-toast";
 import { useAuth } from "../../contexts/AuthContext";
 import Loading from "../../components/ui/Loading";
@@ -42,16 +42,15 @@ const AdminEventDetailPage = () => {
 
 
   //formatDate function
-  const formatDate = useCallback((dateTime) => {
+  const formatDate = (dateTime) => {
     if (!dateTime) return { date: "", time: "" };
     const [date, time] = dateTime.split("T");
     return { date, time: time.substring(0, 5) };
-  }, []);
+  };
 
-  //fetch event details
-  const fetchEventDetails = () => {
-    const token = localStorage.getItem("authToken");
-    setLoading(true);
+  //load event details on component mount
+  useEffect(() => {
+        const token = localStorage.getItem("authToken");
     fetch(baseUrl, {
       method: "GET",
       headers: {
@@ -77,20 +76,13 @@ const AdminEventDetailPage = () => {
       }).finally(() => {
         setLoading(false);
       });
-  };
-
-  //load event details on component mount
-  useEffect(() => {
-    fetchEventDetails();
-  }, []);
+  }, [baseUrl]);
 
   const navItems = collegeAdminNavItems;
 
-  // Render markdown overview
-  const renderedOverview = useMemo(() => {
-    if (!event?.overview) return "";
-    return marked.parse(event.overview.trim());
-  }, [event?.overview]);
+const renderedOverview = event?.overview
+  ? marked.parse(event.overview.trim())
+  : "";
 
   if(loading){
     return (
@@ -145,6 +137,7 @@ const AdminEventDetailPage = () => {
             <CardContent className="p-4 flex items-center gap-3 pt-4">
               <Calendar className="w-5 h-5 text-primary" />
               <div>
+                {console.log(event)}
                 <p className="text-sm text-muted-foreground">Date</p>
                 <p className="font-medium">{formatDate(event.startTime).date}</p>
               </div>

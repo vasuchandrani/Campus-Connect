@@ -1,4 +1,4 @@
-import { useState ,useMemo,useEffect} from "react";
+import { useState ,useMemo,useEffect,useCallback} from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
@@ -40,7 +40,7 @@ const AdminNewspaperPage = () => {
     },[navigate,routeProtection]);
 
   // Fetch published articles
-  const fetchPublishedArticles = async () => {
+  const fetchPublishedArticles = useCallback(async () => {
     setLoading(true);
     await fetch(baseUrl+"/news-papers", {
       method: "GET",
@@ -57,12 +57,12 @@ const AdminNewspaperPage = () => {
         console.error("Error fetching published articles:", err);
       });
       setLoading(false);
-  };
+  },[baseUrl]);
 
   //load published articles on component mount
   useEffect(() => {
     fetchPublishedArticles();
-  }, []); 
+  }, [fetchPublishedArticles]); 
 
   // Handle Unpublish Article
   const handleUnpublish = async (articleId) => {
@@ -80,7 +80,7 @@ const AdminNewspaperPage = () => {
           toast({
             title: "Success",
             description: data.message,
-            veriant: "success",
+            variant: "success",
           });
           // Refresh the list of published articles
           fetchPublishedArticles();
@@ -97,11 +97,13 @@ const AdminNewspaperPage = () => {
       }).finally(() => setRequesting(false));
   };
 
-  //  Compile Markdown When Article Changes
-  const renderedContent = useMemo(() => {
-    if (!viewArticle?.content) return "";
-    return marked.parse(viewArticle.content.trim());
-  }, [viewArticle?.content]);
+  // For rendering markdown content of the article
+const content = viewArticle?.content;
+
+const renderedContent = useMemo(() => {
+  if (!content) return "";
+  return marked.parse(content.trim());
+}, [content]);
 
   //for search functionality
   const filteredArticles = useMemo(() => {
@@ -160,7 +162,7 @@ const AdminNewspaperPage = () => {
         {/* Articles Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredArticles.length === 0 ? (
-            <div className="col-span-full w-full">
+            <div className="col-span-full w-full mt-10">
             <EmptyState
               className="col-span-full"
               icon={<Newspaper className="w-8 h-8 text-muted-foreground mx-auto mb-4" />}

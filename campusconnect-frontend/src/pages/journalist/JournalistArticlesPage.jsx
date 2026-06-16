@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect,useCallback } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
@@ -51,7 +51,7 @@ const JournalistArticlesPage = () => {
     }
   }, [navigate, routeProtection]);
   //fetch published
-  const fetchPublishedArticles = async () => {
+  const fetchPublishedArticles = useCallback(async () => {
     setLoading((prev) => ({ ...prev, published: true }));
 
     try {
@@ -76,10 +76,10 @@ const JournalistArticlesPage = () => {
     } finally {
       setLoading((prev) => ({ ...prev, published: false }));
     }
-  };
+  }, [baseUrl]);
 
   //fetch drafts
-  const fetchDraftArticles = async () => {
+  const fetchDraftArticles = useCallback(async () => {
     setLoading((prev) => ({ ...prev, drafts: true }));
     try {
       const res = await fetch(`${baseUrl}/newspapers/drafts`, {
@@ -103,14 +103,14 @@ const JournalistArticlesPage = () => {
     } finally {
       setLoading((prev) => ({ ...prev, drafts: false }));
     }
-  };
+  }, [baseUrl]);
 
   //load published and draft articles on component mount
   useEffect(() => {
     const fetchAllArticles = async () => {
       try {
         await Promise.all([fetchPublishedArticles(), fetchDraftArticles()]);
-      } catch (err) {
+      } catch {
         toast({
           title: "Error",
           description: "Failed to fetch articles",
@@ -120,7 +120,7 @@ const JournalistArticlesPage = () => {
     };
 
     fetchAllArticles();
-  }, []);
+  }, [fetchPublishedArticles, fetchDraftArticles]);
   //  edit draft article
   const handleEdit = (article) => {
     navigate("/campus-connect/journalist/write", {

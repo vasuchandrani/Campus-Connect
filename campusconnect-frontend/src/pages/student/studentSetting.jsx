@@ -17,7 +17,7 @@ import {
 } from "../../components/ui/Tabs";
 import { Shield, User } from "lucide-react";
 import { studentNavItems } from "../../config/Navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState,useCallback } from "react";
 import { toast } from "../../hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
@@ -38,7 +38,7 @@ const StudentSetting = () => {
   //baseUrl
   const baseUrl= `${import.meta.env.VITE_BACKEND_URL}/campus-connect/student`;
 
-        const navigate = useNavigate();
+    const navigate = useNavigate();
       const { routeProtection } = useAuth();
       useEffect(() => {
         if (!routeProtection("STUDENT")) {
@@ -64,7 +64,7 @@ const StudentSetting = () => {
       });
       return;
     }
-    setRequesting(false);
+    setRequesting(true);
     await fetch(`${import.meta.env.VITE_BACKEND_URL}/campus-connect/security/change-pwd`, {
       method: "PATCH",
       headers: {
@@ -78,9 +78,9 @@ const StudentSetting = () => {
       }),
     })
     .then((res) => res.json())
-      .then((res) => {
+      .then(async (res) => {
         if (res.ok) {
-          const data=res.json();
+          const data=await res.json();
           if(data.message==="Your password changed successfully!"){
             toast({
               title: "Success",
@@ -127,7 +127,7 @@ const StudentSetting = () => {
   };
 
   //get student info
-   const getStudentInfo = () => {
+   const getStudentInfo = useCallback(() => {
       fetch(`${baseUrl}/profile`, {
         method: "GET",
         headers: {
@@ -144,7 +144,7 @@ const StudentSetting = () => {
         .catch((err) => {
           console.error("Failed to fetch student info:", err);
         }); 
-  };
+  }, [baseUrl]);
 
   //update profile
   const saveChanges = async () => {
@@ -203,7 +203,7 @@ const StudentSetting = () => {
 
   useEffect(() => {
     getStudentInfo();
-  }, []);
+  }, [getStudentInfo]);
 
   return (
     <DashboardLayout navItems={studentNavItems} title="Settings" bell={true}>

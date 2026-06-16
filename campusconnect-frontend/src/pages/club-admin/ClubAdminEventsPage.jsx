@@ -43,7 +43,7 @@ const ClubAdminEventsPage = () => {
   const navigate = useNavigate();
 
   //---------Navs------------//
-  const updatenavItems = useCallback(() => {
+  const updatenavItems = useMemo(() => {
     return clubAdminNavItems.map((item) => ({
       ...item,
       href: item.href.replace(":clubId", clubId),
@@ -194,7 +194,7 @@ const ClubAdminEventsPage = () => {
     return "FINISHED";
   };
 
-  const fetchPastEvents = async () => {
+  const fetchPastEvents = useCallback(async () => {
     try {
       setLoading((prev) => ({ ...prev, past: true }));
       const res = await fetch(`${baseUrl}/events/finished`, {
@@ -205,7 +205,7 @@ const ClubAdminEventsPage = () => {
 
       const data = await res.json();
       setPastEvents(data);
-    } catch (err) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to fetch events",
@@ -214,9 +214,9 @@ const ClubAdminEventsPage = () => {
     } finally {
       setLoading((prev) => ({ ...prev, past: false }));
     }
-  };
+  }, [baseUrl]);
 
-  const fetchUpcomingEvents = async () => {
+  const fetchUpcomingEvents = useCallback(async () => {
     try {
       setLoading((prev) => ({ ...prev, upcoming: true }));
       const res = await fetch(`${baseUrl}/events/active`, {
@@ -227,7 +227,7 @@ const ClubAdminEventsPage = () => {
 
       const data = await res.json();
       setUpcomingEvents(data);
-    } catch (err) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to fetch upcoming events",
@@ -236,12 +236,12 @@ const ClubAdminEventsPage = () => {
     } finally {
       setLoading((prev) => ({ ...prev, upcoming: false }));
     }
-  };
+  },[baseUrl]);
 
   // Fetch club events
-  const fetchClubEvents = async () => {
+  const fetchClubEvents = useCallback(async () => {
     await Promise.all([fetchPastEvents(), fetchUpcomingEvents()]);
-  };
+  }, [fetchPastEvents, fetchUpcomingEvents]);
 
   //remove Image
   const removeImage = (index) => {
@@ -486,7 +486,7 @@ const ClubAdminEventsPage = () => {
           });
         }
       })
-      .catch((err) => {
+      .catch(() => {
         toast({
           title: "Error",
           description: "Failed to delete event",
@@ -513,7 +513,7 @@ const ClubAdminEventsPage = () => {
           return;
         }
         fetchClubEvents();
-      } catch (error) {
+      } catch  {
         toast({
           title: "Unauthorized",
           description: "You are not an admin of this club",
@@ -525,7 +525,7 @@ const ClubAdminEventsPage = () => {
       }
       checkAdminAndFetchData();
       
-  }, [clubId]);
+  }, [clubId,fetchClubEvents, isClubAdmin, navigate]);
 
   //sort events - live events first, then upcoming sorted by registration status and date
   const sortedEvents = useMemo(() => {
@@ -584,7 +584,7 @@ const ClubAdminEventsPage = () => {
           });
         }
       })
-      .catch((err) => {
+      .catch(() => {
         toast({
           title: "Error",
           description: "Failed to generate overview",
@@ -647,7 +647,7 @@ const ClubAdminEventsPage = () => {
 
         fetchClubEvents();
       }
-    } catch (err) {
+    } catch{
       toast({
         title: "Error",
         description: "Failed to save overview",
@@ -763,7 +763,7 @@ const ClubAdminEventsPage = () => {
   //---------------------------UI---------------------------//
 
   return (
-    <DashboardLayout navItems={updatenavItems()} title="Events">
+    <DashboardLayout navItems={updatenavItems} title="Events">
       <div className="space-y-6">
         {/* HEADER */}
         <div className="flex justify-between">
@@ -842,6 +842,7 @@ const ClubAdminEventsPage = () => {
                   <img
                     src={URL.createObjectURL(newEvent.image)}
                     className="w-full h-40 object-cover rounded-lg"
+                    alt="Event Preview"
                   />
                 )}
 
@@ -1115,6 +1116,7 @@ const ClubAdminEventsPage = () => {
                   <>
                     {selectedEvent.image && (
                       <img
+                        alt="Event Image"
                         src={selectedEvent.image}
                         className="w-full h-48 object-cover rounded-lg"
                       />
@@ -1213,6 +1215,7 @@ const ClubAdminEventsPage = () => {
                     {/* Image Preview */}
                     {selectedEvent.image && (
                       <img
+                        alt="Event Preview"
                         src={
                           typeof selectedEvent.image === "string"
                             ? selectedEvent.image
@@ -1530,6 +1533,7 @@ Write your markdown here..."
                     {allImages.map((img, index) => (
                       <div key={index} className="relative">
                         <img
+                          alt={`Overview ${index + 1}`}
                           src={
                             typeof img === "string"
                               ? img
@@ -1638,6 +1642,7 @@ Write your markdown here..."
                             : URL.createObjectURL(img)
                         }
                         className="w-full h-24 object-cover rounded-lg"
+                        alt={`Overview ${index + 1}`}
                       />
                     ))}
                   </div>

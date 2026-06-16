@@ -4,7 +4,7 @@ import { Badge } from "../../components/ui/Badge";
 import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/Avatar";
 import { clubMemberNavItems } from "../../config/Navigation";
 import { useParams } from "react-router-dom";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "../../hooks/use-toast";
 import Loading from "../../components/ui/Loading";
 import EmptyState from "../../components/ui/EmptyState";
@@ -23,7 +23,7 @@ const ClubMembersPage = () => {
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/member`;
 
   //---------------------------Nav----------------------------//
-  const updateNavItems = useCallback(() => {
+  const updateNavItems = useMemo(() => {
     return clubMemberNavItems.map((item) => ({
       ...item,
       href: item.href.replace(":clubId", clubId),
@@ -34,18 +34,24 @@ const ClubMembersPage = () => {
   const [clubMembers, setClubMembers] = useState([]);
 
   // Fetch club members
-  const fetchClubMembers =async () => {
+  const fetchClubMembers =useCallback(() => {
     const token = localStorage.getItem("authToken");
     setLoading(true);
 
-    await fetch(`${baseUrl}/members`, {
+    return fetch(`${baseUrl}/members`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
     })
-      .then(async (res) => await res.json())
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to fetch club members");
+        }
+        return res;
+      })
+      .then( (res) => res.json())
       .then((data) => {
         setClubMembers(data);
       })
@@ -56,7 +62,7 @@ const ClubMembersPage = () => {
           variant: "destructive",
         });
       }).finally(() => setLoading(false));
-  };
+  }, [baseUrl]);
 
   //load members on component mount
   useEffect(() => {
@@ -73,9 +79,9 @@ const ClubMembersPage = () => {
           return;
         }
         else{
-          fetchClubMembers();
+          await fetchClubMembers();
         }
-      } catch (error) {
+      } catch{
         toast({
           title: "Unauthorized",
           description: "You are not a member of this club",
@@ -86,11 +92,11 @@ const ClubMembersPage = () => {
        }
       }
       checkMembershipAndFetchData();
-  }, []);
+  }, [fetchClubMembers, isClubMember, clubId, navigate]);
 
   if(loading){
     return (
-      <DashboardLayout navItems={updateNavItems()} title="Loading Members...">
+      <DashboardLayout navItems={updateNavItems} title="Loading Members...">
         <div className="text-center py-12">
           <Loading />
         </div>
@@ -99,7 +105,7 @@ const ClubMembersPage = () => {
   }
   if(!loading && clubMembers.length === 0){
     return (
-      <DashboardLayout navItems={updateNavItems()} title="Members">
+      <DashboardLayout navItems={updateNavItems} title="Members">
         <div className="py-12">
           <EmptyState
             title="No Members"
@@ -113,7 +119,7 @@ const ClubMembersPage = () => {
 
   //----------------------------UI----------------------------//
   return (
-    <DashboardLayout navItems={updateNavItems()} title="Members">
+    <DashboardLayout navItems={updateNavItems} title="Members">
       <div className="space-y-6">
 
         {/* Header */}

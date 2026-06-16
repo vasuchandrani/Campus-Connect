@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState,useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
@@ -62,7 +62,7 @@ const ClubDetailPage = () => {
   }, [navigate, routeProtection]);
 
   // Fetch club details
-  const fetchClubDetails = async () => {
+  const fetchClubDetails = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -104,7 +104,7 @@ const ClubDetailPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [baseUrl, clubId]);
 
   //change follow status
   const toggleFollow = async () => {
@@ -154,7 +154,7 @@ const ClubDetailPage = () => {
   // Load club details on component mount and when clubId changes
   useEffect(() => {
     fetchClubDetails();
-  }, [clubId]);
+  }, [clubId,fetchClubDetails]);
 
   if (loading) {
     return (
@@ -195,7 +195,7 @@ const ClubDetailPage = () => {
 
         {/* Header */}
         <div className="relative rounded-2xl overflow-hidden">
-          <img src={club.logoUrl} className="w-full h-56 object-cover" />
+          <img src={club.logoUrl} className="w-full h-56 object-cover" alt="Club Logo" />
           <div className="absolute inset-0 bg-black/60" />
           <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
             <div>
@@ -322,7 +322,7 @@ const ClubDetailPage = () => {
               ) : (
                 events.map((e) => (
                   <Card key={e.id} className="mb-3">
-                    <img src={e.image} className="h-32 w-full object-cover" />
+                    <img src={e.image} className="h-32 w-full object-cover" alt="Event Image" />
                     <CardContent className="p-4">
                       <p className="font-semibold">{e.title}</p>
                       <p className="text-sm text-muted-foreground flex items-center gap-2">

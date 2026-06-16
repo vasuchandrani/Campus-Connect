@@ -40,17 +40,23 @@ const ClubMemberEventDetailPage = () => {
   }, []);
 
   //fetch Event Details
-  const fetchEventDetails = async () => {
+  const fetchEventDetails = useCallback(() => {
     setLoading(true);
     const token = localStorage.getItem("authToken");
 
-    await fetch(baseUrl, {
+    return fetch(baseUrl, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
     })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to fetch event details");
+        }
+        return res;
+      })
       .then(async (res) => await res.json())
       .then((data) => {
         setEvent(data);
@@ -62,7 +68,7 @@ const ClubMemberEventDetailPage = () => {
           variant:"destructive",
         });
       }).finally(() => setLoading(false));
-  };
+  }, [baseUrl]);
 
   //load event details on component mount
   useEffect(() => {
@@ -93,10 +99,10 @@ const ClubMemberEventDetailPage = () => {
     checkMembershipAndFetchData();
 
     
-  }, []);
+  }, [fetchEventDetails, isClubMember, clubId, navigate]);
 
   //--------------Nav---------------//
-  const navItems = useCallback(() => {
+  const navItems = useMemo(() => {
     return clubMemberNavItems.map((item) => ({
       ...item,
       href: item.href.replace(":clubId", clubId),
@@ -107,21 +113,21 @@ const ClubMemberEventDetailPage = () => {
   const renderedOverview = useMemo(() => {
     if (!event?.overview) return "";
     return marked.parse(event.overview.trim());
-  }, [event?.overview]);
+  }, [event]);
 
   // If event is not found, show a message
   if(loading){
     return (
-      <DashboardLayout navItems={navItems()} title="Loading Event...">
+      <DashboardLayout navItems={navItems} title="Loading Event...">
         <div className="text-center py-12">
           <Loading />
         </div>
       </DashboardLayout>
     );
   }
-  if (!event) {
+  if (!event || !event.id) {
     return (
-      <DashboardLayout navItems={navItems()} title="Event Not Found">
+      <DashboardLayout navItems={navItems} title="Event Not Found">
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold mb-2">Event not found</h2>
           <Button onClick={() => navigate(-1)}>Go Back</Button>
@@ -131,7 +137,7 @@ const ClubMemberEventDetailPage = () => {
   }
 
   return (
-    <DashboardLayout navItems={navItems()} title={event.title}>
+    <DashboardLayout navItems={navItems} title={event.title}>
       <div className="space-y-6">
         <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
           <ArrowLeft className="w-4 h-4" /> Back

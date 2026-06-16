@@ -56,7 +56,7 @@ const CollegeAdminLogin = ({
     })
       .then((response) => response.json())
       .then((data) => {
-        if (data.message === "your password changed successfully") {
+        if (data.message === "Your password changed successfully") {
           toast({
             title: "Success",
             description: "Your password has been reset successfully. Please login with your new password.",
@@ -93,7 +93,7 @@ const CollegeAdminLogin = ({
     })
       .then((response) => response.json())
       .then((data) => {
-        if(data.message === "verification code sent successfully"){ 
+        if(data.message === "Verification code sent successfully"){ 
           toast({
             title: "Success",
             description: "OTP sent to " + resetEmail,

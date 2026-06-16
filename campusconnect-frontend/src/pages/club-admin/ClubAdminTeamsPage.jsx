@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import {
   Card,
@@ -46,7 +46,7 @@ const ClubAdminTeamsPage = () => {
   const token = localStorage.getItem("authToken");
 
   //---------Navs------------//
-  const updatenavItems = useCallback(() => {
+  const updatenavItems = useMemo(() => {
     return clubAdminNavItems.map((item) => ({
       ...item,
       href: item.href.replace(":clubId", clubId),
@@ -64,7 +64,7 @@ const ClubAdminTeamsPage = () => {
   const [loading, setLoading] = useState(true);
 
   // Fetch teams for this club
-  const fetchTeams = async () => {
+  const fetchTeams = useCallback(async () => {
     try {
       const res = await fetch(`${baseUrl}/teams`, {
         headers: {
@@ -74,16 +74,16 @@ const ClubAdminTeamsPage = () => {
       });
       const data = await res.json();
       setTeams(data);
-    } catch (err) {
+    } catch{
       toast({
         title: "Error",
         description: "Failed to fetch teams",
         variant: "destructive",
       });
     }
-  };
+  }, [baseUrl, token]);
 
-  const fetchClubMembers = async () => {
+  const fetchClubMembers = useCallback(async () => {
     try {
       const res = await fetch(`${baseUrl}/members`, {
         headers: {
@@ -93,14 +93,14 @@ const ClubAdminTeamsPage = () => {
       });
       const data = await res.json();
       setClubMembers(data);
-    } catch (err) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to fetch club members",
         variant: "destructive",
       });
     }
-  };
+  }, [baseUrl, token]);
 
   // Create a new team
   const handleCreateTeam = async () => {
@@ -274,7 +274,7 @@ const ClubAdminTeamsPage = () => {
       try {
         setLoading(true);
         await Promise.all([fetchTeams(), fetchClubMembers()]);
-      } catch (err) {
+      } catch {
         toast({
           title: "Error",
           description: "Failed to load teams and members",
@@ -298,7 +298,7 @@ const ClubAdminTeamsPage = () => {
         }
         fetchData();
       }
-        catch (error) {
+        catch {
           toast({
             title: "Unauthorized",
             description: "You are not an admin of this club",
@@ -310,11 +310,11 @@ const ClubAdminTeamsPage = () => {
       }
     checkAdminAndFetchData();
     
-  }, [clubId]);
+  }, [clubId,fetchTeams,fetchClubMembers,isClubAdmin,navigate]);
 
   if (loading) {
     return (
-      <DashboardLayout navItems={updatenavItems()} title="Teams">
+      <DashboardLayout navItems={updatenavItems} title="Teams">
         <div className="py-20">
           <Loading />
         </div>
@@ -323,7 +323,7 @@ const ClubAdminTeamsPage = () => {
   }
 
   return (
-    <DashboardLayout navItems={updatenavItems()} title="Teams">
+    <DashboardLayout navItems={updatenavItems} title="Teams">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">

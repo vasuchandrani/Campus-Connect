@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState,useCallback } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "../../components/ui/Card";
@@ -38,7 +38,7 @@ export default function CollegeAdminDashboard() {
   }, [navigate, routeProtection]);
 
   // Fetch dashboard stats
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const res = await fetch(`${baseUrl}/stats`, {
         method: "GET",
@@ -57,10 +57,10 @@ export default function CollegeAdminDashboard() {
         variant: "destructive",
       });
     }
-  };
+  }, [baseUrl]);
 
   // Fetch latest news for newspaper section
-  const getLatestNews = async () => {
+  const getLatestNews = useCallback(async () => {
     setLoading(true);
 
     try {
@@ -76,7 +76,7 @@ export default function CollegeAdminDashboard() {
       if (data && data.id) {
         setLatestNews(data);
       }
-    } catch (err) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to fetch latest news",
@@ -85,10 +85,10 @@ export default function CollegeAdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [baseUrl]);
 
   // Fetch college name
-  const fetchCollegeName = async () => {
+  const fetchCollegeName = useCallback(async () => {
     try {
       const res = await fetch(`${baseUrl}/college-name`, {
         method: "GET",
@@ -97,17 +97,19 @@ export default function CollegeAdminDashboard() {
         },
       });
 
+      if(!res.ok) {
+        throw new Error("Failed to fetch college name");
+      }
       const text = await res.text();
       setCollegeName(text);
     } catch (err) {
-      console.error("Error fetching college name:", err);
       toast({
         title: "Error",
-        description: "Failed to fetch college name",
+        description: err.message || "Failed to fetch college name",
         variant: "destructive",
       });
     }
-  };
+  }, [baseUrl]);
 
   //load data on component mount
   useEffect(() => {
@@ -116,7 +118,7 @@ export default function CollegeAdminDashboard() {
     };
 
     fetchData();
-  }, []);
+  }, [fetchStats, getLatestNews, fetchCollegeName]);
 
   //-----------------------------UI----------------------------//
   return (

@@ -22,7 +22,7 @@ import {
 
 import { Upload, Globe, Trash2 } from "lucide-react";
 import { clubAdminNavItems } from "../../config/Navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useState,useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Dialog,
@@ -39,7 +39,6 @@ const ClubSettingsPage = () => {
   let { clubId } = useParams();
   const { isClubAdmin } = useAuth();
   const [openTransferDialog, setOpenTransferDialog] = useState(false);
-  const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState(1);
   const fileInputRef = useRef(null);
@@ -47,6 +46,8 @@ const ClubSettingsPage = () => {
   const [logoFile, setLogoFile] = useState(null);
   const navigate = useNavigate();
   const [requesting, setRequesting] = useState(false);
+  const [currentEmail, setCurrentEmail] = useState("");
+  const [newAdminEmail, setNewAdminEmail] = useState("");
 
   const [clubData, setClubData] = useState({
     name:"",
@@ -70,7 +71,8 @@ const handleDialogChange = (open) => {
 
   if (!open) {
     setStep(1);
-    setEmail("");
+    setNewAdminEmail("");
+    setCurrentEmail("");
     setOtp("");
   }
 };
@@ -84,7 +86,7 @@ const handleDialogChange = (open) => {
 
   //send otp
   const handleEmailSubmit = async () => {
-    if(!email) {
+    if(!currentEmail) {
       toast({
         title: "Email Required",
         description: "Please enter your email to receive verification code.",
@@ -99,17 +101,16 @@ const handleDialogChange = (open) => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
-      body: JSON.stringify({ email, codeFor:"Email verification for handover leadership" }),
+      body: JSON.stringify({ email: currentEmail, codeFor:"Email verification for handover leadership" }),
     })
       .then(async (res) => await res.json())
       .then((data) => {
         if (data.message === "Verification code sent successfully") {
           toast({
             title: "Verification Code Sent",
-            description: `Verification code sent to ${email}`,
+            description: `Verification code sent to ${currentEmail}`,
             variant: "success",
           });
-          setEmail("");  
           setStep(2);
         } else {
           toast({
@@ -143,13 +144,13 @@ const handleDialogChange = (open) => {
       return;
     }
 
-    if(!email) {
-      toast({
-        title: "Email Required",
-        description: "Email is missing. Please restart the transfer process.",
-        variant: "destructive",
-      });
-      return;
+    if (!newAdminEmail) {
+        toast({
+          title: "New Admin Email Required",
+          description: "Please enter the new admin's email.",
+          variant: "destructive",
+        });
+        return;
     }
     setRequesting(true);
     await fetch(`${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/admin/details/handover`, {
@@ -158,20 +159,22 @@ const handleDialogChange = (open) => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
-      body: JSON.stringify({ newAdminEmail:email, verificationCode: otp }),
+      body: JSON.stringify({ newAdminEmail: newAdminEmail, verificationCode: otp }),
     })
       .then(async (res) => await res.json())
       .then((data) => {
-        if (data.message.startsWith("You handover the leadership")) {
+        if (data.message.startsWith("You Handover the leadership to")) {
           toast({
             title: "Success",
             description: data.message,
             variant: "success",
           });
           setOpenTransferDialog(false);
-          setEmail("");
+          setNewAdminEmail("");
+          setCurrentEmail("");
           setOtp("");
           setStep(1);
+          setRequesting(false);
           navigate("/");
         } else {
           toast({
@@ -181,7 +184,7 @@ const handleDialogChange = (open) => {
           });
         }
       })
-      .catch((err) => {
+      .catch(() => {
         toast({
           title: "Error",
           description: "An error occurred while transferring ownership. Please try again.",
@@ -295,7 +298,7 @@ const deleteClub = async () => {
         });
       }
     })
-    .catch((err) => {
+    .catch(() => {
       toast({
         title: "Error",
         description: "An error occurred while deleting the club. Please try again.",
@@ -307,7 +310,7 @@ const deleteClub = async () => {
 };  
 
 //get profile details
-const getDetails = async () => {
+const getDetails = useCallback(async () => {
   try {
     const response = await fetch(
       `${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/admin/details`,
@@ -337,9 +340,9 @@ const getDetails = async () => {
     });
     
   }
-};
+}, [clubId]);
 
-useState(() => {
+useEffect(() => {
   const checkAdminAndFetchDetails = async () => {
     try {
       const admin = await isClubAdmin(clubId);
@@ -353,7 +356,7 @@ useState(() => {
         return;
       }
       getDetails();
-    } catch (error) {
+    } catch{
       toast({
         title: "Unauthorized",
         description: "You are not an admin of this club",
@@ -363,7 +366,7 @@ useState(() => {
     }
   };
   checkAdminAndFetchDetails();
-}, []);
+}, [isClubAdmin, getDetails, navigate, clubId]);
 
   return (
     <DashboardLayout navItems={updatenavItems()} title="Club Settings">
@@ -532,8 +535,8 @@ useState(() => {
                   <Input
                     type="email"
                     placeholder="Enter email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    value={currentEmail}
+                    onChange={(e) => setCurrentEmail(e.target.value)}
                   />
 
                   <Button onClick={handleEmailSubmit} disabled={requesting}>
@@ -559,8 +562,8 @@ useState(() => {
                     <Input
                     type="email"
                     placeholder="Enter new admin email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    value={newAdminEmail}
+                    onChange={(e) => setNewAdminEmail(e.target.value)}
                   />
 
                   <Button onClick={handleOtpSubmit} disabled={requesting}>

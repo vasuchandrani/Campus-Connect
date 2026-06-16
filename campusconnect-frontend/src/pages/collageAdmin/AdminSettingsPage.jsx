@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect,useCallback } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { collegeAdminNavItems } from "../../config/Navigation";
 import {
@@ -85,7 +85,7 @@ const AdminSettingsPage = () => {
   const subscriptionPlans = getSubscriptionPlans();
 
   // call API for subscription
-  const getSubscription = async () => {
+  const getSubscription = useCallback(async () => {
     try {
       const response = await fetch(`${baseUrl}/subscription`, {
         headers: {
@@ -104,7 +104,7 @@ const AdminSettingsPage = () => {
         variant: "destructive",
       });
     }
-  };
+  }, [baseUrl]);
 
   // call API for invoices
   const getInvoices = async () => {
@@ -119,7 +119,7 @@ const AdminSettingsPage = () => {
       const data = await response.json();
 
       setInvoices(data);
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to load invoices",
@@ -231,7 +231,7 @@ const AdminSettingsPage = () => {
   };
 
   //get profile details
-  const getProfile = async () => {
+  const getProfile = useCallback(async () => {
     try {
       const response = await fetch(`${baseUrl}/profile`, {
         headers: {
@@ -254,12 +254,13 @@ const AdminSettingsPage = () => {
     } catch (error) {
       console.error("Error fetching profile:", error);
     }
-  };
+  }, [baseUrl]);
 
   useEffect(() => {
     getProfile();
     getSubscription();
-  }, []);
+  }, [getProfile, getSubscription]);
+
 
   const downloadPdf = async (url, title) => {
     try {
@@ -666,7 +667,7 @@ const AdminSettingsPage = () => {
 
               <div className="max-h-[400px] overflow-y-auto space-y-3">
                 {invoices.map((invoice) => (
-                  <Card key={invoice.id}>
+                  <Card key={invoice.paymentId} className="border">
                     <CardContent className="flex justify-between items-center p-4">
                       <div>
                         <p className="font-semibold">Invoice #{invoice.id}</p>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { studentNavItems } from "../../config/Navigation";
 import {
@@ -58,66 +58,66 @@ const EventsPage = () => {
   }, []);
 
   //get event status base on current time and event start/end time
-  const getEventStatus = (event) => {
+  const getEventStatus = useCallback((event) => {
     const start = new Date(event.startTime);
     const end = new Date(event.endTime);
 
     if (now >= start && now <= end) return "LIVE";
     if (now < start) return "UPCOMING";
     return "FINISHED";
-  };
+  }, [now]);
 
   //get is registration open based on current time and registration end time
-  const isRegistrationOpen = (event) => {
+  const isRegistrationOpen = useCallback((event) => {
     if (!event.registrationEnd) return false;
     return new Date() < new Date(event.registrationEnd);
-  };
+  }, []);
 
   // Fetch Upcomming events from API
-const getEvents = async () => {
-  setLoading((prev) => ({ ...prev, upcoming: true }));
+  const getEvents = useCallback(async () => {
+    setLoading((prev) => ({ ...prev, upcoming: true }));
 
-  try {
-    const res = await fetch(`${baseUrl}/events/active`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-      },
-    });
+    try {
+      const res = await fetch(`${baseUrl}/events/active`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
 
-    const data = await res.json();
-    setUpcomingEvents(data);
-  } catch (err) {
-    console.error("Error fetching events:", err);
-    alert("Failed to load events");
-  } finally {
-    setLoading((prev) => ({ ...prev, upcoming: false }));
-  }
-};
-const getFinishedEvents = async () => {
-  setLoading((prev) => ({ ...prev, finished: true }));
+      const data = await res.json();
+      setUpcomingEvents(data);
+    } catch (err) {
+      console.error("Error fetching events:", err);
+      alert("Failed to load events");
+    } finally {
+      setLoading((prev) => ({ ...prev, upcoming: false }));
+    }
+  }, [baseUrl]);
+  const getFinishedEvents = useCallback(async () => {
+    setLoading((prev) => ({ ...prev, finished: true }));
 
-  try {
-    const res = await fetch(`${baseUrl}/events/finished`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-      },
-    });
+    try {
+      const res = await fetch(`${baseUrl}/events/finished`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
 
-    const data = await res.json();
-    setFinishedEvents(data);
-  } catch (err) {
-    console.error("Error fetching finished events:", err);
-    toast({
-      title: "Error",
-      description: "Failed to load finished events",
-      variant: "destructive",
-    });
-  } finally {
-    setLoading((prev) => ({ ...prev, finished: false }));
-  }
-};
+      const data = await res.json();
+      setFinishedEvents(data);
+    } catch (err) {
+      console.error("Error fetching finished events:", err);
+      toast({
+        title: "Error",
+        description: "Failed to load finished events",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading((prev) => ({ ...prev, finished: false }));
+    }
+  }, [baseUrl]);
 
   //change registration status for an event
   const toggleRegistration = (eventId) => {
@@ -143,7 +143,7 @@ const getFinishedEvents = async () => {
             throw new Error("Failed to unregister");
           }
         })
-        .catch((err) => {
+        .catch(() => {
           toast({
             title: "Error",
             description: "Failed to unregister from event",
@@ -174,7 +174,7 @@ const getFinishedEvents = async () => {
             throw new Error("Failed to register");
           }
         })
-        .catch((err) => {
+        .catch(() => {
           toast({
             title: "Error",
             description: "Failed to register for event",
@@ -212,7 +212,7 @@ const getFinishedEvents = async () => {
 
       return 0;
     });
-  }, [upcomingEvents, now]);
+  }, [upcomingEvents, getEventStatus]);
 
   // Load events on component mount
   useEffect(() => {
@@ -230,14 +230,14 @@ const getFinishedEvents = async () => {
     };
 
     loadData();
-  }, []);
+  }, [getEvents, getFinishedEvents]);
 
   //formate date and time for display
-  const formatDate = (dateTime) => {
+  const formatDate = useCallback((dateTime) => {
     if (!dateTime) return { date: "", time: "" };
     const [date, time] = dateTime.split("T");
     return { date, time: time.substring(0, 5) };
-  };
+  }, []);
 
   return (
     <DashboardLayout navItems={studentNavItems} title="Events" bell={true}>

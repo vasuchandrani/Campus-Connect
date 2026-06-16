@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect,useCallback } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
@@ -61,10 +61,10 @@ const ReviewerDashboard = () => {
     if (!routeProtection("REVIEWER")) {
       nevigate("/auth");
     }
-  }, []);
+  }, [nevigate, routeProtection]);
 
   //fetch stats for dashboard
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const res = await fetch(`${baseUrl}/stats`, {
         method: "GET",
@@ -89,10 +89,10 @@ const ReviewerDashboard = () => {
         variant: "destructive",
       });
     }
-  };
+  }, [baseUrl]);
 
   //fetch user details
-  const fetchUserDetails = async () => {
+  const fetchUserDetails = useCallback(async () => {
     try {
       const res = await fetch(`${baseUrl}/reviewer-detail`, {
         method: "GET",
@@ -117,10 +117,10 @@ const ReviewerDashboard = () => {
         variant: "destructive",
       });
     }
-  };
+  }, [baseUrl]);
 
   //fetch pending papers for review
-  const fetchPendingPapers = async () => {
+  const fetchPendingPapers = useCallback(async () => {
     setLoading((prev) => ({ ...prev, pendingPapers: true }));
     try {
       const res = await fetch(`${baseUrl}/pending`, {
@@ -146,10 +146,10 @@ const ReviewerDashboard = () => {
     finally{
       setLoading((prev) => ({ ...prev, pendingPapers: false }));
     }
-  };
+  }, [baseUrl]);
 
   //fetch reviewed papers
-  const fetchReviewedPapers = async () => {
+  const fetchReviewedPapers = useCallback(async () => {
     setLoading((prev) => ({ ...prev, reviewedPapers: true }));
     try {
       const res = await fetch(`${baseUrl}/reviewed`, {
@@ -175,7 +175,7 @@ const ReviewerDashboard = () => {
     finally{
       setLoading((prev) => ({ ...prev, reviewedPapers: false }));
     }
-  };
+  }, [baseUrl]);
 
   useEffect(() => {
     const fetchAllData = async () => {
@@ -197,7 +197,7 @@ const ReviewerDashboard = () => {
     };
 
     fetchAllData();
-  }, []);
+  }, [fetchStats, fetchUserDetails, fetchPendingPapers, fetchReviewedPapers]);
 
   //download research paper PDF
   const downloadPdf = async (url, title) => {
@@ -229,7 +229,7 @@ const ReviewerDashboard = () => {
   };
 
   const handleApprove = async (paperId) => {
-    setRequesting(true);
+
     if (!feedback.trim()) {
       toast({
         title: "Please provide feedback",
@@ -238,7 +238,7 @@ const ReviewerDashboard = () => {
       });
       return;
     }
-
+    setRequesting(true);
     await fetch(`${baseUrl}/pending/${paperId}/accept`, {
       method: "POST",
       headers: {

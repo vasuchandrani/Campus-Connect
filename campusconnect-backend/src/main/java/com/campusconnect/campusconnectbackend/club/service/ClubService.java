@@ -24,7 +24,9 @@ import com.campusconnect.campusconnectbackend.security.verification_code.service
 import com.campusconnect.campusconnectbackend.student.entity.Student;
 import com.campusconnect.campusconnectbackend.student.service.StudentRepoService;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,6 +35,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,16 +60,37 @@ public class ClubService {
 
     // eviction method for clear joined-clubs cache
     public void evictJoinedClubsByCollege(Long collegeId) {
+        try {
+            String pattern = "campusconnect::joined_clubs::college_" + collegeId + "_student_*";
 
-        String pattern = "campusconnect::joined_clubs::college_" + collegeId + "_student_*";
+            List<String> keysToDelete = new ArrayList<>();
 
-        Set<Object> keys = redisTemplate.keys(pattern);
+            redisTemplate.executeWithStickyConnection(connection -> {
+                try (Cursor<byte[]> cursor = connection.keyCommands().scan(
+                        ScanOptions.scanOptions()
+                                .match(pattern)
+                                .count(100)
+                                .build()
+                )) {
+                    while (cursor.hasNext()) {
+                        keysToDelete.add(
+                                new String(cursor.next(), StandardCharsets.UTF_8)
+                        );
+                    }
+                }
+                return null;
+            });
 
-        if (keys != null && !keys.isEmpty()) {
-            redisTemplate.delete(keys);
+            System.out.println(keysToDelete);
+
+            if (!keysToDelete.isEmpty()) {
+                redisTemplate.delete(keysToDelete);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
-
     // get club by id (for backend-use)
     public Club getClubById(Long clubId) {
         return clubRepository.findById(clubId).orElseThrow(

@@ -29,7 +29,7 @@ const ClubAdminEventDetailPage = () => {
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/admin/events/finished/${id}`;
 
   //--------------Nav---------------//
-    const navItems = useCallback(() => {
+    const navItems = useMemo(() => {
     return clubMemberNavItems.map((item) => ({
       ...item,
       href: item.href.replace(":clubId", clubId),
@@ -47,7 +47,7 @@ const ClubAdminEventDetailPage = () => {
   };
 
   //fetching event details
-  const fetchEventDetails = async () => {
+  const fetchEventDetails = useCallback(async () => {
     setLoading(true);
     const token = localStorage.getItem("authToken");
 
@@ -70,7 +70,7 @@ const ClubAdminEventDetailPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [baseUrl]);
 
   // Fetch event details on component mount
   useEffect(() => {
@@ -88,7 +88,7 @@ const ClubAdminEventDetailPage = () => {
         }
         fetchEventDetails();
       }
-        catch (error) {
+        catch {
           toast({
             title: "Unauthorized",
             description: "You are not an admin of this club",
@@ -100,7 +100,7 @@ const ClubAdminEventDetailPage = () => {
        }
     };
     checkAdminAndFetchData();
-  }, []);
+  }, [baseUrl ,clubId, isClubAdmin, fetchEventDetails, navigate]);
 
 
 // Memoized rendered overview to avoid unnecessary re-renders

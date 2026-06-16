@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo,useCallback } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
@@ -97,7 +97,7 @@ const AdminResearchPage = () => {
   }, [publishedPapers, query]);
 
   //get papers which reviewer assign
-  const getUnderReviewPapers = async () => {
+  const getUnderReviewPapers = useCallback(async () => {
     setLoading((prev) => ({ ...prev, underReview: true }));
 
     try {
@@ -118,10 +118,10 @@ const AdminResearchPage = () => {
     } finally {
       setLoading((prev) => ({ ...prev, underReview: false }));
     }
-  };
+  }, [baseUrl]);
 
   //all papers which not reviewer assign
-  const fetchNotReviewedPapers = async () => {
+  const fetchNotReviewedPapers = useCallback(async () => {
     setLoading((prev) => ({ ...prev, notReviewed: true }));
 
     try {
@@ -138,10 +138,10 @@ const AdminResearchPage = () => {
     } finally {
       setLoading((prev) => ({ ...prev, notReviewed: false }));
     }
-  };
+  }, [baseUrl]);
 
   //fetch all reviewers
-  const fetchReviewers = async () => {
+  const fetchReviewers = useCallback(async () => {
     setLoading((prev) => ({ ...prev, reviewers: true }));
 
     try {
@@ -158,10 +158,10 @@ const AdminResearchPage = () => {
     } finally {
       setLoading((prev) => ({ ...prev, reviewers: false }));
     }
-  };
+  }, [baseUrl]);
 
   //fetch all published papers
-  const fetchPublishedPapers = async () => {
+  const fetchPublishedPapers = useCallback(async () => {
     setLoading((prev) => ({ ...prev, published: true }));
 
     try {
@@ -179,9 +179,9 @@ const AdminResearchPage = () => {
     } finally {
       setLoading((prev) => ({ ...prev, published: false }));
     }
-  };
+  }, [baseUrl]);
 
-  const assignReviewer = async (paperId, reviewerId) => {
+  const assignReviewer = useCallback(async (paperId, reviewerId) => {
     setRequesting(true);
     const token = localStorage.getItem("authToken");
     await fetch(`${baseUrl}/researches/review/${paperId}`, {
@@ -223,10 +223,10 @@ const AdminResearchPage = () => {
       .finally(() => {
         setRequesting(false);
       });
-  };
+  }, [baseUrl, getUnderReviewPapers, fetchNotReviewedPapers, fetchPublishedPapers, fetchReviewers]);
 
   //download pdf
-  const downloadPdf = async (url, title) => {
+  const downloadPdf = useCallback(async (url, title) => {
     try {
       const token = localStorage.getItem("authToken");
 
@@ -252,7 +252,7 @@ const AdminResearchPage = () => {
     } catch (error) {
       console.error("Download failed:", error);
     }
-  };
+  }, []);
 
   //load stats after component is loaded
   useEffect(() => {
@@ -266,7 +266,7 @@ const AdminResearchPage = () => {
     };
 
     fetchData();
-  }, []);
+  }, [getUnderReviewPapers, fetchNotReviewedPapers, fetchPublishedPapers, fetchReviewers]);
 
   return (
     <DashboardLayout navItems={collegeAdminNavItems} title="Manage Research">
