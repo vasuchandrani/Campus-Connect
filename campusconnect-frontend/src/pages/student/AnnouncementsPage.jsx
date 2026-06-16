@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState ,useCallback} from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
 import { studentNavItems } from "../../config/Navigation";
@@ -28,7 +28,7 @@ const AnnouncementsPage = () => {
   },[navigate,routeProtection]);
 
   // Fetch announcements 
-  const fetchAnnouncements = () => {
+  const fetchAnnouncements = useCallback(() => {
     setLoading(true);
     fetch(`${baseUrl}/announcements`, {
       method: "GET",
@@ -50,12 +50,12 @@ const AnnouncementsPage = () => {
       }).finally(() => {
         setLoading(false);
       });
-  };
+  }, [baseUrl]);
 
   // Load announcements on component mount
   useEffect(() => {
     fetchAnnouncements();
-  }, []);
+  }, [fetchAnnouncements]);
 
   return (
     <DashboardLayout navItems={studentNavItems} title="Announcements" bell={true}>

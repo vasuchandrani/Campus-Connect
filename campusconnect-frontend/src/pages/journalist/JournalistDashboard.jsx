@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState,useCallback } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
 import { CheckCircle, FileText } from "lucide-react";
@@ -38,7 +38,7 @@ const JournalistDashboard = () => {
   }, [navigate, routeProtection]);
 
   // Fetch dashboard stats
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const res = await fetch(`${baseUrl}/stats`, {
         method: "GET",
@@ -63,10 +63,10 @@ const JournalistDashboard = () => {
         variant: "destructive",
       });
     }
-  };
+  }, [baseUrl]);
 
   // Fetch journalist details
-  const fetchDetails = async () => {
+  const fetchDetails = useCallback(async () => {
     try {
       const res = await fetch(`${baseUrl}/journalist-detail`, {
         method: "GET",
@@ -91,10 +91,10 @@ const JournalistDashboard = () => {
         variant: "destructive",
       });
     }
-  };
+  }, [baseUrl]);
 
   // Fetch top 3 articles
-  const fetchTopArticles = async () => {
+  const fetchTopArticles = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(`${baseUrl}/newspapers/latest`, {
@@ -119,7 +119,7 @@ const JournalistDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [baseUrl]);
 
   //load data on component mount
   useEffect(() => {
@@ -137,7 +137,7 @@ const JournalistDashboard = () => {
     };
 
     fetchAllData();
-  }, []);
+  }, [fetchStats, fetchDetails, fetchTopArticles]);
 
   //-----------------------UI--------------------------//
   return (
@@ -153,7 +153,8 @@ const JournalistDashboard = () => {
 
         {/* STATS */}
         <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
-          <StatCard
+          <StatCard 
+            
             icon={<CheckCircle className="text-green-600 w-5 h-5" />}
             label="Published"
             value={stats.published}
@@ -178,15 +179,11 @@ const JournalistDashboard = () => {
                 </CardContent>
               </Card>
             ) : topArticles.length === 0 ? (
-              <Card>
-                <CardContent className="p-6 text-center">
                   <EmptyState
                     title="No Articles"
                     desc="You haven't published any articles yet."
                     icon={<FileText className="text-4xl" />}
                   />
-                </CardContent>
-              </Card>
             ) : (
               topArticles.map((article) => (
                 <Card
@@ -226,7 +223,7 @@ const JournalistDashboard = () => {
 /* ---------------- STAT CARD COMPONENT ---------------- */
 const StatCard = ({ icon, label, value }) => (
   <Card>
-    <CardContent className="p-4 flex items-center gap-3">
+    <CardContent className="p-4 flex items-center gap-3 pt-4">
       <div className="w-10 h-10 bg-muted/40 rounded-xl flex items-center justify-center">
         {icon}
       </div>

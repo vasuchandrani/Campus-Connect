@@ -32,7 +32,7 @@ import {
 } from "../../components/ui/DropdownMenu";
 import { clubAdminNavItems } from "../../config/Navigation";
 import { useParams } from "react-router-dom";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "../../hooks/use-toast";
 import Loading from "../../components/ui/Loading";
 import { useNavigate } from "react-router-dom";
@@ -50,7 +50,7 @@ const ClubAdminMembersPage = () => {
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/admin`;
 
   //---------Navs------------//
-  const updatenavItems = useCallback(() => {
+  const updatenavItems = useMemo(() => {
     return clubAdminNavItems.map((item) => {
       return {
         ...item,
@@ -68,7 +68,7 @@ const ClubAdminMembersPage = () => {
   const [loading, setLoading] = useState(true);
 
   //1) Fetch club members
-  const fetchClubMembers = async () => {
+  const fetchClubMembers = useCallback(async () => {
     setLoading(true);
     const token = localStorage.getItem("authToken");
     await fetch(`${baseUrl}/members`, {
@@ -82,7 +82,7 @@ const ClubAdminMembersPage = () => {
       .then((data) => {
         setClubMembers(data);
       })
-      .catch((err) => {
+      .catch(() => {
         toast({
           title: "Error",
           description: "Failed to fetch club members",
@@ -91,7 +91,7 @@ const ClubAdminMembersPage = () => {
       }).finally(() => {
         setLoading(false);
       });
-  };
+  }, [baseUrl]);
 
   //2) Add member
   const addMember = async (email, role) => {
@@ -131,8 +131,10 @@ const ClubAdminMembersPage = () => {
           description: err.message || "Failed to add member",
           variant: "destructive",
         });
+      })
+      .finally(() => {
+        setRequesting(false);
       });
-      setRequesting(false);
   };
 
   //3) Remove member
@@ -155,14 +157,16 @@ const ClubAdminMembersPage = () => {
         });
         fetchClubMembers();
       })
-      .catch((err) => {
+      .catch(() => {
         toast({
           title: "Error",
           description: "Failed to remove member",
           variant: "destructive",
         });
+      })
+      .finally(() => {
+        setRequesting(false);
       });
-      setRequesting(false);
   };
 
   //load members on component mount and whenever clubId changes
@@ -180,7 +184,7 @@ const ClubAdminMembersPage = () => {
           return;
         }
         fetchClubMembers();
-      } catch (error) {
+      } catch {
         toast({
           title: "Unauthorized",
           description: "You are not an admin of this club",
@@ -191,11 +195,11 @@ const ClubAdminMembersPage = () => {
        }
       }
       checkAdminAndFetchData();
-  }, [clubId]);
+  }, [clubId,fetchClubMembers, isClubAdmin, navigate]);
 
   if(loading){
     return (
-      <DashboardLayout navItems={updatenavItems()} title="Members">
+      <DashboardLayout navItems={updatenavItems} title="Members">
         <Card>
           <CardContent className="p-6 text-center">
             <Loading />
@@ -205,7 +209,7 @@ const ClubAdminMembersPage = () => {
     );
   }
   return (
-    <DashboardLayout navItems={updatenavItems()} title="Members">
+    <DashboardLayout navItems={updatenavItems} title="Members">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -243,8 +247,8 @@ const ClubAdminMembersPage = () => {
                 <div className="space-y-2">
                   <Label>Role</Label>
                   <Select
-                    defaultValue="member"
-                    onValueChange={(value) => setRole(value)}
+                    value={role}
+                    onValueChange={setRole}
                   >
                     <SelectTrigger>
                       <SelectValue />

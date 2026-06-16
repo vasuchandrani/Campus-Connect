@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { clubMemberNavItems } from "../../config/Navigation";
 import { useParams } from "react-router-dom";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback,useMemo } from "react";
 import { toast } from "../../hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import EmptyState from "../../components/ui/EmptyState";
@@ -32,7 +32,7 @@ const ClubMemberDashboard = () => {
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/member`;
 
   //--------------Nav---------------//
-  const updateNavItems = useCallback(() => {
+  const updateNavItems = useMemo(() => {
     return clubMemberNavItems.map((item) => {
       return {
         ...item,
@@ -57,13 +57,19 @@ const ClubMemberDashboard = () => {
   });
 
   //fetch club name
-  const fetchClubName = async() => {
-    await fetch(`${baseUrl}/club-name`, {
+  const fetchClubName = useCallback(() => {
+    return fetch(`${baseUrl}/club-name`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
+    })
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error("Failed to fetch club details");
+      }
+      return res;
     })
       .then(async (res) => await res.text())
       .then((text) => setClubName(text))
@@ -74,17 +80,23 @@ const ClubMemberDashboard = () => {
           variant: "destructive",
         });
       });
-  };
+  }, [baseUrl]);
 
   //fetch stats
-  const fetchStates = async () => {
-    await fetch(`${baseUrl}/stats`, {
+  const fetchStates = useCallback(async () => {
+    return fetch(`${baseUrl}/stats`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
     })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to fetch stats");
+        }
+        return res;
+      })
       .then(async (res) => await res.json())
       .then((data) => {
         setStats({
@@ -101,17 +113,23 @@ const ClubMemberDashboard = () => {
           variant: "destructive",
         });
       });
-  };
+  }, [baseUrl]);
 
   //fetch club announcements
-  const fetchClubAnnouncements = async () => {
+  const fetchClubAnnouncements = useCallback(async () => {
     setLoading((prev) => ({ ...prev, announcements: true }));
-    await fetch(`${baseUrl}/top-announcements`, {
+    return fetch(`${baseUrl}/top-announcements`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
+    })
+    .then((res)=>{
+      if (!res.ok) {
+        throw new Error("Failed to fetch announcements");
+      }
+      return res;
     })
       .then(async (res) => await res.json())
       .then((data) => {
@@ -126,17 +144,23 @@ const ClubMemberDashboard = () => {
       }).finally(() => {
         setLoading((prev) => ({ ...prev, announcements: false }));
       });
-  };
+  }, [baseUrl]);
 
   //fetch club events
-  const fetchClubEvents = async () => {
+  const fetchClubEvents = useCallback(async () => {
     setLoading((prev) => ({ ...prev, events: true }));
-    await fetch(`${baseUrl}/top-events`, {
+    return fetch(`${baseUrl}/top-events`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("authToken")}`,
       },
+    })
+    .then((res)=>{
+      if (!res.ok) {
+        throw new Error("Failed to fetch events");
+      }
+      return res;
     })
       .then(async (res) => await res.json())
       .then((data) => {
@@ -151,7 +175,7 @@ const ClubMemberDashboard = () => {
       }).finally(() => {
         setLoading((prev) => ({ ...prev, events: false }));
       });
-  };
+  }, [baseUrl]);
 
   //load club details on component mount and whenever clubId changes
   useEffect(() => {
@@ -180,6 +204,7 @@ const ClubMemberDashboard = () => {
           variant: "destructive",
         });
         navigate(-1);
+        return;
       } else {
         await fetchData();
       }
@@ -195,10 +220,10 @@ const ClubMemberDashboard = () => {
   };
 
     checkMembershipAndFetchData();
-  }, [clubId]);
+  }, [clubId, navigate, isClubMember, fetchClubName, fetchStates, fetchClubAnnouncements, fetchClubEvents]);
   //---------------------------UI----------------------------//
   return (
-    <DashboardLayout navItems={updateNavItems()} title="Club Member Dashboard">
+    <DashboardLayout navItems={updateNavItems} title="Club Member Dashboard">
       <div className="space-y-6">
         {/* Welcome Section */}
         <div className="bg-gradient-to-r from-primary/10 via-accent/10 to-primary/5 rounded-2xl p-6 border border-primary/20">

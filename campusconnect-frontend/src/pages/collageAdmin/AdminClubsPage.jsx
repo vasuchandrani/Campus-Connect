@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect,useCallback, useState } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
@@ -74,8 +74,134 @@ const AdminClubsPage = () => {
     }
   }, [navigate, routeProtection]);
 
+
+    //fetch Announcements
+  const fetchAnnouncements = useCallback(async () => {
+    setLoading((prev) => ({ ...prev, announcements: true }));
+    await fetch(`${baseUrl}/announcements`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    })
+      .then(async (res) => await res.json())
+      .then((data) => {
+        setAnnouncements(data);
+      })
+      .catch((err) =>
+        toast({
+          title: "Error",
+          description: err.message || "Failed to fetch announcements",
+          variant: "destructive",
+        }),
+      ).finally(() => {
+        setLoading((prev) => ({ ...prev, announcements: false }));
+      });
+  },[baseUrl]);
+  
+  //fetch pending club requests
+  const fetchClubRequest = useCallback(async () => {
+    setLoading((prev) => ({ ...prev, pendingClubs: true }));
+
+    try {
+      const res = await fetch(`${baseUrl}/club-request`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+
+      const data = await res.json();
+      setPendingClubs(data);
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to fetch club requests",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading((prev) => ({ ...prev, pendingClubs: false }));
+    }
+  },[baseUrl]);
+
+  //fetch Upcomming events
+  const fetchUpcomingEvents = useCallback(async () => {
+    setLoading((prev) => ({ ...prev, upcomingEvents: true }));
+
+    try {
+      const res = await fetch(`${baseUrl}/events/active`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+
+      const data = await res.json();
+      setUpcomingEvents(data);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to fetch upcoming events",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading((prev) => ({ ...prev, upcomingEvents: false }));
+    }
+  },[baseUrl]);
+
+  //fetch completed events
+  const fetchCompletedEvents = useCallback(async () => {
+    setLoading((prev) => ({ ...prev, completedEvents: true }));
+
+    try {
+      const res = await fetch(`${baseUrl}/events/finished`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+
+      const data = await res.json();
+      setCompletedEvents(data);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to fetch completed events",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading((prev) => ({ ...prev, completedEvents: false }));
+    }
+  },[baseUrl]);
+
+  //fetch clubs
+  const fetchClubs = useCallback(async () => {
+    setLoading((prev) => ({ ...prev, clubs: true }));
+
+    try {
+      const res = await fetch(`${baseUrl}/clubs`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+
+      const data = await res.json();
+      setClubs(data);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to fetch clubs",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading((prev) => ({ ...prev, clubs: false }));
+    }
+  },[baseUrl]);
+
   //Approve club request
-  const approveClub = (clubId) => {
+  const approveClub = useCallback((clubId) => {
     setRequesting(true);
     fetch(`${baseUrl}/club-request/${clubId}`, {
       method: "POST",
@@ -108,19 +234,20 @@ const AdminClubsPage = () => {
       .finally(() => {
         setRequesting(false);
       });
-  };
+  },[baseUrl,fetchClubRequest,fetchClubs]);
 
+  const [now, setNow] = useState(new Date());
   //get event status based on current time
-  const getEventStatus = (event) => {
+  const getEventStatus = useCallback((event) => {
     const start = new Date(event.startTime);
     const end = new Date(event.endTime);
 
     if (now >= start && now <= end) return "LIVE";
     if (now < start) return "UPCOMING";
     return "FINISHED";
-  };
+  }, [now]);
 
-  const [now, setNow] = useState(new Date());
+  
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -130,30 +257,8 @@ const AdminClubsPage = () => {
     return () => clearInterval(interval);
   }, []);
 
-  //fetch Announcements
-  const fetchAnnouncements = async () => {
-    await fetch(`${baseUrl}/announcements`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-      },
-    })
-      .then(async (res) => await res.json())
-      .then((data) => {
-        setAnnouncements(data);
-      })
-      .catch((err) =>
-        toast({
-          title: "Error",
-          description: err.message || "Failed to fetch announcements",
-          variant: "destructive",
-        }),
-      );
-  };
-
   //Delete club request
-  const deleteClubRequest = async (clubId) => {
+  const deleteClubRequest = useCallback(async (clubId) => {
     setRequesting(true);
     await fetch(`${baseUrl}/club-request/${clubId}`, {
       method: "DELETE",
@@ -183,131 +288,9 @@ const AdminClubsPage = () => {
         fetchClubRequest();
         setRequesting(false);
       });
-  };
+  },[baseUrl,fetchClubRequest]);
 
-  //fetch pending club requests
-  const fetchClubRequest = async () => {
-    setLoading((prev) => ({ ...prev, pendingClubs: true }));
-
-    try {
-      const res = await fetch(`${baseUrl}/club-request`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-        },
-      });
-
-      const data = await res.json();
-      setPendingClubs(data);
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch club requests",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading((prev) => ({ ...prev, pendingClubs: false }));
-    }
-  };
-
-  //fetch Upcomming events
-  const fetchUpcomingEvents = async () => {
-    setLoading((prev) => ({ ...prev, upcomingEvents: true }));
-
-    try {
-      const res = await fetch(`${baseUrl}/events/active`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-        },
-      });
-
-      const data = await res.json();
-      setUpcomingEvents(data);
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: err.message || "Failed to fetch upcoming events",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading((prev) => ({ ...prev, upcomingEvents: false }));
-    }
-  };
-
-  //fetch completed events
-  const fetchCompletedEvents = async () => {
-    setLoading((prev) => ({ ...prev, completedEvents: true }));
-
-    try {
-      const res = await fetch(`${baseUrl}/events/finished`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-        },
-      });
-
-      const data = await res.json();
-      setCompletedEvents(data);
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: err.message || "Failed to fetch completed events",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading((prev) => ({ ...prev, completedEvents: false }));
-    }
-  };
-
-  //fetch clubs
-  const fetchClubs = async () => {
-    setLoading((prev) => ({ ...prev, clubs: true }));
-
-    try {
-      const res = await fetch(`${baseUrl}/clubs`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-        },
-      });
-
-      const data = await res.json();
-      setClubs(data);
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: err.message || "Failed to fetch clubs",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading((prev) => ({ ...prev, clubs: false }));
-    }
-  };
-
-  //load data on component mount
-  useEffect(() => {
-    const fetchData = async () => {
-      await Promise.all([
-        fetchClubs(),
-        fetchClubRequest(),
-        fetchAnnouncements(),
-        fetchUpcomingEvents(),
-        fetchCompletedEvents(),
-      ]);
-    };
-
-    fetchData();
-  }, []);
-
-  //sort upcoming events to show LIVE ones first
-  const upcomming = [...upcomingEvents].sort((a, b) => {
-    if (a.status === "LIVE" && b.status !== "LIVE") return -1;
-    if (a.status !== "LIVE" && b.status === "LIVE") return 1;
-    return 0;
-  });
-
-  const deleteClub = async (clubId) => {
+  const deleteClub = useCallback(async (clubId) => {
     setRequesting(true);
     await fetch(`${baseUrl}/clubs/${clubId}`, {
       method: "DELETE",
@@ -339,7 +322,37 @@ const AdminClubsPage = () => {
       .finally(() => {
         setRequesting(false);
       });
-  };
+  },[baseUrl,fetchClubs]);
+
+  //load data on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      await Promise.all([
+        fetchClubs(),
+        fetchClubRequest(),
+        fetchAnnouncements(),
+        fetchUpcomingEvents(),
+        fetchCompletedEvents(),
+      ]);
+    };
+
+    fetchData();
+  }, [fetchClubs, fetchClubRequest, fetchAnnouncements, fetchUpcomingEvents, fetchCompletedEvents]);
+
+  //sort upcoming events to show LIVE ones first
+  const upcomming = useMemo(() => {
+    return [...upcomingEvents].sort((a, b) => {
+      const statusA = getEventStatus(a);
+      const statusB = getEventStatus(b);
+
+      if (statusA === "LIVE" && statusB !== "LIVE") return -1;
+      if (statusA !== "LIVE" && statusB === "LIVE") return 1;
+
+      return 0;
+    });
+  }, [upcomingEvents, getEventStatus]);
+
+
 
   //for searching
   const filteredClubs = useMemo(() => {

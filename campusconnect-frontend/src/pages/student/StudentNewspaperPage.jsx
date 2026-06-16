@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect,useCallback } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
@@ -46,12 +46,12 @@ const StudentNewspaperPage = () => {
 
   //  Compile Markdown
   const renderedContent = useMemo(() => {
-    if (!viewArticle?.content) return "";
-    return marked.parse(viewArticle.content.trim());
-  }, [viewArticle?.content]);
+    if (!viewArticle) return "";
+    return marked.parse(viewArticle.content.trim()) || "";
+  }, [viewArticle]);
 
   // Fetch newspaper articles
-  const fetchArticles = async () => {
+  const fetchArticles = useCallback(async () => {
     setLoading(true);
     await fetch(baseUrl + "/news-papers", {
       method: "GET",
@@ -74,12 +74,14 @@ const StudentNewspaperPage = () => {
       .finally(() => {
         setLoading(false);
       });
-  };
+  }, [baseUrl]);
 
   // Filter articles based on search query
   const articles = useMemo(() => {
+    const search = query.toLowerCase();
+
     return newspaper.filter((a) =>
-      a.title.toLowerCase().includes(query.toLowerCase()),
+      a.title.toLowerCase().includes(search),
     );
   }, [newspaper, query]);
 
@@ -129,7 +131,7 @@ const StudentNewspaperPage = () => {
         setPortfolioLink("");
         setRequestOpen(false);
       })
-      .catch((err) => {
+      .catch(() => {
         toast({
           title: "Error",
           description: "Failed to submit journalist request",
@@ -141,7 +143,7 @@ const StudentNewspaperPage = () => {
   //load articles on component mount
   useEffect(() => {
     fetchArticles();
-  }, []);
+  }, [fetchArticles]);
 
   if (loading) {
     return (

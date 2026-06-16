@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
 import { studentNavItems } from "../../config/Navigation";
@@ -32,7 +32,7 @@ const StudentNotificationPage = () => {
     }
   }, [navigate, routeProtection]);
   // Fetch announcements
-  const fetchAnnouncements = () => {
+  const fetchAnnouncements = useCallback(() => {
     setLoading(true);
     fetch(`${baseUrl}/notifications`, {
       method: "GET",
@@ -45,7 +45,7 @@ const StudentNotificationPage = () => {
       .then((data) => {
         setAnnouncements(data);
       })
-      .catch((err) => {
+      .catch(() => {
         toast({
           title: "Error",
           description: "Failed to fetch notifications",
@@ -55,12 +55,12 @@ const StudentNotificationPage = () => {
       .finally(() => {
         setLoading(false);
       });
-  };
+  }, [baseUrl]);
 
   // Load notifications on component mount
   useEffect(() => {
     fetchAnnouncements();
-  }, []);
+  }, [fetchAnnouncements]);
 
   if (loading) {
     return (

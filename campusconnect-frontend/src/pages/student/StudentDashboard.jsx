@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
@@ -57,6 +57,7 @@ const StudentDashboard = () => {
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [loadingNews, setLoadingNews] = useState(true);
   const [now, setNow] = useState(new Date());
+  const [requestingClub, setRequestingClub] = useState(false);
 
   // Base URL for API calls related to student dashboard
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/student`;
@@ -69,7 +70,7 @@ const StudentDashboard = () => {
   }, [navigate, routeProtection]);
 
   // Fetch user name for welcome message
-const fetchUserName = async () => {
+const fetchUserName = useCallback(async () => {
   try {
     const res = await fetch(`${baseUrl}/name`, {
       method: "GET",
@@ -87,10 +88,10 @@ const fetchUserName = async () => {
       variant: "destructive",
     });
   }
-};
+}, [baseUrl]);
 
   // Fetch dashboard stats
-const getStats = async () => {
+const getStats = useCallback(async () => {
   try {
     const res = await fetch(`${baseUrl}/stats`, {
       method: "GET",
@@ -112,10 +113,10 @@ const getStats = async () => {
       variant: "destructive",
     });
   }
-};
+} , [baseUrl]);
 
   // Fetch user clubs with roles
-const fetchUserClubs = async () => {
+const fetchUserClubs = useCallback(async () => {
   setLoadingClubs(true);
 
   try {
@@ -143,10 +144,10 @@ const fetchUserClubs = async () => {
   } finally {
     setLoadingClubs(false);
   }
-};
+}, [baseUrl]);
 
   // Fetch events
-const fetchEvents = async () => {
+const fetchEvents = useCallback(async () => {
   setLoadingEvents(true);
 
   try {
@@ -168,10 +169,10 @@ const fetchEvents = async () => {
   } finally {
     setLoadingEvents(false);
   }
-};
+}, [baseUrl]);
 
   // Fetch news articles for campus news section
-const fetchNews = async () => {
+const fetchNews = useCallback(async () => {
   setLoadingNews(true);
 
   try {
@@ -193,7 +194,7 @@ const fetchNews = async () => {
   } finally {
     setLoadingNews(false);
   }
-};
+}, [baseUrl]);
 
   //load data on component mount
   useEffect(() => {
@@ -208,7 +209,7 @@ const fetchNews = async () => {
     };
 
     loadDashboard();
-  }, []);
+  }, [fetchUserName, fetchUserClubs, fetchEvents, fetchNews, getStats]);
 
   //Handle new Club Request submission
   const handleClubRequest = () => {
@@ -226,6 +227,7 @@ const fetchNews = async () => {
       clubDescription: clubDescription.trim(),
     };
 
+    setRequestingClub(true);
     fetch(`${baseUrl}/request-club`, {
       method: "POST",
       headers: {
@@ -261,17 +263,20 @@ const fetchNews = async () => {
           description: err.message || "Failed to submit club request",
           variant: "destructive",
         });
+      })
+      .finally(() => {
+        setRequestingClub(false);
       });
   };
 
   // Navigate to club dashboard based on role
-  const gotoclub = (clubID, isAdmin) => {
+  const gotoclub = useCallback((clubID, isAdmin) => {
     if (isAdmin) {
       navigate(`/campus-connect/club-admin/${clubID}/dashboard`);
     } else {
       navigate(`/campus-connect/club-member/${clubID}/dashboard`);
     }
-  };
+  }, [navigate]);
 
   useEffect(() => {
   const interval = setInterval(() => {
@@ -370,7 +375,7 @@ const getEventStatus = (event) => {
                     />
                   </div>
 
-                  <Button className="w-full" onClick={handleClubRequest}>
+                  <Button className="w-full" disabled={requestingClub} onClick={handleClubRequest}>
                     Submit Request
                   </Button>
                 </div>
@@ -385,7 +390,7 @@ const getEventStatus = (event) => {
               </CardContent>
             </Card>
           ) : userClubs.length === 0 ? (
-            <Card className="border-border/50 border-dashed">
+            <Card className="border-border/50 border-dashed pt-4">
               <CardContent className="p-8 text-center">
                 <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <h4 className="font-medium mb-2">No Club Memberships</h4>
@@ -400,7 +405,7 @@ const getEventStatus = (event) => {
                   >
                     Browse Clubs
                   </Button>
-                  <Button onClick={() => setClubRequestOpen(true)}>
+                  <Button onClick={() => setClubRequestOpen(true)} disabled={requestingClub}>
                     <Plus className="w-4 h-4 mr-2" />
                     Request New Club
                   </Button>
@@ -415,7 +420,7 @@ const getEventStatus = (event) => {
                 return (
                   <Card
                     key={club.id}
-                    className="border-border/50 hover:shadow-soft transition-all cursor-pointer"
+                    className="border-border/50 hover:shadow-soft transition-all cursor-pointer pt-4"
                     onClick={() => gotoclub(club.id, isAdmin)}
                   >
                     <CardContent className="p-4">

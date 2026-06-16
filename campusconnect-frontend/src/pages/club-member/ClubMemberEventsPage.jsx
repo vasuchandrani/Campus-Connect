@@ -747,6 +747,7 @@ const ClubMemberEventsPage = () => {
                 {/* Image Preview */}
                 {newEvent.image && (
                   <img
+                    alt="Event Preview"
                     src={URL.createObjectURL(newEvent.image)}
                     className="w-full h-40 object-cover rounded-lg"
                   />
@@ -999,6 +1000,7 @@ const ClubMemberEventsPage = () => {
                   <>
                     {selectedEvent.image && (
                       <img
+                        alt="Event Image"
                         src={selectedEvent.image}
                         className="w-full h-48 object-cover rounded-lg"
                       />
@@ -1102,6 +1104,8 @@ const ClubMemberEventsPage = () => {
                             ? selectedEvent.image
                             : URL.createObjectURL(selectedEvent.image)
                         }
+                        alt="Event Preview"
+
                         className="w-full h-40 object-cover rounded-lg"
                       />
                     )}
@@ -1424,6 +1428,7 @@ Write your markdown here..."
                       {existingImages.map((url, index) => (
                         <div key={`existing-${index}`} className="relative">
                           <img
+                              alt={`Overview ${index + 1}`}
                             src={url}
                             className="w-full h-24 object-cover rounded-lg"
                           />
@@ -1443,6 +1448,7 @@ Write your markdown here..."
                           <img
                             src={URL.createObjectURL(photo)}
                             className="w-full h-24 object-cover rounded-lg"
+                            alt={`Overview ${index + 1}`}
                           />
 
                           <button
@@ -1540,6 +1546,7 @@ Write your markdown here..."
                   <div className="grid grid-cols-3 gap-2 mt-4">
                     {existingImages.map((url, index) => (
                       <img
+                          alt={`Overview ${index + 1}`}
                         key={`existing-${index}`}
                         src={url}
                         className="w-full h-24 object-cover rounded-lg"
@@ -1548,6 +1555,7 @@ Write your markdown here..."
 
                     {overviewPhotos.map((photo, index) => (
                       <img
+                        alt={`Overview ${index + 1}`}
                         key={`new-${index}`}
                         src={URL.createObjectURL(photo)}
                         className="w-full h-24 object-cover rounded-lg"

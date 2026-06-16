@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState,useMemo } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import {
   Card,
@@ -22,9 +22,9 @@ const ClubMemberTeamsPage = () => {
   const navigate = useNavigate();
 
   const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/clubs/${clubId}/member`;
-  const token = localStorage.getItem("authToken");
 
-  const updateNavItems = useCallback(() => {
+
+  const updateNavItems = useMemo(() => {
     return clubMemberNavItems.map((item) => ({
       ...item,
       href: item.href.replace(":clubId", clubId),
@@ -34,25 +34,31 @@ const ClubMemberTeamsPage = () => {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchTeams = () => {
+  const fetchTeams = useCallback(() => {
     setLoading(true);
-
-    fetch(`${baseUrl}/teams`, {
+  const token = localStorage.getItem("authToken");
+    return fetch(`${baseUrl}/teams`, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
     })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to fetch teams");
+        }
+        return res;
+      })
       .then((res) => res.json())
       .then((data) => setTeams(data))
-      .catch(() =>
+      .catch((err) =>
         toast({
           title: "Error",
-          description: "Failed to fetch teams",
+          description: err.message || "Failed to fetch teams",
           variant: "destructive",
         })
       ).finally(() => setLoading(false));
-  };
+  }, [baseUrl]);
 
   useEffect(() => {
     const checkMembershipAndFetchData = async () => {
@@ -67,22 +73,22 @@ const ClubMemberTeamsPage = () => {
           navigate(-1);
           return;
         }
-        fetchTeams();
-      } catch (error) {
+        await fetchTeams();
+      } catch (err) {
         toast({
           title: "Unauthorized",
-          description: "You are not a member of this club",
+          description: err.message || "You are not a member of this club",
           variant: "destructive",
         });
         navigate(-1);
       }
     };
     checkMembershipAndFetchData();
-  }, [clubId]);
+  }, [clubId,fetchTeams, isClubMember, navigate]);
 
   if(loading) {
     return (
-      <DashboardLayout navItems={updateNavItems()} title="Teams">
+      <DashboardLayout navItems={updateNavItems} title="Teams">
         <div className="text-center py-12">
           <Loading />
         </div>
@@ -91,7 +97,7 @@ const ClubMemberTeamsPage = () => {
   }
   else if(teams.length === 0) {
     return (
-      <DashboardLayout navItems={updateNavItems()} title="Teams">
+      <DashboardLayout navItems={updateNavItems} title="Teams">
         <div className="text-center py-12">
           <EmptyState
             icon={<UsersRound className="w-8 h-8 text-muted-foreground" />}
@@ -104,7 +110,7 @@ const ClubMemberTeamsPage = () => {
   }
 
   return (
-    <DashboardLayout navItems={updateNavItems()} title="Teams">
+    <DashboardLayout navItems={updateNavItems} title="Teams">
       <div className="space-y-6">
         {/* Header */}
         <div>

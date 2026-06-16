@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState,useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
@@ -12,6 +12,10 @@ import Loading from "../../components/ui/Loading";
 import { useMemo } from "react";
 import EmptyState from "../../components/ui/EmptyState";
 
+  // Base URL for API calls related to student clubs
+  const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/student`;
+
+
 const ClubsPage = () => {
   // State variables
   const [clubs, setClubs] = useState([]);
@@ -20,8 +24,6 @@ const ClubsPage = () => {
 
   const navigate = useNavigate();
 
-  // Base URL for API calls related to student clubs
-  const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/student`;
 
   const { routeProtection } = useAuth();
   useEffect(() => {
@@ -30,7 +32,7 @@ const ClubsPage = () => {
     }
   }, [navigate, routeProtection]);
   // Fetch clubs from API
-  const fetchClubs = () => {
+  const fetchClubs = useCallback(() => {
     setLoading(true);
     fetch(`${baseUrl}/clubs`, {
       headers: {
@@ -41,7 +43,7 @@ const ClubsPage = () => {
       .then((data) => {
         setClubs(data);
       })
-      .catch((err) => {
+      .catch(() => {
         toast({
           title: "Error",
           description: "Failed to fetch clubs",
@@ -51,7 +53,7 @@ const ClubsPage = () => {
       .finally(() => {
         setLoading(false);
       });
-  };
+  }, []);
 
   //search filter function
   const filteredClubs = useMemo(() => {
@@ -63,7 +65,7 @@ const ClubsPage = () => {
   // Load clubs on component mount
   useEffect(() => {
     fetchClubs();
-  }, []);
+  }, [fetchClubs]);
 
   if (loading) {
     return (
@@ -104,7 +106,16 @@ const ClubsPage = () => {
         {/* Clubs Grid */}
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredClubs.map((club) => (
+          {filteredClubs.length === 0 ? (
+            <div className="col-span-full">
+            <EmptyState
+              icon={<Search className="w-8 h-8 text-muted-foreground" />}
+              title="No Matching Clubs"
+              desc="Try a different search term."
+            />
+            </div>
+          ) : (
+          filteredClubs.map((club) => (
             <Card
               key={club.id}
               className="cursor-pointer hover:shadow-lg transition"
@@ -126,8 +137,7 @@ const ClubsPage = () => {
                 </div>
 
                 <p className="text-sm text-muted-foreground mb-4">
-                  {club.description.substring(0, 40) +
-                    (club.description.length > 40 ? "..." : "")}
+                  {club.description?.slice(0, 40) + (club.description?.length > 40 ? "..." : "")}
                 </p>
 
                 <Button
@@ -143,7 +153,7 @@ const ClubsPage = () => {
                 </Button>
               </CardContent>
             </Card>
-          ))}
+          )))}
         </div>
       </div>
     </DashboardLayout>

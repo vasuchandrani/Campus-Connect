@@ -106,6 +106,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       const data = await response.json();
+      console.log("Student registered successfully:", data);
 
       setUser({
         email: formData.email,

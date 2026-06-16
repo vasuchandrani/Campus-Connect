@@ -56,7 +56,7 @@ const ClubAdminAnnouncementsPage = () => {
 
   //Fetching Data from backend
   //1) Fetch club announcements
-  const fetchClubAnnouncements = () => {
+  const fetchClubAnnouncements = useCallback(() => {
     setLoading(true);
     fetch(`${baseurl}/announcements`, {
       headers: {
@@ -75,10 +75,11 @@ const ClubAdminAnnouncementsPage = () => {
       }).finally(() => {
         setLoading(false);
       });
-  };
+  }, [baseurl]);
 
   //2) Create or Update announcement based on whether we're in edit mode or not
   const handleSubmit = async () => {
+      if (requesting) return;
     setRequesting(true);
     const payload = {
       title: newTitle,
@@ -204,7 +205,7 @@ const ClubAdminAnnouncementsPage = () => {
           return;
         }
         fetchClubAnnouncements();
-      } catch (error) {
+      } catch {
         toast({
           title: "Unauthorized",
           description: "You are not an admin of this club",
@@ -215,7 +216,7 @@ const ClubAdminAnnouncementsPage = () => {
        }
       };
       checkAdminAndFetchData();
-  }, [clubId]);
+  }, [clubId, isClubAdmin, navigate,fetchClubAnnouncements]);
 
 
   /* ---------------- UI ---------------- */

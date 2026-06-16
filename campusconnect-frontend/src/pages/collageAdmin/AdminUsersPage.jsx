@@ -35,10 +35,11 @@ import Loading from "../../components/ui/Loading";
 import EmptyState from "../../components/ui/EmptyState";
 
 const navItems = collegeAdminNavItems;
+  
+//base URL for API calls related to users
+  const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/college-admin/users`;
 
 const AdminUsersPage = () => {
-  //base URL for API calls related to users
-  const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/campus-connect/college-admin/users`;
 
   // states
   const [journalists, setJournalists] = useState([]);
@@ -86,7 +87,7 @@ const AdminUsersPage = () => {
   }, [navigate, routeProtection]);
 
   //fetch journalist requests
-  const fetchJournalistsRequests = async () => {
+  const fetchJournalistsRequests = useCallback(async () => {
     setLoading((prev) => ({ ...prev, journalistRequests: true }));
 
     try {
@@ -99,7 +100,7 @@ const AdminUsersPage = () => {
 
       const data = await res.json();
       setJournalistRequests(data);
-    } catch (err) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to fetch journalist requests",
@@ -108,10 +109,10 @@ const AdminUsersPage = () => {
     } finally {
       setLoading((prev) => ({ ...prev, journalistRequests: false }));
     }
-  };
+  },[]);
 
   //fetch journalists
-  const fetchJournalists = async () => {
+  const fetchJournalists = useCallback(async () => {
     setLoading((prev) => ({ ...prev, journalists: true }));
 
     try {
@@ -124,7 +125,7 @@ const AdminUsersPage = () => {
 
       const data = await res.json();
       setJournalists(data);
-    } catch (err) {
+    } catch{
       toast({
         title: "Error",
         description: "Failed to fetch journalists",
@@ -133,10 +134,10 @@ const AdminUsersPage = () => {
     } finally {
       setLoading((prev) => ({ ...prev, journalists: false }));
     }
-  };
+  },[]);
 
   //fetch reviewers
-  const fetchReviewers = async () => {
+  const fetchReviewers = useCallback(async () => {
     setLoading((prev) => ({ ...prev, reviewers: true }));
 
     try {
@@ -149,7 +150,7 @@ const AdminUsersPage = () => {
 
       const data = await res.json();
       setReviewers(data);
-    } catch (err) {
+    } catch{
       toast({
         title: "Error",
         description: "Failed to fetch reviewers",
@@ -158,32 +159,35 @@ const AdminUsersPage = () => {
     } finally {
       setLoading((prev) => ({ ...prev, reviewers: false }));
     }
-  };
+  },[]);
 
   //fetch students
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
     setLoading((prev) => ({ ...prev, students: true }));
-    const token = localStorage.getItem("authToken");
-    fetch(`${baseUrl}/student`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setStudents(data);
-      })
-      .catch((err) => {
-        toast({
-          title: "Error",
-          description: "Failed to fetch students",
-          variant: "destructive",
-        });
-      })
-      .finally(() => setLoading((prev) => ({ ...prev, students: false })));
-  };
+
+    try {
+      const token = localStorage.getItem("authToken");
+
+      const res = await fetch(`${baseUrl}/student`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+      setStudents(data);
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to fetch students",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading((prev) => ({ ...prev, students: false }));
+    }
+  }, []);
 
   //load initial data on component mount
   useEffect(() => {
@@ -196,14 +200,14 @@ const AdminUsersPage = () => {
     };
 
     fetchData();
-  }, []);
+  }, [fetchJournalistsRequests, fetchJournalists, fetchReviewers]);
 
   //fetch students when exploreStudents is toggled
   useEffect(() => {
     if (exploreStudents) {
       fetchStudents();
     }
-  }, [exploreStudents]);
+  }, [exploreStudents, fetchStudents]);
 
   //Add student API call
   const addStudent = async (student) => {
@@ -436,7 +440,7 @@ const AdminUsersPage = () => {
     })
       .then(async (res) => {
         const data = await res.json();
-        if (data.message == "Reviewer removed successfully") {
+        if (data.message === "Reviewer removed successfully") {
           toast({
             title: "Success",
             description: data.message,
@@ -644,17 +648,21 @@ const AdminUsersPage = () => {
           <TabsContent value="journalist-requests" className="mt-6 space-y-4">
             {/* If no requests, show empty state */}
             {loading.journalistRequests ? (
-              <Card>
+              <Card className="pt-6">
                 <CardContent className="p-6 text-center">
                   <Loading />
                 </CardContent>
               </Card>
             ) : journalistRequests.length === 0 ? (
-              <EmptyState
-                icon={<UserPlus className="text-4xl" />}
-                title="No Journalist Requests"
-                desc="There are no pending journalist requests at the moment."
-              />
+              <Card className="pt-6">
+                <CardContent className="p-6 text-center">
+                  <EmptyState
+                    icon={<UserPlus className="text-4xl" />}
+                    title="No Journalist Requests"
+                    desc="There are no pending journalist requests at the moment."
+                  />
+                </CardContent>
+              </Card>
             ) : (
               journalistRequests.map((request) => (
                 <Card key={request.id}>
@@ -721,11 +729,13 @@ const AdminUsersPage = () => {
                       <Loading />
                     </div>
                   ) : journalists.length === 0 ? (
+                    <div className="pt-6">
                     <EmptyState
                       icon={<UserPlus className="text-4xl" />}
                       title="No Journalists"
                       desc="There are no approved journalists at the moment."
                     />
+                    </div>
                   ) : (
                     journalists.map((journalist) => (
                       <div
@@ -833,11 +843,13 @@ const AdminUsersPage = () => {
                       <Loading />
                     </div>
                   ) : reviewers.length === 0 ? (
-                    <EmptyState
-                      icon={<UserPlus className="text-4xl" />}
-                      title="No Reviewers"
-                      desc="There are no reviewers added at the moment."
-                    />
+                    <div className="pt-6">
+                      <EmptyState
+                        icon={<UserPlus className="text-4xl" />}
+                        title="No Reviewers"
+                        desc="There are no reviewers added at the moment."
+                      />
+                    </div>
                   ) : (
                     reviewers.map((reviewer) => (
                       <div
@@ -1023,17 +1035,22 @@ const AdminUsersPage = () => {
                     <div className="p-6 text-center">
                       <Loading />
                     </div>
-                  ) : students.length === 0 ? (
+                  ) : !exploreStudents ? (
+                    <div className="p-6 text-center">
+                      
+                      <Button
+                        variant="outline"
+                        className="mt-4"
+                        onClick={() => setExploreStudents(true)}
+                        disabled={requesting}
+                      >
+                        Explore Students
+                      </Button>
+                    </div>
+                  ) : students.length === 0  ? (
                     <div className="p-6 text-center">
                       <p className="text-muted-foreground">
-                        <Button
-                          variant="outline"
-                          className="mb-2"
-                          onClick={() => setExploreStudents(true)}
-                          disabled={requesting}
-                        >
-                          Explore students
-                        </Button>
+                        No students found for your college.
                       </p>
                     </div>
                   ) : (

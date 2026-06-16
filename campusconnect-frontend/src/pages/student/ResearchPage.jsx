@@ -159,7 +159,7 @@ const ResearchPage = () => {
   };
 
   // upload file
-  const handleFileChange = (e) => {
+  const handleFileChange =useCallback((e) => {
     const file = e.target.files[0];
 
     if (!file) return;
@@ -184,10 +184,10 @@ const ResearchPage = () => {
     }
 
     setPdfFile(file);
-  };
+  }, []);
 
   // download pdf
-  const downloadPdf = async (url, title) => {
+  const downloadPdf = useCallback(async (url, title) => {
     try {
       setRequesting(true);
       const token = localStorage.getItem("authToken");
@@ -221,10 +221,10 @@ const ResearchPage = () => {
     } finally {
       setRequesting(false);
     }
-  };
+  }, []);
 
   //fetch my reasearch papers
-  const fetchMySubmissions = async () => {
+  const fetchMySubmissions = useCallback(async () => {
     try {
       const res = await fetch(`${baseUrl}/researches/mine`, {
         method: "GET",
@@ -235,17 +235,17 @@ const ResearchPage = () => {
 
       const data = await res.json();
       setMySubmissionsData(data);
-    } catch (err) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to fetch my submissions",
         variant: "destructive",
       });
     }
-  };
+  }, [baseUrl]);
 
   //fetch all
-  const fetchResearchPapers = async () => {
+  const fetchResearchPapers = useCallback(async () => {
     try {
       const res = await fetch(`${baseUrl}/researches`, {
         headers: {
@@ -255,14 +255,14 @@ const ResearchPage = () => {
 
       const data = await res.json();
       setResearchPapers(data);
-    } catch (err) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to fetch research papers",
         variant: "destructive",
       });
     }
-  };
+  }, [baseUrl]);
 
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
@@ -274,15 +274,26 @@ const ResearchPage = () => {
   }, []);
   useEffect(() => {
     const loadData = async () => {
+      try {
       setLoading(true);
 
       await Promise.all([fetchResearchPapers(), fetchMySubmissions()]);
 
       setLoading(false);
+      } catch {
+        toast({
+          title: "Error",
+          description: "Failed to load research papers. Please try again.",
+          variant: "destructive",
+        });
+      }
+      finally {        
+        setLoading(false);
+      }
     };
 
     loadData();
-  }, []);
+  }, [fetchResearchPapers, fetchMySubmissions]);
 
   //for searching
   const filteredPapers = useMemo(() => {

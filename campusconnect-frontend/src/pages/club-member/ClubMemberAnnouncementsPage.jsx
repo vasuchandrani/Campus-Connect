@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { Card, CardContent } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
@@ -45,7 +45,7 @@ const ClubMemberAnnouncementsPage = () => {
 
   /* ---------------- NAV ITEMS ---------------- */
 
-  const updateNavItems = useCallback(() => {
+  const updateNavItems = useMemo(() => {
     return clubMemberNavItems.map((item) => ({
       ...item,
       href: item.href.replace(":clubId", clubId),
@@ -53,7 +53,7 @@ const ClubMemberAnnouncementsPage = () => {
   }, [clubId]);
 
   // Fetch announcements for this club
-  const fetchAnnouncements = () => {
+  const fetchAnnouncements = useCallback(() => {
     setLoading(true);
     fetch(`${baseurl}/announcements`, {
       headers: {
@@ -63,7 +63,7 @@ const ClubMemberAnnouncementsPage = () => {
     })
       .then((res) => res.json())
       .then((data) => setClubAnnouncements(data))
-      .catch((err) => {
+      .catch(() => {
         toast({
           title: "Error",
           description: "Failed to fetch announcements",
@@ -72,10 +72,27 @@ const ClubMemberAnnouncementsPage = () => {
       }).finally(()=>{
         setLoading(false);
       })
-  };
+  }, [baseurl]);
 
   // Create or update an announcement
-  const handleSubmit = async() => {
+  const handleSubmit = () => {
+     if (!newTitle.trim()) {
+      toast({
+        title: "Error",
+        description: "Title is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!newContent.trim()) {
+      toast({
+        title: "Error",
+        description: "Content is required",
+        variant: "destructive",
+      });
+      return;
+    }
     setRequesting(true);
     const payload = {
       title: newTitle,
@@ -133,7 +150,7 @@ const ClubMemberAnnouncementsPage = () => {
   };
 
   // Delete an announcement
-  const deleteAnnouncement = async (id) => {
+  const deleteAnnouncement =  (id) => {
     setRequesting(true);
     fetch(`${baseurl}/announcements/${id}`, {
       method: "DELETE",
@@ -186,7 +203,6 @@ const ClubMemberAnnouncementsPage = () => {
     const isMember = async () => {
       try{
        const member = await isClubMember(clubId);
-       console.log("Club member check result for clubId", clubId, ":", member);
        if(!member){
         toast({
           title: "Unauthorized",
@@ -200,7 +216,7 @@ const ClubMemberAnnouncementsPage = () => {
        else{
         fetchAnnouncements();
        }
-      } catch(error){
+      } catch{
         toast({
           title: "Error",
           description: "Failed to verify club membership",
@@ -211,33 +227,21 @@ const ClubMemberAnnouncementsPage = () => {
     }
     isMember();
     
-  }, [clubId]);
+  }, [fetchAnnouncements, clubId, isClubMember, navigate]);
 
   /* ---------------- UI ---------------- */
 
     if (loading) {
     return (
-       <DashboardLayout navItems={updateNavItems()} title="Announcements">
+       <DashboardLayout navItems={updateNavItems} title="Announcements">
         <Loading/>
        </DashboardLayout>
 
     )
   }
 
-  if(!loading && clubAnnouncements.length === 0){
-    return (
-      <DashboardLayout navItems={updateNavItems()} title="Announcements">
-        <EmptyState
-          icon={<Megaphone className="text-4xl" />}
-          title="No Announcements"
-          desc="There are no announcements for this club yet."
-        />
-      </DashboardLayout>
-    );
-  }
-
   return (
-    <DashboardLayout navItems={updateNavItems()} title="Announcements">
+    <DashboardLayout navItems={updateNavItems} title="Announcements">
       <div className="space-y-6">
 
         {/* Header */}
@@ -321,7 +325,16 @@ const ClubMemberAnnouncementsPage = () => {
 
         {/* Announcement List */}
         <div className="space-y-4">
-            {clubAnnouncements.map((announcement) => (
+          {clubAnnouncements.length === 0 ? (
+
+                <EmptyState
+                  icon={<Megaphone className="w-12 h-12 text-muted-foreground mx-auto mb-4" />}
+                  title="No Announcements"
+                  desc="There are no announcements for this club yet."
+                />
+
+          ) : (
+            clubAnnouncements.map((announcement) => (
               <Card key={announcement.id}>
                 <CardContent className="pt-4">
                   <div className="flex justify-between">
@@ -374,7 +387,7 @@ const ClubMemberAnnouncementsPage = () => {
                 </CardContent>
               </Card>
             )
-          )}
+          ))}
         </div>
       </div>
     </DashboardLayout>

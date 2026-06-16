@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { studentNavItems } from "../../config/Navigation";
 import { marked } from "marked";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState,useCallback } from "react";
 import { toast } from "../../hooks/use-toast";
 import { useAuth } from "../../contexts/AuthContext";
 import Loading from "../../components/ui/Loading";
@@ -40,7 +40,7 @@ const EventDetailPage = () => {
   const [loading, setLoading] = useState(true);
 
   // Function to fetch event details
-  const fetchEventDetails = async () => {
+  const fetchEventDetails = useCallback(async () => {
     setLoading(true);
     fetch(`${baseUrl}`, {
       method: "GET",
@@ -68,7 +68,7 @@ const EventDetailPage = () => {
       .finally(() => {
         setLoading(false);
       });
-  };
+  }, [baseUrl]);
 
   // Function to format date and time
   const formatDate = (dateTime) => {
@@ -80,15 +80,17 @@ const EventDetailPage = () => {
   //load event details on component mount
   useEffect(() => {
     fetchEventDetails();
-  }, [id]);
+  }, [id,fetchEventDetails]);
 
   const navItems = studentNavItems;
 
   // Memoized rendered overview to avoid unnecessary re-renders
+  const overview = event?.overview || "";
+
   const renderedOverview = useMemo(() => {
-    if (!event?.overview) return "";
-    return marked.parse(event.overview?.trim() || "");
-  }, [event?.overview]);
+    if (!overview) return "";
+    return marked.parse(overview.trim());
+  }, [overview]);
 
   if (loading) {
     return (

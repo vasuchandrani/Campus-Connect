@@ -34,7 +34,7 @@ const ReviewerSetting = () => {
 
 
   //fetch profile
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       const response = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}/campus-connect/reviewer/profile`,
@@ -58,11 +58,11 @@ const ReviewerSetting = () => {
         variant: "destructive",
       });
     }
-  }
+  }, []);
 
   useEffect(() => {
     fetchProfile();
-  }, []);
+  }, [fetchProfile]);
 
 
   const handleChange = useCallback((e) => {
