@@ -1,49 +1,31 @@
 package com.campusconnect.campusconnectbackend.club.club_member.service;
 
-import com.campusconnect.campusconnectbackend.club.club_follower.repository.ClubFollowerRepository;
-import com.campusconnect.campusconnectbackend.club.club_member.repository.ClubMemberRepository;
-import com.campusconnect.campusconnectbackend.club.club_team.repository.ClubTeamRepository;
+import com.campusconnect.campusconnectbackend.announcement.dto.req.AnnouncementRequestDto;
+import com.campusconnect.campusconnectbackend.announcement.dto.res.AnnouncementResponseDto;
 import com.campusconnect.campusconnectbackend.club.dto.res.club_admin_member.ClubDashboardStatsDto;
-import com.campusconnect.campusconnectbackend.event.service.EventService;
+import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
+import com.campusconnect.campusconnectbackend.event.dto.req.EventRequestDto;
+import com.campusconnect.campusconnectbackend.event.dto.res.EventResponseDto;
 
-import lombok.RequiredArgsConstructor;
+import java.util.List;
 
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.stereotype.Service;
+public interface ClubMemberService {
+    String getMyRole(Long clubId, Long studentId);
+    int getJoinedClubCount(Long studentId);
+    ClubDashboardStatsDto getStats(Long clubId);
 
-@Service
-@RequiredArgsConstructor
-public class ClubMemberService {
+    List<AnnouncementResponseDto> getPublishedAnnouncements(Long clubId);
+    List<AnnouncementResponseDto> getMyPendingAnnouncements(Long clubId, Long userId);
+    List<AnnouncementResponseDto> getMyDraftAnnouncements(Long clubId, Long userId);
+    MessageResponseDto saveAnnouncementDraft(Long clubId, AnnouncementRequestDto request, Long userId);
+    MessageResponseDto publishAnnouncementDraft(Long clubId, Long annId, Long userId);
+    MessageResponseDto deleteAnnouncementDraft(Long clubId, Long annId, Long userId);
 
-    private final ClubMemberRepository clubMemberRepository;
-    private final EventService eventService;
-    private final ClubTeamRepository clubTeamRepository;
-    private final ClubFollowerRepository clubFollowerRepository;
-
-    // get my role in club
-    public String getMyRole(Long clubId, Long studentId) {
-        return clubMemberRepository.findRoleByClubIdAndStudentId(clubId, studentId).orElse("You are not authorized");
-    }
-
-    // get joined clubs
-    @Cacheable(value = "joined_club_count", key = "#studentId")
-    public int getJoinedClubCount(Long studentId) {
-        return clubMemberRepository.countByStudent_Id(studentId);
-    }
-
-    // get stats
-    @Cacheable(
-            value = "club_dashboard_stats",
-            key = "#clubId",
-            sync = true
-    )
-    public ClubDashboardStatsDto getStats(Long clubId) {
-
-        ClubDashboardStatsDto dto = new ClubDashboardStatsDto();
-        dto.setEvents(eventService.getActiveEventsByClub(clubId).size());
-        dto.setMembers(clubMemberRepository.countByClub_Id(clubId));
-        dto.setTeams(clubTeamRepository.countByClub_Id(clubId));
-        dto.setFollowers(clubFollowerRepository.countByClub_Id(clubId));
-        return dto;
-    }
+    List<EventResponseDto> getPublishedEvents(Long clubId);
+    List<EventResponseDto> getFinishedEvents(Long clubId);
+    List<EventResponseDto> getMyPendingEvents(Long clubId, Long userId);
+    List<EventResponseDto> getMyDraftEvents(Long clubId, Long userId);
+    MessageResponseDto saveEventDraft(Long clubId, EventRequestDto request, Long userId);
+    MessageResponseDto publishEventDraft(Long clubId, Long eventId, Long userId);
+    MessageResponseDto deleteEventDraft(Long clubId, Long eventId, Long userId);
 }

@@ -8,9 +8,20 @@ import java.io.Serializable;
 @Embeddable
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode
 public class ClubTeamMemberId implements Serializable {
 
     private Long teamId;
-    private Long studentId;
+    private Long memberId;
+
+    public Long getStudentId() {
+        return memberId;
+    }
+
+    public void setStudentId(Long studentId) {
+        this.memberId = studentId;
+    }
 }
 

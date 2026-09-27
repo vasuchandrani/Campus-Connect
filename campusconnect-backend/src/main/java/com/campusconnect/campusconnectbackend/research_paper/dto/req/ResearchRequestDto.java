@@ -1,6 +1,5 @@
 package com.campusconnect.campusconnectbackend.research_paper.dto.req;
 
-
 import lombok.Getter;
 import lombok.Setter;
 
@@ -15,4 +14,6 @@ public class ResearchRequestDto {
     private String subject;
 
     private String dept;
+
+    private String website;
 }

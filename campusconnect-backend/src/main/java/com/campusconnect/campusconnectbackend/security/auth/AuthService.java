@@ -8,12 +8,12 @@ import com.campusconnect.campusconnectbackend.dto.request.LoginRequestDto;
 import com.campusconnect.campusconnectbackend.dto.request.SignupRequestDto;
 import com.campusconnect.campusconnectbackend.college_admin.dto.req.CollegeAdminSignupRequestDto;
 import com.campusconnect.campusconnectbackend.journalist.entity.Journalist;
-import com.campusconnect.campusconnectbackend.reviewer.entity.Reviewer;
+import com.campusconnect.campusconnectbackend.professor.entity.Professor;
 import com.campusconnect.campusconnectbackend.student.entity.Student;
 import com.campusconnect.campusconnectbackend.student.dto.req.StudentSignupRequestDto;
 import com.campusconnect.campusconnectbackend.dto.response.AuthResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.service.JournalistAuth;
-import com.campusconnect.campusconnectbackend.reviewer.service.ReviewerAuth;
+import com.campusconnect.campusconnectbackend.professor.service.ProfessorAuth;
 import com.campusconnect.campusconnectbackend.security.jwt.CustomUserDetails;
 import com.campusconnect.campusconnectbackend.student.service.StudentAuth;
 import lombok.RequiredArgsConstructor;
@@ -29,9 +29,10 @@ public class AuthService {
 
     private final StudentAuth studentAuth;
     private final CollegeAdminAuth collegeAdminAuth;
-    private final ReviewerAuth reviewerAuth;
+    private final ProfessorAuth professorAuth;
     private final JournalistAuth journalistAuth;
     private final CollegeSubscriptionService collegeSubscriptionService;
+    private final com.campusconnect.campusconnectbackend.user.repository.UserRepository userRepository;
 
     // check subscription still active or not
     private boolean checkSubscription (Long collegeId) {
@@ -53,15 +54,24 @@ public class AuthService {
                 StudentSignupRequestDto dto = (StudentSignupRequestDto) request;
 
                 if (checkSubscription(dto.getCollegeId())) {
-                    studentAuth.store(dto);
+                    yield studentAuth.store(dto);
                 }
-                yield new AuthResponseDto(
-                        null,
-                        "EXPIRE",
-                        "/campus-connect/auth"
-                );
+                yield new AuthResponseDto(null, null, "/campus-connect/auth", "EXPIRE", false);
             }
 
+            case "PROFESSOR" -> {
+                com.campusconnect.campusconnectbackend.professor.dto.req.ProfessorSignupRequestDto dto =
+                        (com.campusconnect.campusconnectbackend.professor.dto.req.ProfessorSignupRequestDto) request;
+
+                if (checkSubscription(dto.getCollegeId())) {
+                    yield professorAuth.store(dto);
+                }
+                yield new AuthResponseDto(null, null, "/campus-connect/auth", "EXPIRE", false);
+            }
+
+            // College Admin bypasses subscription check intentionally:
+            // They must be able to login even with expired subscription
+            // in order to access the renewal/payment flow.
             case "COLLEGE_ADMIN" -> collegeAdminAuth.store((CollegeAdminSignupRequestDto) request);
 
             default -> throw new IllegalArgumentException("Invalid role");
@@ -84,13 +94,12 @@ public class AuthService {
                 if (checkSubscription(college.getId())) {
                     yield studentAuth.authenticate(request);
                 }
-                yield new AuthResponseDto(
-                        null,
-                        "EXPIRE",
-                        "/campus-connect/auth"
-                );
+                yield new AuthResponseDto(null, null, "/campus-connect/auth", "EXPIRE", false);
             }
 
+            // College Admin bypasses subscription check intentionally:
+            // They must be able to login even with expired subscription
+            // in order to access the renewal/payment flow.
             case "COLLEGE_ADMIN" -> collegeAdminAuth.authenticate(request);
 
             case "JOURNALIST" -> {
@@ -100,25 +109,17 @@ public class AuthService {
                 if (checkSubscription(college.getId())) {
                     yield journalistAuth.authenticate(request);
                 }
-                yield new AuthResponseDto(
-                        null,
-                        "EXPIRE",
-                        "/campus-connect/auth"
-                );
+                yield new AuthResponseDto(null, null, "/campus-connect/auth", "EXPIRE", false);
             }
 
-            case "REVIEWER" -> {
-                Reviewer reviewer = reviewerAuth.getReviewerByEmail(request.getEmail());
-                College college = reviewer.getCollege();
+            case "PROFESSOR" -> {
+                Professor professor = professorAuth.getProfessorByEmail(request.getEmail());
+                College college = professor.getCollege();
 
                 if (checkSubscription(college.getId())) {
-                    yield reviewerAuth.authenticate(request);
+                    yield professorAuth.authenticate(request);
                 }
-                yield new AuthResponseDto(
-                        null,
-                        "EXPIRE",
-                        "/campus-connect/auth"
-                );
+                yield new AuthResponseDto(null, null, "/campus-connect/auth", "EXPIRE", false);
             }
 
             default -> throw new IllegalArgumentException("Invalid role");
@@ -144,5 +145,9 @@ public class AuthService {
     }
     public String getCurrentRole() {
         return principal().getRole();
+    }
+
+    public com.campusconnect.campusconnectbackend.user.entity.User getCurrentUser() {
+        return userRepository.findById(getCurrentUserId()).orElseThrow(() -> new IllegalStateException("User not found"));
     }
 }

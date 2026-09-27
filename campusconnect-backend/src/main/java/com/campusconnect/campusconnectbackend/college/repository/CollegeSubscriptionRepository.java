@@ -14,11 +14,18 @@ public interface CollegeSubscriptionRepository extends JpaRepository<CollegeSubs
     @Query("""
         SELECT cs
         FROM CollegeSubscription cs
+        LEFT JOIN FETCH cs.plan
         WHERE cs.college.id = :collegeId
         AND cs.startDate <= :now
         AND cs.endDate >= :now
     """)
-    Optional<CollegeSubscription> findActiveSubscription(Long collegeId, LocalDateTime now);
+    Optional<CollegeSubscription> findActiveSubscription(@Param("collegeId") Long collegeId, @Param("now") LocalDateTime now);
 
-    List<CollegeSubscription> findAllByCollege_Id(Long collegeId);
+    @Query("""
+        SELECT cs
+        FROM CollegeSubscription cs
+        LEFT JOIN FETCH cs.plan
+        WHERE cs.college.id = :collegeId
+    """)
+    List<CollegeSubscription> findAllByCollege_Id(@Param("collegeId") Long collegeId);
 }

@@ -84,9 +84,10 @@ public class GlobalExceptionHandler {
 
     // Malformed JSON
     @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
-    public ResponseEntity<?> handleInvalidJson() {
+    public ResponseEntity<?> handleInvalidJson(org.springframework.http.converter.HttpMessageNotReadableException ex) {
+        String msg = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage();
         return new ResponseEntity<>(
-                new ApiError("Malformed JSON request body", HttpStatus.BAD_REQUEST),
+                new ApiError("Malformed JSON request body: " + msg, HttpStatus.BAD_REQUEST),
                 HttpStatus.BAD_REQUEST
         );
     }
@@ -118,9 +119,10 @@ public class GlobalExceptionHandler {
 
     // Duplicate / constraint violation
     @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
-    public ResponseEntity<?> handleDataIntegrityViolation() {
+    public ResponseEntity<?> handleDataIntegrityViolation(org.springframework.dao.DataIntegrityViolationException ex) {
+        String detail = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage();
         return new ResponseEntity<>(
-                new ApiError("Duplicate or invalid data entry", HttpStatus.CONFLICT),
+                new ApiError("Duplicate or invalid data entry: " + detail, HttpStatus.CONFLICT),
                 HttpStatus.CONFLICT
         );
     }
@@ -145,11 +147,24 @@ public class GlobalExceptionHandler {
         );
     }
 
+    // Response status exceptions
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<?> handleResponseStatusException(org.springframework.web.server.ResponseStatusException ex) {
+        String reason = ex.getReason() != null ? ex.getReason() : "Request failed";
+        return new ResponseEntity<>(
+                new ApiError(reason, HttpStatus.valueOf(ex.getStatusCode().value())),
+                ex.getStatusCode()
+        );
+    }
+
     // Fallback
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleAllExceptions(Exception ex) {
+        // Log full error server-side for debugging
+        org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class)
+                .error("Unhandled exception", ex);
         return new ResponseEntity<>(
-                new ApiError("Something went wrong: " + ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR),
+                new ApiError("Something went wrong. Please try again later.", HttpStatus.INTERNAL_SERVER_ERROR),
                 HttpStatus.INTERNAL_SERVER_ERROR
         );
     }

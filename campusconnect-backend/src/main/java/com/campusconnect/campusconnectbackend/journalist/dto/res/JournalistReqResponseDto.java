@@ -21,6 +21,10 @@ public class JournalistReqResponseDto implements Serializable {
     @NotBlank
     private String journalistName;
 
+    private String studentName;
+
+    private String studentEmail;
+
     @NotBlank
     private String why;
 

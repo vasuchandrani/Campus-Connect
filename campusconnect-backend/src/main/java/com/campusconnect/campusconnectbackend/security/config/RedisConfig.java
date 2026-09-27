@@ -53,7 +53,7 @@ public class RedisConfig implements CachingConfigurer {
 
         cacheConfigs.put("college_name", baseConfig.entryTtl(Duration.ofDays(7)));
         cacheConfigs.put("college_adminName", baseConfig.entryTtl(Duration.ofDays(7)));
-        cacheConfigs.put("college_dashboard_stats", baseConfig.entryTtl(Duration.ofDays(3)));
+        cacheConfigs.put("college_dashboard_stats", baseConfig.entryTtl(Duration.ofMinutes(5)));
         cacheConfigs.put("college_subscription", baseConfig.entryTtl(Duration.ofDays(7)));
         cacheConfigs.put("college_subscription_history", baseConfig.entryTtl(Duration.ofDays(7)));
 
@@ -69,10 +69,10 @@ public class RedisConfig implements CachingConfigurer {
         cacheConfigs.put("latest_news",  baseConfig.entryTtl(Duration.ofHours(8)));
         cacheConfigs.put("college_newsPapers",  baseConfig.entryTtl(Duration.ofHours(8)));
 
-        cacheConfigs.put("reviewer_stats", baseConfig.entryTtl(Duration.ofHours(12)));
-        cacheConfigs.put("reviewer_details", baseConfig.entryTtl(Duration.ofDays(7)));
-        cacheConfigs.put("reviewer_name", baseConfig.entryTtl(Duration.ofDays(7)));
-        cacheConfigs.put("reviewers", baseConfig.entryTtl(Duration.ofDays(3)));
+        cacheConfigs.put("professor_stats", baseConfig.entryTtl(Duration.ofHours(12)));
+        cacheConfigs.put("professor_details", baseConfig.entryTtl(Duration.ofDays(7)));
+        cacheConfigs.put("professor_name", baseConfig.entryTtl(Duration.ofDays(7)));
+        cacheConfigs.put("professors", baseConfig.entryTtl(Duration.ofDays(3)));
 
         cacheConfigs.put("myResearch", baseConfig.entryTtl(Duration.ofHours(3)));
         cacheConfigs.put("research_papers",  baseConfig.entryTtl(Duration.ofHours(12)));
@@ -141,5 +141,48 @@ public class RedisConfig implements CachingConfigurer {
                 logger.error("Redis CLEAR error : {}", exception.getMessage());
             }
         };
+    }
+
+    @Bean
+    public org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory redisConnectionFactory(
+            @org.springframework.beans.factory.annotation.Value("${spring.data.redis.host}") String host,
+            @org.springframework.beans.factory.annotation.Value("${spring.data.redis.port:6379}") int port,
+            @org.springframework.beans.factory.annotation.Value("${spring.data.redis.password:}") String password,
+            @org.springframework.beans.factory.annotation.Value("${spring.data.redis.ssl.enabled:true}") boolean sslEnabled
+    ) {
+        org.springframework.data.redis.connection.RedisStandaloneConfiguration serverConfig =
+                new org.springframework.data.redis.connection.RedisStandaloneConfiguration(host, port);
+        if (password != null && !password.isBlank()) {
+            serverConfig.setPassword(password);
+        }
+
+        io.lettuce.core.ClientOptions clientOptions = io.lettuce.core.ClientOptions.builder()
+                .autoReconnect(true)
+                .pingBeforeActivateConnection(true)
+                .socketOptions(
+                        io.lettuce.core.SocketOptions.builder()
+                                .connectTimeout(Duration.ofSeconds(5))
+                                .keepAlive(io.lettuce.core.SocketOptions.KeepAliveOptions.builder()
+                                        .enable()
+                                        .idle(Duration.ofSeconds(15))
+                                        .interval(Duration.ofSeconds(5))
+                                        .count(3)
+                                        .build())
+                                .build()
+                )
+                .build();
+
+        var clientConfigBuilder = org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration.builder()
+                .commandTimeout(Duration.ofSeconds(5))
+                .clientOptions(clientOptions);
+
+        if (sslEnabled) {
+            clientConfigBuilder.useSsl();
+        }
+
+        org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory factory =
+                new org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory(serverConfig, clientConfigBuilder.build());
+        factory.setValidateConnection(true);
+        return factory;
     }
 }

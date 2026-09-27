@@ -13,5 +13,7 @@ public class EventWinnerResponseDto {
 
     private String email;
 
+    private String prize;
+
     private Long eventId;
 }

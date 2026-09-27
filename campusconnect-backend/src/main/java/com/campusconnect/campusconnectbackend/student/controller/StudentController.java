@@ -28,6 +28,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 
@@ -56,6 +58,8 @@ public class StudentController {
         Long userId = authService.getCurrentUserId();
         return studentService.getName(userId);
     }
+
+    // journalist login -> /journalist/login
 
     // stats -section
     @GetMapping("/stats")
@@ -109,9 +113,21 @@ public class StudentController {
     }
 
     // follow-unfollow
-    @PostMapping("/clubs/{clubId}")
-    public MessageResponseDto changeFollow(@PathVariable Long clubId, @RequestBody boolean follow) {
-        return clubFollowerService.changeFollow(authService.getCurrentUserId(), clubId, follow);
+    @PostMapping(value = "/clubs/{clubId}", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.ALL_VALUE})
+    public MessageResponseDto changeFollow(
+            @PathVariable Long clubId,
+            @RequestBody(required = false) String rawBody
+    ) {
+        boolean follow = true;
+        if (rawBody != null) {
+            String trimmed = rawBody.trim();
+            if ("false".equalsIgnoreCase(trimmed) || trimmed.contains("\"follow\":false") || trimmed.contains("\"follow\": false")) {
+                follow = false;
+            } else if ("true".equalsIgnoreCase(trimmed) || trimmed.contains("\"follow\":true") || trimmed.contains("\"follow\": true")) {
+                follow = true;
+            }
+        }
+        return clubFollowerService.changeFollow(clubId, follow);
     }
 
 
@@ -153,6 +169,24 @@ public class StudentController {
         return eventRegistrationService.unRegisterStudent(eventId);
     }
 
+    // get all global active events
+    @GetMapping("/events/global")
+    public List<EventResponseDto> getGlobalEvents() {
+        return eventService.getGlobalEvents();
+    }
+
+    // register in global event
+    @PostMapping("/events/global/{eventId}/register")
+    public MessageResponseDto registerGlobalEvent(@PathVariable Long eventId) {
+        return eventService.registerGlobalEvent(eventId, authService.getCurrentUserId());
+    }
+
+    // unregister from global event
+    @PostMapping("/events/global/{eventId}/unregister")
+    public MessageResponseDto unRegisterGlobalEvent(@PathVariable Long eventId) {
+        return eventService.unregisterGlobalEvent(eventId, authService.getCurrentUserId());
+    }
+
 
     /* Announcements */
 
@@ -191,6 +225,24 @@ public class StudentController {
         return newsPaperService.getNewsPapersByCollege(authService.getCurrentCollegeId());
     }
 
+    // get global newspapers
+    @GetMapping("/news-papers/global")
+    public List<NewsPaperResponseDto> getGlobalNewsPapers() {
+        return newsPaperService.getGlobalNewsPapers();
+    }
+
+    // toggle upvote on campus newspaper
+    @PostMapping("/news-papers/{id}/upvote")
+    public MessageResponseDto upvoteNewsPaper(@PathVariable Long id) {
+        return newsPaperService.toggleUpvote(id, authService.getCurrentUserId());
+    }
+
+    // toggle upvote on global newspaper
+    @PostMapping("/news-papers/global/{id}/upvote")
+    public MessageResponseDto upvoteGlobalNewsPaper(@PathVariable Long id) {
+        return newsPaperService.toggleGlobalUpvote(id, authService.getCurrentUserId());
+    }
+
     // become a journalist
     @PostMapping("/news-papers/become")
     public MessageResponseDto becomeJournalistRequest(@RequestBody JournalistRequestDto request) {
@@ -203,6 +255,24 @@ public class StudentController {
     @GetMapping("/researches")
     public List<ResearchesResponseDto> getResearches() {
         return researchPaperService.getAllResearchPapers(authService.getCurrentCollegeId());
+    }
+
+    // get global research-papers
+    @GetMapping("/researches/global")
+    public List<ResearchesResponseDto> getGlobalResearches() {
+        return researchPaperService.getGlobalResearchPapers();
+    }
+
+    // toggle upvote on campus research paper
+    @PostMapping("/researches/{id}/upvote")
+    public MessageResponseDto upvoteResearch(@PathVariable Long id) {
+        return researchPaperService.toggleUpvote(id, authService.getCurrentUserId());
+    }
+
+    // toggle upvote on global research paper
+    @PostMapping("/researches/global/{id}/upvote")
+    public MessageResponseDto upvoteGlobalResearch(@PathVariable Long id) {
+        return researchPaperService.toggleGlobalUpvote(id, authService.getCurrentUserId());
     }
 
     // get particular research-paper
@@ -220,12 +290,34 @@ public class StudentController {
     // submit research-paper
     @PostMapping(value = "/researches", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public MessageResponseDto submitResearchPaper(
-            @RequestPart("research") ResearchRequestDto request,
-            @RequestPart("pdf") MultipartFile pdf
+            @RequestPart(value = "research", required = false) ResearchRequestDto requestPart,
+            @RequestParam(value = "title", required = false) String title,
+            @RequestParam(value = "overview", required = false) String overview,
+            @RequestParam(value = "subject", required = false) String subject,
+            @RequestParam(value = "dept", required = false) String dept,
+            @RequestParam(value = "website", required = false) String website,
+            @RequestParam(value = "pdf", required = false) MultipartFile pdfParam,
+            @RequestPart(value = "pdf", required = false) MultipartFile pdfPart
     ) {
-        if (pdf.getSize() > 5 * 1024 * 1024) {
-            throw new RuntimeException("PDF must be less than 5MB");
+        MultipartFile pdf = pdfParam != null ? pdfParam : pdfPart;
+        if (pdf == null || pdf.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "PDF file is required");
         }
+        if (pdf.getSize() > 10 * 1024 * 1024) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "PDF must be less than 10MB");
+        }
+
+        ResearchRequestDto request = requestPart != null ? requestPart : new ResearchRequestDto();
+        if (request.getTitle() == null || request.getTitle().isBlank()) request.setTitle(title);
+        if (request.getOverview() == null || request.getOverview().isBlank()) request.setOverview(overview);
+        if (request.getSubject() == null || request.getSubject().isBlank()) request.setSubject(subject);
+        if (request.getDept() == null || request.getDept().isBlank()) request.setDept(dept);
+        if (request.getWebsite() == null || request.getWebsite().isBlank()) request.setWebsite(website);
+
+        if (request.getTitle() == null || request.getTitle().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Title is required");
+        }
+
         return researchPaperService.submitPaper(request, pdf, authService.getCurrentUserId());
     }
 

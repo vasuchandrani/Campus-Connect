@@ -8,6 +8,8 @@ import java.util.List;
 public interface ClubTeamRepository extends JpaRepository<ClubTeam, Integer> {
     int countByClub_Id(Long clubId);
 
+    java.util.Set<ClubTeam> findByClub_Id(Long clubId);
+
     List<ClubTeam> findByClub_IdOrderByCreatedAtDesc(Long clubId);
 
     ClubTeam findById(Long id);

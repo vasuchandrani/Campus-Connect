@@ -10,11 +10,13 @@ import {
   PenSquare,
   Megaphone,
   Layers,
+  GraduationCap,
+  CheckSquare,
 } from "lucide-react";
 
 // Student Navigation
 export const studentNavItems = [
-  { label: "Home", href: "/campus-connect/student/dashboard", icon: Home },
+  { label: "Dashboard", href: "/campus-connect/student/dashboard", icon: LayoutDashboard },
   { label: "Clubs", href: "/campus-connect/student/clubs", icon: Users },
   { label: "Events", href: "/campus-connect/student/events", icon: Calendar },
   { label: "Announcements", href: "/campus-connect/student/announcements", icon: Megaphone },
@@ -42,6 +44,16 @@ export const clubMemberNavItems = [
   { label: "Members", href: "/campus-connect/club-member/:clubId/members", icon: Users },
 ];
 
+// Club Mentor Navigation
+export const clubMentorNavItems = [
+  { label: "Dashboard", href: "/campus-connect/professor/clubs/:clubId/mentor-dashboard", icon: LayoutDashboard },
+  { label: "Announcements", href: "/campus-connect/professor/clubs/:clubId/mentor-dashboard/announcements", icon: Megaphone },
+  { label: "Events", href: "/campus-connect/professor/clubs/:clubId/mentor-dashboard/events", icon: Calendar },
+  { label: "Members", href: "/campus-connect/professor/clubs/:clubId/mentor-dashboard/members", icon: Users },
+  { label: "Teams", href: "/campus-connect/professor/clubs/:clubId/mentor-dashboard/teams", icon: Layers },
+  { label: "Settings", href: "/campus-connect/professor/clubs/:clubId/mentor-dashboard/settings", icon: Settings },
+];
+
 // Journalist Navigation
 export const journalistNavItems = [
   { label: "Dashboard", href: "/campus-connect/journalist/dashboard", icon: LayoutDashboard },
@@ -60,17 +72,19 @@ export const collegeAdminNavItems = [
   { label: "Settings", href: "/campus-connect/college-admin/settings", icon: Settings },
 ];
 
-// Reviewer Navigation
-export const reviewerNavItems = [
-  { label: "Dashboard", href: "/campus-connect/reviewer/dashboard", icon: Home },
-  { label: "Settings", href: "/campus-connect/reviewer/settings", icon: Settings },
+// Professor Navigation
+export const professorNavItems = [
+  { label: "Dashboard", href: "/campus-connect/professor/dashboard", icon: LayoutDashboard },
+  { label: "Clubs", href: "/campus-connect/professor/clubs", icon: Users },
+  { label: "Events", href: "/campus-connect/professor/events", icon: Calendar },
+  { label: "Announcements", href: "/campus-connect/professor/announcements", icon: Megaphone },
+  { label: "Newspaper", href: "/campus-connect/professor/newspaper", icon: Newspaper },
+  { label: "Research", href: "/campus-connect/professor/research", icon: GraduationCap },
+  { label: "Review", href: "/campus-connect/professor/review", icon: CheckSquare },
+  { label: "Settings", href: "/campus-connect/professor/settings", icon: Settings },
 ];
 
-// Settings page navigation
-export const settingsNavItems = [
-  { label: "Home", href: "/campus-connect/dashboard", icon: Home },
-  { label: "Settings", href: "/campus-connect/settings", icon: Settings },
-];
+
 
 // Get navigation items based on user role
 export const getNavItemsByRole = (role) => {
@@ -85,8 +99,10 @@ export const getNavItemsByRole = (role) => {
       return journalistNavItems;
     case "college_admin":
       return collegeAdminNavItems;
-    case "reviewer":
-      return reviewerNavItems;
+    case "professor":
+      return professorNavItems;
+    case "club_mentor":
+      return clubMentorNavItems;
     default:
       return studentNavItems;
   }

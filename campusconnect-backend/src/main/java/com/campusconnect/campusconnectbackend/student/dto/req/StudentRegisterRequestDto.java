@@ -25,5 +25,6 @@ public class StudentRegisterRequestDto {
     @NotBlank(message = "Department is required")
     private String department;
 
+    @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.campusconnect.campusconnectbackend.student.dto.deserializer.YearDeserializer.class)
     private int year;
 }

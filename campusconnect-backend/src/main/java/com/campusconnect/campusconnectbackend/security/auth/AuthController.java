@@ -6,6 +6,7 @@ import com.campusconnect.campusconnectbackend.dto.response.AuthResponseDto;
 import com.campusconnect.campusconnectbackend.student.dto.req.StudentSignupRequestDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/campus-connect")
@@ -22,7 +23,7 @@ public class AuthController {
     }
     @PostMapping("/student/login")
     public AuthResponseDto studentLogin(
-            @RequestBody LoginRequestDto request) {
+            @Valid @RequestBody LoginRequestDto request) {
         return authService.login(request);
     }
 
@@ -42,7 +43,7 @@ public class AuthController {
     }
     @PostMapping("/college-admin/login")
     public AuthResponseDto collegeAdminLogin(
-            @RequestBody LoginRequestDto request
+            @Valid @RequestBody LoginRequestDto request
     ) {
         return authService.login(request);
     }
@@ -50,15 +51,21 @@ public class AuthController {
     // journalist
     @PostMapping("/journalist/login")
     public AuthResponseDto journalistLogin(
-            @RequestBody LoginRequestDto request
+            @Valid @RequestBody LoginRequestDto request
     ) {
         return authService.login(request);
     }
 
-    // reviewer
-    @PostMapping("/reviewer/login")
-    public AuthResponseDto reviewerLogin(
-            @RequestBody LoginRequestDto request
+    // professor
+    @PostMapping("/professor/signup")
+    public AuthResponseDto professorSignup(
+            @RequestBody com.campusconnect.campusconnectbackend.professor.dto.req.ProfessorSignupRequestDto request
+    ) {
+        return authService.signup(request);
+    }
+    @PostMapping("/professor/login")
+    public AuthResponseDto professorLogin(
+            @Valid @RequestBody LoginRequestDto request
     ) {
         return authService.login(request);
     }
@@ -80,22 +87,5 @@ public class AuthController {
         return authService.getCurrentRole();
     }
 
-    // testing
-    @GetMapping("/student/dashboard")
-    public String studentDashboard() {
-        return "Student Dashboard";
-    }
 
-    @GetMapping("/college-admin/dashboard")
-    public String collegeAdminDashboard() { return "College Admin Dashboard"; }
-
-    @GetMapping("/journalist/dashboard")
-    public String journalistDashboard() {
-        return "Journalist Dashboard";
-    }
-
-    @GetMapping("/reviewer/dashboard")
-    public String reviewerDashboard() {
-        return "Reviewer Dashboard";
-    }
 }

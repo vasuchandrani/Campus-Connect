@@ -4,7 +4,7 @@ import com.campusconnect.campusconnectbackend.integrations.mail_service.dto.club
 import com.campusconnect.campusconnectbackend.integrations.mail_service.dto.club_verification.ClubVerifiedDto;
 import com.campusconnect.campusconnectbackend.integrations.mail_service.dto.college_verification.CollegeVerificationDto;
 import com.campusconnect.campusconnectbackend.integrations.mail_service.dto.journalist.JournalistAssignmentDto;
-import com.campusconnect.campusconnectbackend.integrations.mail_service.dto.reviewer.ReviewerAssignmentDto;
+import com.campusconnect.campusconnectbackend.integrations.mail_service.dto.professor.ProfessorAssignmentDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -56,9 +56,11 @@ public class EmailDispatcherService {
     }
     // send a club-approval mail to student
     public boolean sendClubApprovedToStudent(ClubVerifiedDto request) {
+        String password = request.getPassword() != null ? request.getPassword() : "";
         String html = emailSenderService
                 .loadEmailTemplate("club_approved.html")
                 .replace("{{CLUB_NAME}}", request.getClubName())
+                .replace("{{PASSWORD}}", password)
                 .replace("{{CLUB_DASHBOARD_LINK}}", request.getClubDashboardLink());
 
         return emailSenderService.sendHtmlEmail(
@@ -68,15 +70,67 @@ public class EmailDispatcherService {
         );
     }
 
-    // send journalist-request-approval mail to student
-    public boolean sendJournalistRequestAccepted(JournalistAssignmentDto request) {
+    // send club-member credentials mail
+    public boolean sendClubMemberAssigned(String email, String clubName, String role, String password, String dashboardLink) {
+        if (email == null || email.isBlank()) {
+            return false;
+        }
+        String pass = password != null ? password : "";
+        String link = dashboardLink != null ? dashboardLink : "/campus-connect/student/dashboard";
+
         String html = emailSenderService
-                .loadEmailTemplate("journalist_assigned.html")
-                .replace("{{PASSWORD}}", request.getPassword())
-                .replace("{{JOURNALIST_DASHBOARD_LINK}}", request.getDashboardLink());
+                .loadEmailTemplate("club_approved.html")
+                .replace("{{CLUB_NAME}}", clubName)
+                .replace("{{PASSWORD}}", pass)
+                .replace("{{CLUB_DASHBOARD_LINK}}", link);
 
         return emailSenderService.sendHtmlEmail(
-                request.getEmail(),
+                email.trim(),
+                "Club Member Access Granted – " + clubName,
+                html
+        );
+    }
+
+    // send club-mentor credentials mail
+    public boolean sendClubMentorAssigned(String email, String professorName, String clubName, String password, String dashboardLink) {
+        if (email == null || email.isBlank()) {
+            return false;
+        }
+        String profName = (professorName != null && !professorName.isBlank()) ? professorName : "Professor";
+        String pass = password != null ? password : "";
+        String link = dashboardLink != null ? dashboardLink : "/campus-connect/professor/dashboard";
+
+        String html = emailSenderService
+                .loadEmailTemplate("club_mentor_assigned.html")
+                .replace("{{PROFESSOR_NAME}}", profName)
+                .replace("{{CLUB_NAME}}", clubName != null ? clubName : "Campus Club")
+                .replace("{{PASSWORD}}", pass)
+                .replace("{{MENTOR_DASHBOARD_LINK}}", link);
+
+        return emailSenderService.sendHtmlEmail(
+                email.trim(),
+                "Faculty Club Mentor Appointment & Credentials – " + (clubName != null ? clubName : "Campus-Connect"),
+                html
+        );
+    }
+
+    // send journalist-request-approval mail to student
+    public boolean sendJournalistRequestAccepted(JournalistAssignmentDto request) {
+        if (request == null || request.getEmail() == null || request.getEmail().isBlank()) {
+            return false;
+        }
+
+        String email = request.getEmail().trim();
+        String password = request.getPassword() != null ? request.getPassword() : "";
+        String dashboardLink = request.getDashboardLink() != null ? request.getDashboardLink() : "/campus-connect/journalist/dashboard";
+
+        String html = emailSenderService
+                .loadEmailTemplate("journalist_assigned.html")
+                .replace("{{PASSWORD}}", password)
+                .replace("{{JOURNALIST_DASHBOARD_LINK}}", dashboardLink);
+
+        return emailSenderService.sendHtmlEmail(
+                email,
                 "Journalist Request Approved – Campus-Connect",
                 html
         );
@@ -99,16 +153,16 @@ public class EmailDispatcherService {
     }
 
 
-    // send assigned as reviewer mail to prof
-    public boolean sendReviewerAssigned(ReviewerAssignmentDto request) {
+    // send assigned as professor mail to prof
+    public boolean sendProfessorAssigned(ProfessorAssignmentDto request) {
         String html = emailSenderService
-                .loadEmailTemplate("reviewer_assigned.html")
+                .loadEmailTemplate("professor_assigned.html")
                 .replace("{{PASSWORD}}", request.getPassword())
-                .replace("{{REVIEWER_DASHBOARD_LINK}}", request.getDashboardLink());
+                .replace("{{PROFESSOR_DASHBOARD_LINK}}", request.getDashboardLink());
 
         return emailSenderService.sendHtmlEmail(
                 request.getEmail(),
-                "Reviewer Role Assigned – Campus-Connect",
+                "Professor Role Assigned – Campus-Connect",
                 html
         );
     }

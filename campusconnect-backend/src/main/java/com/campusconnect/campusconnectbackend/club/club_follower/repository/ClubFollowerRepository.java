@@ -1,8 +1,8 @@
 package com.campusconnect.campusconnectbackend.club.club_follower.repository;
 
 import com.campusconnect.campusconnectbackend.club.club_follower.entity.ClubFollower;
-import com.campusconnect.campusconnectbackend.club.entity.Club;
 import com.campusconnect.campusconnectbackend.club.club_follower.entity.id.ClubFollowerId;
+import com.campusconnect.campusconnectbackend.club.entity.Club;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

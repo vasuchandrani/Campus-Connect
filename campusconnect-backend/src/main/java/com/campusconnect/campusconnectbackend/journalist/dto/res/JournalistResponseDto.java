@@ -33,5 +33,13 @@ public class JournalistResponseDto implements Serializable {
 
     @NotNull
     private Long collegeId;
+
+    private String email;
+
+    private String department;
+
+    private Integer batchYear;
+
+    private String name;
 }
 

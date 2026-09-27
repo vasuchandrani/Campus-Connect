@@ -9,6 +9,9 @@ import java.io.Serializable;
 @Embeddable
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode
 public class ClubFollowerId implements Serializable {
 
     @Column(name = "club_id")

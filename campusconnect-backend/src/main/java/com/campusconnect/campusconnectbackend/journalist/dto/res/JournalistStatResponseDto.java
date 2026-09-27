@@ -17,8 +17,11 @@ public class JournalistStatResponseDto implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @NotNull
-    int draft;
+    private int draft;
 
     @NotNull
-    int published;
+    private int published;
+
+    @NotNull
+    private int globalized;
 }

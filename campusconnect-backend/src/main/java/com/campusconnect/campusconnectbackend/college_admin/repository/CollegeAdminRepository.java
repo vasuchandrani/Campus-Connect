@@ -8,8 +8,16 @@ import java.util.Optional;
 
 public interface CollegeAdminRepository extends JpaRepository<CollegeAdmin, Long> {
 
-    Optional<CollegeAdmin> findByEmail(String email);
+    @org.springframework.data.jpa.repository.Query("SELECT a FROM CollegeAdmin a WHERE a.user.email = :email")
+    Optional<CollegeAdmin> findByEmail(@org.springframework.data.repository.query.Param("email") String email);
+
+    @org.springframework.data.jpa.repository.Query("SELECT a FROM CollegeAdmin a JOIN FETCH a.user JOIN FETCH a.college c LEFT JOIN FETCH c.location WHERE a.id = :id")
+    Optional<CollegeAdmin> findByIdWithDetails(@org.springframework.data.repository.query.Param("id") Long id);
 
     CollegeAdmin findByCollege(College college);
+
+    Optional<CollegeAdmin> findByUser_Id(Long userId);
+
+    Optional<CollegeAdmin> findFirstByCollege_Id(Long collegeId);
 }
 

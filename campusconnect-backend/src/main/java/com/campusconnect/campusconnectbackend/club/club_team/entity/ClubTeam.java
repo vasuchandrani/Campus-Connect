@@ -1,20 +1,24 @@
 package com.campusconnect.campusconnectbackend.club.club_team.entity;
 
 import com.campusconnect.campusconnectbackend.club.entity.Club;
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
 
 @Entity
 @Getter
 @Setter
-@Table(name = "club_team")
+@Table(
+        name = "club_teams",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "club_team_name_uk",
+                        columnNames = {"club_id", "team_name"}
+                )
+        }
+)
 public class ClubTeam {
 
     @Id
@@ -23,19 +27,15 @@ public class ClubTeam {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "club_id", nullable = false)
-    @JsonBackReference
     private Club club;
 
-    @Column(nullable = false)
+    @Column(name = "team_name", nullable = false)
     private String name;
 
+    @Column(name = "team_description")
     private String description;
 
     @CreationTimestamp
-    @Column(name = "created_at")
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
-
-    @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
-    private Set<ClubTeamMember> members = new HashSet<>();
 }

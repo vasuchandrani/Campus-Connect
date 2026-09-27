@@ -14,12 +14,12 @@ public interface NewsPaperRepository extends JpaRepository<NewsPaper, Long> {
         select n
         from NewsPaper n
         where n.college.id = :collegeId
-        and n.status = :status
+        and CAST(n.status AS string) = :status
         order by n.createdAt desc
     """)
     List<NewsPaper> findLatestByCollegeId(
-            Long collegeId,
-            String status,
+            @Param("collegeId") Long collegeId,
+            @Param("status") String status,
             Pageable pageable
     );
 
@@ -31,7 +31,7 @@ public interface NewsPaperRepository extends JpaRepository<NewsPaper, Long> {
         SELECT n
         FROM NewsPaper n
         WHERE n.journalist.id = :journalistId
-        AND n.status = :status
+        AND CAST(n.status AS string) = :status
         ORDER BY n.createdAt DESC
     """)
     List<NewsPaper> findLatestNewsPapers(
@@ -40,15 +40,48 @@ public interface NewsPaperRepository extends JpaRepository<NewsPaper, Long> {
             Pageable pageable
     );
 
+    @Query("""
+        SELECT n
+        FROM NewsPaper n
+        LEFT JOIN NewsUpvote u ON u.newsPaper.id = n.id
+        WHERE n.journalist.id = :journalistId
+        AND CAST(n.status AS string) IN ('PUBLISHED', 'APPROVED', 'GLOBALLY_PUBLISHED', 'GLOBALIZATION_REQUESTED')
+        GROUP BY n
+        ORDER BY COUNT(u) DESC, n.createdAt DESC
+    """)
+    List<NewsPaper> findTopNewsPapersByUpvotes(
+            @Param("journalistId") Long journalistId,
+            Pageable pageable
+    );
+
     int countByCollege_Id(Long collegeId);
 
     int countByJournalist_Id(Long journalistId);
 
-    List<NewsPaper> findAllByJournalist_IdAndStatus(Long journalistId, String status);
+    @Query("SELECT n FROM NewsPaper n WHERE n.journalist.id = :journalistId AND CAST(n.status AS string) = :status")
+    List<NewsPaper> findAllByJournalist_IdAndStatus(@Param("journalistId") Long journalistId, @Param("status") String status);
 
-    List<NewsPaper> findAllByCollege_IdAndStatus(Long collegeId, String status);
+    @Query("SELECT n FROM NewsPaper n WHERE n.college.id = :collegeId AND CAST(n.status AS string) = :status")
+    List<NewsPaper> findAllByCollege_IdAndStatus(@Param("collegeId") Long collegeId, @Param("status") String status);
 
-    int countByCollege_IdAndStatus(Long collegeId, String status);
+    @Query("SELECT COUNT(n) FROM NewsPaper n WHERE n.college.id = :collegeId AND CAST(n.status AS string) = :status")
+    int countByCollege_IdAndStatus(@Param("collegeId") Long collegeId, @Param("status") String status);
 
-    int countByJournalist_IdAndStatus(Long journalistId, String status);
+    @Query("SELECT COUNT(n) FROM NewsPaper n WHERE n.journalist.id = :journalistId AND CAST(n.status AS string) = :status")
+    int countByJournalist_IdAndStatus(@Param("journalistId") Long journalistId, @Param("status") String status);
+
+    @Query("""
+        SELECT n FROM NewsPaper n
+        WHERE CAST(n.status AS string) = 'GLOBALIZATION_REQUESTED'
+        ORDER BY n.createdAt DESC
+    """)
+    List<NewsPaper> findPendingGlobalRequests();
+
+    @Query("""
+        SELECT n FROM NewsPaper n
+        WHERE n.college.id = :collegeId
+        AND CAST(n.status AS string) IN ('PUBLISHED', 'APPROVED', 'GLOBALLY_PUBLISHED', 'GLOBALIZATION_REQUESTED')
+        ORDER BY n.createdAt DESC
+    """)
+    List<NewsPaper> findCampusNewsPapers(@Param("collegeId") Long collegeId);
 }

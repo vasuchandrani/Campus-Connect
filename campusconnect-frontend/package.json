@@ -7,8 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "doctor": "npx react-doctor@latest"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@fontsource/plus-jakarta-sans": "^5.2.8",

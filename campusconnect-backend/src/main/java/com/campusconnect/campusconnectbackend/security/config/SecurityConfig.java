@@ -29,30 +29,30 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-            .cors(Customizer.withDefaults())
+                .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
 
-                // allow CORS preflight requests
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // allow CORS preflight requests
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         // public routes
                         .requestMatchers(
                                 "/campus-connect/college-admin/signup",
                                 "/campus-connect/college-admin/login",
-                                "/campus-connect/college-admin/create-order",
-                                "/campus-connect/college-admin/verify",
 
                                 "/campus-connect/student/signup",
                                 "/campus-connect/student/login",
 
                                 "/campus-connect/journalist/login",
-                                "/campus-connect/reviewer/login",
+                                "/campus-connect/professor/login",
+                                "/campus-connect/professor/signup",
 
                                 "/campus-connect/colleges",
+                                "/campus-connect/colleges/*/departments",
 
                                 "/campus-connect/email/**",
 
@@ -60,6 +60,11 @@ public class SecurityConfig {
                                 "/campus-connect/security/send-code",
                                 "/campus-connect/security/verify-code"
                         ).permitAll()
+
+                        // Department management for College Admin
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/campus-connect/departments/**", "/campus-connect/admin/departments/**").hasRole("COLLEGE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/campus-connect/departments/**", "/campus-connect/admin/departments/**").hasRole("COLLEGE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/campus-connect/departments/**", "/campus-connect/admin/departments/**").hasRole("COLLEGE_ADMIN")
 
                         // Role-based routes
                         .requestMatchers("/campus-connect/college-admin/**")
@@ -71,12 +76,24 @@ public class SecurityConfig {
                         .requestMatchers("/campus-connect/journalist/**")
                         .hasRole("JOURNALIST")
 
-                        .requestMatchers("/campus-connect/reviewer/**")
-                        .hasRole("REVIEWER")
+                        .requestMatchers(
+                                "/campus-connect/professor/clubs/*/mentor-dashboard",
+                                "/campus-connect/professor/clubs/*/mentor-dashboard/**",
+                                "/campus-connect/professor/clubs/*/sub-login/mentor",
+                                "/campus-connect/professor/clubs/*/mentor/return-to-professor",
+                                "/campus-connect/professor/return-to-professor"
+                        ).hasAnyRole("CLUB_MENTOR", "PROFESSOR")
 
-                        // club routes are used by student accounts with club member/admin role mapping
+                        .requestMatchers("/campus-connect/professor/**")
+                        .hasRole("PROFESSOR")
+
+                        // club routes are used by students, club staff, professors, and college admins
                         .requestMatchers("/campus-connect/clubs/**")
-                        .hasRole("STUDENT")
+                        .hasAnyRole("STUDENT", "CLUB_ADMIN", "CLUB_MEMBER", "PROFESSOR", "COLLEGE_ADMIN", "CLUB_MENTOR")
+
+                        // event registration & payment routes
+                        .requestMatchers("/campus-connect/events/**")
+                        .hasAnyRole("STUDENT", "CLUB_ADMIN", "CLUB_MEMBER")
 
                         .anyRequest().authenticated()
                 )

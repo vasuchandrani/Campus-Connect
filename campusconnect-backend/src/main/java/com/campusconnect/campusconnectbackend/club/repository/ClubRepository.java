@@ -13,4 +13,8 @@ public interface ClubRepository extends JpaRepository<Club,Long> {
     int countByCollege_Id(Long collegeId);
 
     Club findClubById(Long id);
+
+    List<Club> findAllByMentor_Id(Long professorId);
+
+    int countByMentor_Id(Long professorId);
 }

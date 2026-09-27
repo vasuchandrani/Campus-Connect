@@ -2,7 +2,7 @@ package com.campusconnect.campusconnectbackend.security.security_management.serv
 
 import com.campusconnect.campusconnectbackend.college_admin.service.CollegeAdminAuth;
 import com.campusconnect.campusconnectbackend.journalist.service.JournalistAuth;
-import com.campusconnect.campusconnectbackend.reviewer.service.ReviewerAuth;
+import com.campusconnect.campusconnectbackend.professor.service.ProfessorAuth;
 import com.campusconnect.campusconnectbackend.security.security_management.dto.req.ChangePasswordRequestDto;
 import com.campusconnect.campusconnectbackend.security.security_management.dto.req.ForgetPasswordRequestDto;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
@@ -20,7 +20,7 @@ public class SecurityManagementService {
     private final StudentAuth studentAuth;
     private final CollegeAdminAuth collegeAdminAuth;
     private final JournalistAuth journalistAuth;
-    private final ReviewerAuth reviewerAuth;
+    private final ProfessorAuth professorAuth;
 
     private MessageResponseDto resetPassword(ForgetPasswordRequestDto request) {
         return
@@ -32,7 +32,7 @@ public class SecurityManagementService {
 
                     case "JOURNALIST" -> journalistAuth.resetPassword(request);
 
-                    case "REVIEWER" -> reviewerAuth.resetPassword(request);
+                    case "PROFESSOR" -> professorAuth.resetPassword(request);
 
                     default -> throw new IllegalArgumentException("Invalid role");
                 };
@@ -69,7 +69,7 @@ public class SecurityManagementService {
 
                     case "JOURNALIST" -> journalistAuth.changePassword(currentUserId, request);
 
-                    case "REVIEWER" -> reviewerAuth.changePassword(currentUserId, request);
+                    case "PROFESSOR" -> professorAuth.changePassword(currentUserId, request);
 
                     default -> throw new IllegalArgumentException("Invalid role");
                 };

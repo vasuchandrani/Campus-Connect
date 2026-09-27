@@ -34,6 +34,8 @@ public class StudentResponseDto implements Serializable {
     @NotBlank
     private String department;
 
+    private Long departmentId;
+
     @NotNull
     private int year;
 
@@ -41,6 +43,8 @@ public class StudentResponseDto implements Serializable {
     private LocalDateTime createdAt;
 
     private boolean isVerified;
+
+    private boolean isActive = true;
 
     @NotNull
     private Long collegeId;

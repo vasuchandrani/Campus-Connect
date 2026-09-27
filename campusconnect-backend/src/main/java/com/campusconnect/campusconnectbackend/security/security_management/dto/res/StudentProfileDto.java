@@ -10,4 +10,8 @@ public class StudentProfileDto {
     private String fullName;
 
     private String gender;
+
+    private String department;
+
+    private Long departmentId;
 }

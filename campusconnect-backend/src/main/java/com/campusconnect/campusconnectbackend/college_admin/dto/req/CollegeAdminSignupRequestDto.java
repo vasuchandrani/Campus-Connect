@@ -46,4 +46,10 @@ public class CollegeAdminSignupRequestDto implements SignupRequestDto {
     private boolean isPaid = false;
 
     private CollegeSubscriptionRequestDto subscription;
+
+    private String collegePhone;
+
+    private String collegeEmail;
+
+    private java.util.List<String> departments;
 }

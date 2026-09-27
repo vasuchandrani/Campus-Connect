@@ -31,11 +31,12 @@ public class StudentSignupRequestDto implements SignupRequestDto {
     @NotBlank(message = "Password is required")
     private String password;
 
-    @NotBlank(message = "College is required")
+    @jakarta.validation.constraints.NotNull(message = "College is required")
     private Long collegeId;
 
     @NotBlank(message = "Department is required")
     private String department;
 
+    @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = com.campusconnect.campusconnectbackend.student.dto.deserializer.YearDeserializer.class)
     private int year;
 }

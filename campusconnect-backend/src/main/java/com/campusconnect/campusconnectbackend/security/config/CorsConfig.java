@@ -16,38 +16,42 @@ public class CorsConfig {
 
         CorsConfiguration config = new CorsConfiguration();
 
-        // Allowed Frontend Origins
-//        config.setAllowedOrigins(List.of(
-//                "http://localhost:5173",
-//                "http://127.0.0.1:5173",
-//                "https://campus-connect-seven-alpha.vercel.app",
-//                "https://campus-conect.xyz",
-//                "https://www.campus-conect.xyz",
-//                "*"
-//        ));
-
-
-        config.setAllowedOriginPatterns(List.of("*"));
-        config.setAllowedMethods(List.of("*"));
-        config.setAllowedHeaders(List.of("*"));
+        // Allowed Frontend Origins & Dynamic Patterns (supports localhost, LAN/Hotspot IP addresses, and production domains)
+        config.setAllowedOriginPatterns(List.of(
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+                "http://10.*.*.*:*",
+                "http://192.168.*.*:*",
+                "https://campus-connect.xyz",
+                "https://campus-conect.xyz"
+        ));
 
         // Allowed HTTP Methods
-//        config.setAllowedMethods(List.of(
-//                "GET",
-//                "POST",
-//                "PUT",
-//                "DELETE",
-//                "PATCH",
-//                "OPTIONS"
-//        ));
-//
-//        // Allowed Headers
-//        config.setAllowedHeaders(List.of(
-//                "Authorization",
-//                "Content-Type",
-//                "Accept",
-//                "Origin"
-//        ));
+        config.setAllowedMethods(List.of(
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH",
+                "OPTIONS"
+        ));
+
+        // Allowed Headers
+        config.setAllowedHeaders(List.of(
+                "Authorization",
+                "Content-Type",
+                "Accept",
+                "Origin",
+                "X-Requested-With",
+                "Access-Control-Request-Method",
+                "Access-Control-Request-Headers"
+        ));
+
+        // Exposed Headers
+        config.setExposedHeaders(List.of(
+                "Authorization",
+                "Content-Disposition"
+        ));
 
         // Allow cookies / auth headers
         config.setAllowCredentials(true);

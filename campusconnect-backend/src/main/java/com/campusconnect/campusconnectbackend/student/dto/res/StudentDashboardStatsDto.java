@@ -19,4 +19,10 @@ public class StudentDashboardStatsDto implements Serializable {
 
     @Min(0)
     private int upcomingEvents;
+
+    @Min(0)
+    private int collegeClubs;
+
+    @Min(0)
+    private int myResearches;
 }

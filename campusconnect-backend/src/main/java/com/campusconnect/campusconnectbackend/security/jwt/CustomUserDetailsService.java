@@ -2,7 +2,7 @@ package com.campusconnect.campusconnectbackend.security.jwt;
 
 import com.campusconnect.campusconnectbackend.college_admin.repository.CollegeAdminRepository;
 import com.campusconnect.campusconnectbackend.journalist.repository.JournalistRepository;
-import com.campusconnect.campusconnectbackend.reviewer.repository.ReviewerRepository;
+import com.campusconnect.campusconnectbackend.professor.repository.ProfessorRepository;
 import com.campusconnect.campusconnectbackend.student.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NullMarked;
@@ -18,7 +18,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final StudentRepository studentRepository;
     private final CollegeAdminRepository collegeAdminRepository;
     private final JournalistRepository journalistRepository;
-    private final ReviewerRepository reviewerRepository;
+    private final ProfessorRepository professorRepository;
 
     @Override
     @NullMarked
@@ -64,16 +64,16 @@ public class CustomUserDetailsService implements UserDetailsService {
                     ))
                     .orElseThrow(() ->
                             new UsernameNotFoundException("Journalist not found"));
-            case "REVIEWER" -> reviewerRepository.findByEmail(email)
-                    .map(r -> new CustomUserDetails(
-                            r.getId(),
-                            r.getCollege().getId(), // reviewer has NO college
-                            r.getEmail(),
-                            r.getPasswordHash(),
-                            "REVIEWER"
+            case "CLUB_MENTOR", "PROFESSOR" -> professorRepository.findByEmail(email)
+                    .map(p -> new CustomUserDetails(
+                            p.getId(),
+                            p.getCollege().getId(),
+                            p.getEmail(),
+                            p.getPasswordHash(),
+                            role
                     ))
                     .orElseThrow(() ->
-                            new UsernameNotFoundException("Reviewer not found"));
+                            new UsernameNotFoundException("Professor not found"));
             default -> throw new UsernameNotFoundException("Invalid role: " + role);
         };
     }

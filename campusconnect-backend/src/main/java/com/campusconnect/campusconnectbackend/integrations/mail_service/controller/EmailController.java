@@ -4,7 +4,7 @@ import com.campusconnect.campusconnectbackend.integrations.mail_service.dto.club
 import com.campusconnect.campusconnectbackend.integrations.mail_service.dto.club_verification.ClubVerifiedDto;
 import com.campusconnect.campusconnectbackend.integrations.mail_service.dto.college_verification.CollegeVerificationDto;
 import com.campusconnect.campusconnectbackend.integrations.mail_service.dto.journalist.JournalistAssignmentDto;
-import com.campusconnect.campusconnectbackend.integrations.mail_service.dto.reviewer.ReviewerAssignmentDto;
+import com.campusconnect.campusconnectbackend.integrations.mail_service.dto.professor.ProfessorAssignmentDto;
 import com.campusconnect.campusconnectbackend.integrations.mail_service.service.EmailDispatcherService;
 import com.campusconnect.campusconnectbackend.security.verification_code.service.VerificationCodeService;
 import lombok.RequiredArgsConstructor;
@@ -50,9 +50,9 @@ public class EmailController {
         return emailDispatcherService.sendJournalistRequestAccepted(request);
     }
 
-    // send assigned as reviewer mail to prof -for testing
-    @PostMapping("/reviewer-mail")
-    public boolean sendMailToReviewer(@RequestBody ReviewerAssignmentDto request) {
-        return emailDispatcherService.sendReviewerAssigned(request);
+    // send assigned as professor mail to prof -for testing
+    @PostMapping("/professor-mail")
+    public boolean sendMailToProfessor(@RequestBody ProfessorAssignmentDto request) {
+        return emailDispatcherService.sendProfessorAssigned(request);
     }
 }

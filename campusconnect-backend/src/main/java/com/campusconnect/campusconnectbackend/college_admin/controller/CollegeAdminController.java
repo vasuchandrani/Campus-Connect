@@ -10,7 +10,7 @@ import com.campusconnect.campusconnectbackend.college_admin.service.CollegeAdmin
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
 import com.campusconnect.campusconnectbackend.research_paper.service.ResearchPaperService;
 import com.campusconnect.campusconnectbackend.research_paper.dto.res.ResearchesResponseDto;
-import com.campusconnect.campusconnectbackend.reviewer.dto.req.AddReviewerRequestDto;
+import com.campusconnect.campusconnectbackend.professor.dto.req.AddProfRequestDto;
 import com.campusconnect.campusconnectbackend.security.security_management.dto.res.CollegeAdminProfileDto;
 import com.campusconnect.campusconnectbackend.student.dto.req.StudentRegisterRequestDto;
 import com.campusconnect.campusconnectbackend.announcement.dto.res.AnnouncementResponseDto;
@@ -19,19 +19,23 @@ import com.campusconnect.campusconnectbackend.club.dto.res.ClubRequestResponseDt
 import com.campusconnect.campusconnectbackend.club.dto.res.club_card.ClubDetailsResponseDto;
 import com.campusconnect.campusconnectbackend.college_admin.dto.res.CollegeAdminDashboardStatsDto;
 import com.campusconnect.campusconnectbackend.event.dto.res.EventResponseDto;
+import com.campusconnect.campusconnectbackend.club.dto.req.ApproveClubReqDto;
+import com.campusconnect.campusconnectbackend.journalist.dto.req.AddJournalistRequestDto;
 import com.campusconnect.campusconnectbackend.journalist.dto.res.JournalistReqResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.dto.res.JournalistResponseDto;
+import jakarta.validation.Valid;
 import com.campusconnect.campusconnectbackend.newspaper.dto.res.NewsPaperResponseDto;
 import com.campusconnect.campusconnectbackend.event.service.EventService;
-import com.campusconnect.campusconnectbackend.reviewer.dto.res.ReviewerResponseDto;
+import com.campusconnect.campusconnectbackend.professor.dto.res.ProfResponseDto;
 import com.campusconnect.campusconnectbackend.student.dto.res.StudentResponseDto;
 import com.campusconnect.campusconnectbackend.journalist.service.JournalistRequestService;
 import com.campusconnect.campusconnectbackend.journalist.service.JournalistService;
 import com.campusconnect.campusconnectbackend.newspaper.service.NewsPaperService;
-import com.campusconnect.campusconnectbackend.reviewer.service.ReviewerService;
+import com.campusconnect.campusconnectbackend.professor.service.ProfessorService;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import com.campusconnect.campusconnectbackend.student.service.StudentRepoService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -51,11 +55,12 @@ public class CollegeAdminController {
     private final ClubService clubService;
     private final JournalistRequestService journalistRequestService;
     private final JournalistService journalistService;
-    private final ReviewerService reviewerService;
+    private final ProfessorService professorService;
     private final StudentRepoService studentRepoService;
     private final ResearchPaperService researchPaperService;
     private final CollegeAdminAuth collegeAdminAuth;
     private final CollegeSubscriptionService collegeSubscriptionService;
+    private final com.campusconnect.campusconnectbackend.club.club_follower.service.ClubFollowerService clubFollowerService;
 
     /* Home */
 
@@ -92,6 +97,24 @@ public class CollegeAdminController {
         return clubService.getClub(id);
     }
 
+    // follow-unfollow
+    @PostMapping(value = "/clubs/{clubId}/follow", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.ALL_VALUE})
+    public MessageResponseDto changeFollow(
+            @PathVariable Long clubId,
+            @RequestBody(required = false) String rawBody
+    ) {
+        boolean follow = true;
+        if (rawBody != null) {
+            String trimmed = rawBody.trim();
+            if ("false".equalsIgnoreCase(trimmed) || trimmed.contains("\"follow\":false") || trimmed.contains("\"follow\": false")) {
+                follow = false;
+            } else if ("true".equalsIgnoreCase(trimmed) || trimmed.contains("\"follow\":true") || trimmed.contains("\"follow\": true")) {
+                follow = true;
+            }
+        }
+        return clubFollowerService.changeFollow(clubId, follow);
+    }
+
     // remove club
     @DeleteMapping("/clubs/{clubId}")
     public MessageResponseDto deleteClub(@PathVariable Long clubId) {
@@ -106,10 +129,15 @@ public class CollegeAdminController {
         return clubRequestService.getClubRequests(collegeId);
     }
 
-    // accept the club-request
+    // accept the club-request with faculty mentor selection
     @PostMapping("/club-request/{clubReqId}")
-    public MessageResponseDto acceptClubRequest(@PathVariable Long clubReqId) {
-        return clubRequestService.acceptRequest(clubReqId);
+    public MessageResponseDto acceptClubRequest(
+            @PathVariable Long clubReqId,
+            @RequestBody(required = false) ApproveClubReqDto request,
+            @RequestParam(name = "mentorId", required = false) Long mentorIdParam
+    ) {
+        Long mentorId = request != null && request.getMentorId() != null ? request.getMentorId() : mentorIdParam;
+        return clubRequestService.acceptRequest(clubReqId, mentorId);
     }
 
     // reject the club-request
@@ -189,29 +217,46 @@ public class CollegeAdminController {
     public List<JournalistResponseDto> getJournalists() {
         return journalistService.getJournalists(authService.getCurrentCollegeId());
     }
+
+    // add journalist by student email
+    @PostMapping("/users/journalist")
+    public MessageResponseDto addJournalist(@Valid @RequestBody AddJournalistRequestDto request) {
+        return journalistService.addJournalistByEmail(
+                request.getEmail(),
+                authService.getCurrentCollegeId(),
+                authService.getCurrentUserId()
+        );
+    }
+
     // remove journalist
     @DeleteMapping("/users/journalist/{journalistId}")
     public MessageResponseDto removeJournalist(@PathVariable Long journalistId) {
         return journalistService.removeJournalist(journalistId);
     }
 
-    /* reviewer */
-
-    // get all reviewers of college
-    @GetMapping("/users/reviewer")
-    public List<ReviewerResponseDto> getReviewers() {
-        return reviewerService.getReviewers(authService.getCurrentCollegeId());
+    // toggle journalist active/deactivated
+    @PutMapping("/users/journalist/{journalistId}/toggle-active")
+    public MessageResponseDto toggleJournalistActive(@PathVariable Long journalistId) {
+        return journalistService.toggleJournalistActive(journalistId);
     }
 
-    // add new reviewer
-    @PostMapping("/users/reviewer")
-    public MessageResponseDto addReviewer(@RequestBody AddReviewerRequestDto request) {
-        return reviewerService.store(request);
+    /* professor */
+
+    // get all professors of college
+    @GetMapping("/users/professor")
+    public List<ProfResponseDto> getProfessors() {
+        return professorService.getProfessors(authService.getCurrentCollegeId());
     }
-    // remove reviewer
-    @DeleteMapping("/users/reviewer/{reviewerId}")
-    public MessageResponseDto removeReviewer(@PathVariable Long reviewerId) {
-        return reviewerService.removeReviewer(reviewerId);
+
+    // add new professor
+    @PostMapping("/users/professor")
+    public MessageResponseDto addProfessor(@Valid @RequestBody AddProfRequestDto request) {
+        return professorService.store(request);
+    }
+    // remove professor
+    @DeleteMapping("/users/professor/{professorId}")
+    public MessageResponseDto removeProfessor(@PathVariable Long professorId) {
+        return professorService.removeProfessor(professorId);
     }
 
 
@@ -245,12 +290,53 @@ public class CollegeAdminController {
         return studentRepoService.removeStudent(studentId);
     }
 
+    // toggle student active/suspended
+    @PutMapping("/users/students/{studentId}/toggle-status")
+    public MessageResponseDto toggleStudentStatus(@PathVariable Long studentId) {
+        return studentRepoService.toggleStudentStatus(studentId, authService.getCurrentCollegeId());
+    }
+
     /* News-paper */
 
-    // get all newspapers
+    // get campus published newspapers of college
     @GetMapping("/news-papers")
     public List<NewsPaperResponseDto> getNewsPapers() {
-        return newsPaperService.getNewsPapersByCollege(authService.getCurrentCollegeId());
+        return newsPaperService.getCampusNewspapers(authService.getCurrentCollegeId());
+    }
+
+    @GetMapping("/news-papers/campus")
+    public List<NewsPaperResponseDto> getCampusNewsPapers() {
+        return newsPaperService.getCampusNewspapers(authService.getCurrentCollegeId());
+    }
+
+    // get global newspapers across all colleges
+    @GetMapping("/news-papers/global")
+    public List<NewsPaperResponseDto> getGlobalNewsPapers() {
+        return newsPaperService.getGlobalNewsPapers();
+    }
+
+    // get pending globalization requests
+    @GetMapping("/news-papers/global-requests")
+    public List<NewsPaperResponseDto> getGlobalNewsRequests() {
+        return newsPaperService.getPendingGlobalRequests();
+    }
+
+    // approve globalization request
+    @PostMapping("/news-papers/global-requests/{newsId}/approve")
+    public MessageResponseDto approveGlobalNewsPaper(@PathVariable Long newsId) {
+        return newsPaperService.approveGlobalNewsPaper(newsId, authService.getCurrentUserId());
+    }
+
+    // reject globalization request
+    @DeleteMapping("/news-papers/global-requests/{newsId}/reject")
+    public MessageResponseDto rejectGlobalNewsPaper(@PathVariable Long newsId) {
+        return newsPaperService.rejectGlobalNewsPaper(newsId);
+    }
+
+    // request globalization for a campus newspaper
+    @PostMapping("/news-papers/{newsId}/request-global")
+    public MessageResponseDto requestGlobalNewsPaper(@PathVariable Long newsId) {
+        return newsPaperService.requestGlobalNewsPaper(newsId);
     }
 
     // unpublish newspaper
@@ -261,34 +347,69 @@ public class CollegeAdminController {
 
     /* Research */
 
-    // get all not-reviewed researches
+    // 1. Not reviewed (unassigned student research papers)
     @GetMapping("/researches/not-reviewed")
     public List<ResearchesResponseDto> getNotReviewedResearches() {
         return researchPaperService.getNotReviewedResearches(authService.getCurrentCollegeId());
     }
 
-    // get all not-reviewed researches
+    // 2. Campus published researches
+    @GetMapping("/researches/campus")
+    public List<ResearchesResponseDto> getCampusResearches() {
+        return researchPaperService.getCampusResearches(authService.getCurrentCollegeId());
+    }
+
+    // 3. Global published researches
+    @GetMapping("/researches/global")
+    public List<ResearchesResponseDto> getGlobalResearches() {
+        return researchPaperService.getGlobalResearchPapers();
+    }
+
+    // 4. Pending globalization requests
+    @GetMapping("/researches/global-requests")
+    public List<ResearchesResponseDto> getGlobalResearchRequests() {
+        return researchPaperService.getPendingGlobalRequests();
+    }
+
+    // approve research globalization
+    @PostMapping("/researches/global-requests/{researchId}/approve")
+    public MessageResponseDto approveGlobalResearch(@PathVariable Long researchId) {
+        return researchPaperService.approveGlobalResearch(researchId, authService.getCurrentUserId());
+    }
+
+    // reject research globalization
+    @DeleteMapping("/researches/global-requests/{researchId}/reject")
+    public MessageResponseDto rejectGlobalResearch(@PathVariable Long researchId) {
+        return researchPaperService.rejectGlobalResearch(researchId);
+    }
+
+    // request globalization for campus research
+    @PostMapping("/researches/{researchId}/request-global")
+    public MessageResponseDto requestGlobalResearch(@PathVariable Long researchId) {
+        return researchPaperService.requestGlobalResearch(researchId);
+    }
+
+    // get reviewed researches
     @GetMapping("/researches/reviewed")
     public List<ResearchesResponseDto> getReviewedResearches() {
         return researchPaperService.getReviewedResearches(authService.getCurrentCollegeId());
     }
 
-    // get all not-reviewed researches
+    // get under-reviewed researches
     @GetMapping("/researches/under-reviewed")
     public List<ResearchesResponseDto> getUnderReviewedResearches() {
         return researchPaperService.getUnderReviewedResearches(authService.getCurrentCollegeId());
     }
 
-    // assign reviewer
-    // get all reviewer
-    @GetMapping("/researches/reviewers")
-    public List<ReviewerResponseDto> getAllReviewers() {
-        return reviewerService.getReviewers(authService.getCurrentCollegeId());
+    // assign professor
+    @GetMapping("/researches/professors")
+    public List<ProfResponseDto> getAllProfessors() {
+        return professorService.getProfessors(authService.getCurrentCollegeId());
     }
 
-    @PostMapping("/researches/review/{researchId}")
-    public MessageResponseDto assignReviewer(@PathVariable Long researchId, @RequestBody Long reviewerId) {
-        return reviewerService.assignReviewer(researchId, reviewerId);
+    @PostMapping("/researches/assign-professor/{researchId}")
+    public MessageResponseDto assignProfessor(@PathVariable Long researchId, @RequestBody Long professorId) {
+        return professorService.assignProfessor(researchId, professorId);
     }
 
 

@@ -21,4 +21,6 @@ public class JournalistDetailResponseDto implements Serializable {
 
     @NotBlank
     String CollegeName;
+
+    private String email;
 }

@@ -141,4 +141,49 @@ public interface EventRepository extends JpaRepository<Event, Long> {
         ORDER BY e.endTime DESC
     """)
     List<Event> findFinishedEventsByClub(@Param("clubId") Long clubId, @Param("now") LocalDateTime now);
+
+    @Query("""
+        SELECT e
+        FROM Event e
+        WHERE e.club.id = :clubId
+          AND e.createdBy.id = :userId
+          AND e.status = com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DRAFT
+        ORDER BY e.createdAt DESC
+    """)
+    List<Event> findDraftsByClubIdAndUserId(@Param("clubId") Long clubId, @Param("userId") Long userId);
+
+    @Query("""
+        SELECT e
+        FROM Event e
+        WHERE e.club.id = :clubId
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DRAFT
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DELETED
+          AND (e.status = com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.APPROVED_BY_CLUB_ADMIN or e.state = 1)
+        ORDER BY e.createdAt DESC
+    """)
+    List<Event> findPendingByClubId(@Param("clubId") Long clubId);
+
+    @Query("""
+        SELECT e
+        FROM Event e
+        WHERE e.club.id = :clubId
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DRAFT
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DELETED
+          AND (e.status = com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.CREATED or e.status = com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.PENDING_APPROVAL or e.state = 0)
+        ORDER BY e.createdAt DESC
+    """)
+    List<Event> findPendingForClubAdmin(@Param("clubId") Long clubId);
+
+    @Query("""
+        SELECT e
+        FROM Event e
+        WHERE e.club.id = :clubId
+          AND e.createdBy.id = :userId
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DRAFT
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DELETED
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.PUBLISHED
+          AND e.state < 2
+        ORDER BY e.createdAt DESC
+    """)
+    List<Event> findMyPendingByClubIdAndUserId(@Param("clubId") Long clubId, @Param("userId") Long userId);
 }

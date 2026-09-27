@@ -18,4 +18,6 @@ public class ClubVerifiedDto {
 
     @NotBlank(message = "Club-dashboard link is required")
     private String clubDashboardLink;
+
+    private String password;
 }

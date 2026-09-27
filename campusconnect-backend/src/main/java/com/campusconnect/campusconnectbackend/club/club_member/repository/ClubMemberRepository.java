@@ -2,22 +2,22 @@ package com.campusconnect.campusconnectbackend.club.club_member.repository;
 
 import com.campusconnect.campusconnectbackend.club.club_member.entity.ClubMember;
 import com.campusconnect.campusconnectbackend.club.entity.Club;
-import com.campusconnect.campusconnectbackend.club.club_member.entity.id.ClubMemberId;
 import com.campusconnect.campusconnectbackend.student.entity.Student;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.*;
 import java.util.Optional;
 
-public interface ClubMemberRepository extends JpaRepository<ClubMember, ClubMemberId> {
+public interface ClubMemberRepository extends JpaRepository<ClubMember, Long> {
 
     @Query("""
         select cm.student
         from ClubMember cm
-        where cm.club.id = :clubId and cm.role = :role
+        where cm.club.id = :clubId and CAST(cm.role AS string) = :role
     """)
-    Optional<Student> findStudentByClubAndRole(Long clubId, String role);
+    Optional<Student> findStudentByClubAndRole(@Param("clubId") Long clubId, @Param("role") String role);
 
     int countByStudent_Id(Long studentId);
 
@@ -26,21 +26,21 @@ public interface ClubMemberRepository extends JpaRepository<ClubMember, ClubMemb
         from ClubMember cm
         where cm.student.id = :studentId
     """)
-    List<Club> findJoinedClubs(Long studentId);
+    List<Club> findJoinedClubs(@Param("studentId") Long studentId);
 
     int countByClub_Id(Long clubId);
 
     List<ClubMember> findClubMemberByClub_Id(Long clubId);
 
     @Query("""
-        select cm.role
+        select CAST(cm.role AS string)
         from ClubMember cm
         where cm.club.id = :clubId
           and cm.student.id = :studentId
     """)
     Optional<String> findRoleByClubIdAndStudentId(
-            Long clubId,
-            Long studentId
+            @Param("clubId") Long clubId,
+            @Param("studentId") Long studentId
     );
 
     Optional<ClubMember> findStudentByClub_IdAndStudent_Id(Long clubId, Long studentId);

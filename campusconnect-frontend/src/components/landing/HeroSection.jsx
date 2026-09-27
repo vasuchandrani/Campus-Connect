@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ArrowRight, Download, Newspaper, BookOpen, Users, Bell } from "lucide-react"
 
 const HeroSection = () => {
-    const [showVideo, setShowVideo] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
   const featurePills = [
     { icon: Newspaper, label: "Digital Newspaper" },
     { icon: BookOpen, label: "Research Publishing" },
@@ -14,7 +14,7 @@ const HeroSection = () => {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center pt-16 overflow-hidden bg-gradient-hero">
-     
+
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-20 left-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl animate-float" />
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-accent/5 rounded-full blur-3xl animate-float" style={{ animationDelay: "1s" }} />
@@ -23,28 +23,28 @@ const HeroSection = () => {
 
       <div className="container mx-auto px-4 py-20 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
-          
+
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-8 animate-fade-in">
             <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
             Unifying Campus Communication
           </div>
 
-         
+
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-foreground leading-tight mb-6 animate-fade-in" style={{ animationDelay: "0.1s" }}>
             Your Campus, <br />
             <span className="text-gradient-primary">One Connected Platform</span>
           </h1>
 
-         
+
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-in" style={{ animationDelay: "0.2s" }}>
             Streamline communication, enhance student engagement, and expand academic opportunities with CampusConnect – the unified hub for clubs, news, research, and events.
           </p>
 
-          
+
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-fade-in" style={{ animationDelay: "0.3s" }}>
             <Button variant="hero" size="xl" asChild>
               <a href="/auth">
-                Get Start
+                Get Started
                 <ArrowRight className="w-5 h-5" />
               </a>
             </Button>
@@ -63,7 +63,7 @@ const HeroSection = () => {
             </Button>
           </div>
 
-         
+
           <div className="flex flex-wrap items-center justify-center gap-3 animate-fade-in" style={{ animationDelay: "0.4s" }}>
             {featurePills.map((feature) => {
               const Icon = feature.icon;
@@ -84,7 +84,7 @@ const HeroSection = () => {
           <div className="relative">
 
             <div className="absolute -inset-4 bg-primary/10 rounded-3xl blur-2xl" />
-            
+
             <div className="relative glass rounded-2xl p-4 shadow-medium">
               <div className="bg-card rounded-xl overflow-hidden border border-border">
 
@@ -100,7 +100,7 @@ const HeroSection = () => {
                     </div>
                   </div>
                 </div>
-                
+
 
                 <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="md:col-span-2 space-y-4">

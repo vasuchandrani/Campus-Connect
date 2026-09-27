@@ -22,4 +22,12 @@ public class EventSpeakerResponseDto {
 
     @NotBlank
     private String tagline;
+
+    public String getDescription() {
+        return tagline != null ? tagline : "";
+    }
+
+    public void setDescription(String description) {
+        this.tagline = description;
+    }
 }

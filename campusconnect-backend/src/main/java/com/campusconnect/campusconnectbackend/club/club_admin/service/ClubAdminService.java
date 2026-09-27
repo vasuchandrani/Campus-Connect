@@ -1,51 +1,34 @@
 package com.campusconnect.campusconnectbackend.club.club_admin.service;
 
-import com.campusconnect.campusconnectbackend.club.service.ClubMemberManagementService;
-import com.campusconnect.campusconnectbackend.club.entity.Club;
-import com.campusconnect.campusconnectbackend.club.service.ClubService;
+import com.campusconnect.campusconnectbackend.announcement.dto.req.AnnouncementRequestDto;
+import com.campusconnect.campusconnectbackend.announcement.dto.res.AnnouncementResponseDto;
 import com.campusconnect.campusconnectbackend.club.dto.req.AddMemberRequestDto;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
-import com.campusconnect.campusconnectbackend.student.entity.Student;
-import com.campusconnect.campusconnectbackend.student.service.StudentRepoService;
+import com.campusconnect.campusconnectbackend.event.dto.req.EventRequestDto;
+import com.campusconnect.campusconnectbackend.event.dto.res.EventResponseDto;
 
-import lombok.RequiredArgsConstructor;
+import java.util.List;
 
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Caching;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+public interface ClubAdminService {
+    MessageResponseDto addMember(Long clubId, AddMemberRequestDto request);
+    MessageResponseDto removeMember(Long clubId, Long studentId);
 
-@Service
-@RequiredArgsConstructor
-public class ClubAdminService {
-    private final ClubService clubService;
-    private final StudentRepoService studentRepoService;
-    private final ClubMemberManagementService clubMemberManagementService;
+    List<AnnouncementResponseDto> getPublishedAnnouncements(Long clubId);
+    List<AnnouncementResponseDto> getDraftAnnouncements(Long clubId);
+    List<AnnouncementResponseDto> getPendingAnnouncements(Long clubId);
+    MessageResponseDto saveAnnouncementDraft(Long clubId, AnnouncementRequestDto request);
+    MessageResponseDto publishAnnouncementDraft(Long clubId, Long annId);
+    MessageResponseDto deleteAnnouncementDraft(Long clubId, Long annId);
+    MessageResponseDto approveAnnouncement(Long clubId, Long annId);
+    MessageResponseDto rejectAnnouncement(Long clubId, Long annId);
 
-    // add student as club-member
-    @Transactional
-    @Caching(evict = {
-            @CacheEvict(value = "club_dashboard_stats", key = "#clubId"),
-            @CacheEvict(value = "club_member_count", key = "#clubId"),
-            @CacheEvict(value = "club_members", key = "#clubId")
-    })
-    public MessageResponseDto addMember(Long clubId, AddMemberRequestDto request) {
-
-        Student student = studentRepoService.getStudentByEmail(request.getEmail());
-        Club club = clubService.getClubById(clubId);
-
-        return clubMemberManagementService.addClubMember(club, student, request.getRole());
-    }
-
-    // remove club-member
-    @Transactional
-    @Caching(evict = {
-            @CacheEvict(value = "club_dashboard_stats", key = "#clubId"),
-            @CacheEvict(value = "club_member_count", key = "#clubId"),
-            @CacheEvict(value = "club_members", key = "#clubId")
-    })
-    public MessageResponseDto removeMember(Long clubId, Long studentId) {
-
-        return clubMemberManagementService.removeClubMember(clubId, studentId);
-    }
+    List<EventResponseDto> getPublishedEvents(Long clubId);
+    List<EventResponseDto> getFinishedEvents(Long clubId);
+    List<EventResponseDto> getDraftEvents(Long clubId);
+    List<EventResponseDto> getPendingEvents(Long clubId);
+    MessageResponseDto saveEventDraft(Long clubId, EventRequestDto request);
+    MessageResponseDto publishEventDraft(Long clubId, Long eventId);
+    MessageResponseDto deleteEventDraft(Long clubId, Long eventId);
+    MessageResponseDto approveEvent(Long clubId, Long eventId);
+    MessageResponseDto rejectEvent(Long clubId, Long eventId);
 }

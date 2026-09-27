@@ -16,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 
 
@@ -27,6 +29,7 @@ public class StudentAuth {
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthenticationManager authenticationManager;
     private final CollegeService collegeService;
+    private final com.campusconnect.campusconnectbackend.college.repository.DepartmentRepository departmentRepository;
 
     // get student-object
     private Student getObject(StudentSignupRequestDto dto) {
@@ -36,8 +39,24 @@ public class StudentAuth {
         student.setFullName(dto.getFullName());
         student.setEmail(dto.getEmail());
         student.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
-        student.setCollege(collegeService.getCollegeById(dto.getCollegeId()));
-        student.setDepartment(dto.getDepartment());
+        com.campusconnect.campusconnectbackend.college.entity.College college = collegeService.getCollegeById(dto.getCollegeId());
+        student.setCollege(college);
+
+        String deptName = (dto.getDepartment() != null && !dto.getDepartment().isBlank())
+                ? dto.getDepartment().trim()
+                : "General";
+
+        com.campusconnect.campusconnectbackend.college.entity.Department dept =
+                departmentRepository.findByCollege_IdAndNameIgnoreCase(college.getId(), deptName)
+                        .orElseGet(() -> departmentRepository.findByCollege_IdAndNameIgnoreCase(college.getId(), "General")
+                                .orElseGet(() -> {
+                                    com.campusconnect.campusconnectbackend.college.entity.Department gen =
+                                            new com.campusconnect.campusconnectbackend.college.entity.Department(college, "General", "GEN");
+                                    return departmentRepository.save(gen);
+                                }));
+
+        student.setDepartmentEntity(dept);
+        student.setDepartment(dept.getName());
         student.setYear(dto.getYear());
         student.setGender(dto.getGender());
 
@@ -46,6 +65,10 @@ public class StudentAuth {
 
     // create student account(college-admin feat)
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "students", key = "'college_' + #request.collegeId"),
+            @CacheEvict(value = "college_dashboard_stats", allEntries = true)
+    })
     public boolean createStudentAccount(StudentSignupRequestDto request) {
         try {
             // create student
@@ -61,6 +84,10 @@ public class StudentAuth {
 
     // student signup
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "students", key = "'college_' + #request.collegeId"),
+            @CacheEvict(value = "college_dashboard_stats", allEntries = true)
+    })
     public AuthResponseDto store(StudentSignupRequestDto request) {
 
         // create student
@@ -141,6 +168,19 @@ public class StudentAuth {
         // overwrite all fields to update
         student.setFullName(request.getFullName());
         student.setGender(request.getGender());
+
+        if (request.getDepartmentId() != null) {
+            departmentRepository.findById(request.getDepartmentId()).ifPresent(dept -> {
+                student.setDepartmentEntity(dept);
+                student.setDepartment(dept.getName());
+            });
+        } else if (request.getDepartment() != null && !request.getDepartment().trim().isEmpty() && student.getCollege() != null) {
+            departmentRepository.findByCollege_IdAndNameIgnoreCase(student.getCollege().getId(), request.getDepartment().trim())
+                .ifPresent(dept -> {
+                    student.setDepartmentEntity(dept);
+                    student.setDepartment(dept.getName());
+                });
+        }
 
         studentRepository.save(student);
 

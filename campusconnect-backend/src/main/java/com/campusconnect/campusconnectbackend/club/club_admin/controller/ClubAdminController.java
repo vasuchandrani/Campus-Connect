@@ -23,8 +23,12 @@ import com.campusconnect.campusconnectbackend.event.overview_generation.EventOve
 import com.campusconnect.campusconnectbackend.event.service.EventRegistrationService;
 import com.campusconnect.campusconnectbackend.event.service.EventService;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
+import com.campusconnect.campusconnectbackend.dto.response.AuthResponseDto;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import com.campusconnect.campusconnectbackend.security.security_management.dto.res.ClubProfileDto;
+import com.campusconnect.campusconnectbackend.student.dto.req.SubDashboardLoginRequestDto;
+import com.campusconnect.campusconnectbackend.student.service.SubDashboardService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -49,6 +53,18 @@ public class ClubAdminController {
     private final ClubMemberService clubMemberService;
     private final EventRegistrationService eventRegistrationService;
     private final ClubMemberManagementService clubMemberManagementService;
+    private final SubDashboardService subDashboardService;
+
+    // return to student dashboard from club admin session
+    @PostMapping("/return-to-student")
+    public AuthResponseDto returnToStudent(@Valid @RequestBody SubDashboardLoginRequestDto request) {
+        Long studentId = authService.getCurrentUserId();
+        try {
+            return subDashboardService.clubReturnToStudent(studentId, request);
+        } catch (org.springframework.web.server.ResponseStatusException ex) {
+            return AuthResponseDto.failure(ex.getReason() != null ? ex.getReason() : "Invalid student password");
+        }
+    }
 
     /* Home */
 
@@ -57,7 +73,6 @@ public class ClubAdminController {
     public String getRole(@PathVariable Long clubId) {
         return clubMemberManagementService.getRole(clubId);
     }
-
 
     // get club-name
     @GetMapping("/club-name")
@@ -85,7 +100,6 @@ public class ClubAdminController {
         return clubTeamService.getTeamNames(clubId);
     }
 
-
     /* Announcements */
 
     // get all announcements
@@ -94,10 +108,58 @@ public class ClubAdminController {
         return announcementService.getAnnouncements(clubId);
     }
 
+    // get published announcements
+    @GetMapping("/announcements/published")
+    public List<AnnouncementResponseDto> getPublishedAnnouncements(@PathVariable Long clubId) {
+        return clubAdminService.getPublishedAnnouncements(clubId);
+    }
+
+    // get draft announcements
+    @GetMapping("/announcements/drafts")
+    public List<AnnouncementResponseDto> getDraftAnnouncements(@PathVariable Long clubId) {
+        return clubAdminService.getDraftAnnouncements(clubId);
+    }
+
+    // get pending announcements
+    @GetMapping("/announcements/pending")
+    public List<AnnouncementResponseDto> getPendingAnnouncements(@PathVariable Long clubId) {
+        return clubAdminService.getPendingAnnouncements(clubId);
+    }
+
     // create new announcement
     @PostMapping("/announcements")
     public MessageResponseDto createAnnouncement(@PathVariable Long clubId, @RequestBody AnnouncementRequestDto request) {
         return announcementService.createAnnouncement(request, clubId);
+    }
+
+    // save announcement draft
+    @PostMapping("/announcements/drafts")
+    public MessageResponseDto saveAnnouncementDraft(@PathVariable Long clubId, @RequestBody AnnouncementRequestDto request) {
+        return clubAdminService.saveAnnouncementDraft(clubId, request);
+    }
+
+    // publish announcement draft
+    @PostMapping("/announcements/drafts/{annId}/publish")
+    public MessageResponseDto publishAnnouncementDraft(@PathVariable Long clubId, @PathVariable Long annId) {
+        return clubAdminService.publishAnnouncementDraft(clubId, annId);
+    }
+
+    // delete announcement draft
+    @DeleteMapping("/announcements/drafts/{annId}")
+    public MessageResponseDto deleteAnnouncementDraft(@PathVariable Long clubId, @PathVariable Long annId) {
+        return clubAdminService.deleteAnnouncementDraft(clubId, annId);
+    }
+
+    // approve member announcement
+    @PostMapping("/announcements/{annId}/approve")
+    public MessageResponseDto approveAnnouncement(@PathVariable Long clubId, @PathVariable Long annId) {
+        return clubAdminService.approveAnnouncement(clubId, annId);
+    }
+
+    // reject member announcement
+    @PostMapping("/announcements/{annId}/reject")
+    public MessageResponseDto rejectAnnouncement(@PathVariable Long clubId, @PathVariable Long annId) {
+        return clubAdminService.rejectAnnouncement(clubId, annId);
     }
 
     // modify any announcement
@@ -112,20 +174,66 @@ public class ClubAdminController {
         return announcementService.deleteAnnouncement(annId, clubId);
     }
 
-
     /* Events */
 
     // get all live & upcoming events of club
     @GetMapping("/events/active")
     public List<EventResponseDto> getActiveEventsByCollege(@PathVariable Long clubId) {
-
         return eventService.getActiveEventsByClub(clubId);
     }
 
-    // get all finished events of club
+    // get published events (with campus/global tag)
+    @GetMapping("/events/published")
+    public List<EventResponseDto> getPublishedEvents(@PathVariable Long clubId) {
+        return clubAdminService.getPublishedEvents(clubId);
+    }
+
+    // get finished events of club
     @GetMapping("/events/finished")
     public List<EventResponseDto> getFinishedEventsByCollege(@PathVariable Long clubId) {
-        return eventService.getFinishedEventsByClub(clubId);
+        return clubAdminService.getFinishedEvents(clubId);
+    }
+
+    // get draft events of club
+    @GetMapping("/events/drafts")
+    public List<EventResponseDto> getDraftEvents(@PathVariable Long clubId) {
+        return clubAdminService.getDraftEvents(clubId);
+    }
+
+    // get pending events awaiting admin approval
+    @GetMapping("/events/pending")
+    public List<EventResponseDto> getPendingEvents(@PathVariable Long clubId) {
+        return clubAdminService.getPendingEvents(clubId);
+    }
+
+    // save event draft
+    @PostMapping("/events/drafts")
+    public MessageResponseDto saveEventDraft(@PathVariable Long clubId, @RequestBody EventRequestDto request) {
+        return clubAdminService.saveEventDraft(clubId, request);
+    }
+
+    // publish event draft
+    @PostMapping("/events/drafts/{eventId}/publish")
+    public MessageResponseDto publishEventDraft(@PathVariable Long clubId, @PathVariable Long eventId) {
+        return clubAdminService.publishEventDraft(clubId, eventId);
+    }
+
+    // delete event draft
+    @DeleteMapping("/events/drafts/{eventId}")
+    public MessageResponseDto deleteEventDraft(@PathVariable Long clubId, @PathVariable Long eventId) {
+        return clubAdminService.deleteEventDraft(clubId, eventId);
+    }
+
+    // approve member event
+    @PostMapping("/events/{eventId}/approve")
+    public MessageResponseDto approveEvent(@PathVariable Long clubId, @PathVariable Long eventId) {
+        return clubAdminService.approveEvent(clubId, eventId);
+    }
+
+    // reject member event
+    @PostMapping("/events/{eventId}/reject")
+    public MessageResponseDto rejectEvent(@PathVariable Long clubId, @PathVariable Long eventId) {
+        return clubAdminService.rejectEvent(clubId, eventId);
     }
 
     // get particular active event
@@ -141,7 +249,7 @@ public class ClubAdminController {
     }
 
     // create new event
-    @PostMapping(value = "/events/active", consumes =MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/events/active", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public MessageResponseDto createEvent(
             @PathVariable Long clubId,
             @RequestPart("event") EventRequestDto request,
@@ -156,7 +264,7 @@ public class ClubAdminController {
             @PathVariable Long clubId,
             @PathVariable Long eventId,
             @RequestPart("event") EventRequestDto request,
-            @RequestPart("image") MultipartFile image
+            @RequestPart(value = "image", required = false) MultipartFile image
     ) {
         return eventService.updateEvent(request, eventId, clubId, image);
     }
@@ -167,18 +275,16 @@ public class ClubAdminController {
         return eventService.deleteEvent(eventId, clubId);
     }
 
-
     // download event registration
     @GetMapping("/events/{eventId}/registrations/download")
     public ResponseEntity<byte[]> downloadRegistrations(@PathVariable Long eventId) {
-
         byte[] excelData = eventRegistrationService.generateExcel(eventId);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=event_registrations.xlsx")
-            .contentType(MediaType.parseMediaType(
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .body(excelData);
     }
 
@@ -201,7 +307,6 @@ public class ClubAdminController {
         return eventOverviewService.saveOverview(clubId, eventId, request, images);
     }
 
-
     /* Teams */
 
     // get team count of club
@@ -222,7 +327,13 @@ public class ClubAdminController {
         return clubTeamService.createTeam(clubId, request);
     }
 
-    // delete ay team
+    // update team
+    @PutMapping("/teams/{teamId}")
+    public MessageResponseDto updateTeam(@PathVariable Long clubId, @PathVariable Long teamId, @RequestBody TeamNameDto request) {
+        return clubTeamService.updateTeam(clubId, teamId, request);
+    }
+
+    // delete any team
     @DeleteMapping("/teams/{teamId}")
     public MessageResponseDto deleteTeam(@PathVariable Long teamId, @PathVariable Long clubId) {
         return clubTeamService.deleteTeam(teamId, clubId);
@@ -239,7 +350,6 @@ public class ClubAdminController {
     public MessageResponseDto deleteTeamMember(@PathVariable Long clubId, @PathVariable Long teamId, @PathVariable Long studentId) {
         return clubTeamService.deleteTeamMember(clubId, teamId, studentId);
     }
-
 
     /* Members */
 
@@ -277,12 +387,6 @@ public class ClubAdminController {
             @RequestPart(value = "image", required = false) MultipartFile image
     ) {
         return clubService.modifyClubProfile(clubId, request, image);
-    }
-
-    // delete club
-    @DeleteMapping("/details/delete")
-    public MessageResponseDto deleteClub(@PathVariable Long clubId) {
-        return clubService.deleteClub(clubId, authService.getCurrentCollegeId());
     }
 
     // transfer admin/ownership

@@ -67,11 +67,16 @@ public class EmailSenderService {
     // Send HTML Email (SDK)
     public boolean sendHtmlEmail(String to, String subject, String htmlContent) {
 
+        if (to == null || to.isBlank()) {
+            log.error("Email recipient 'to' cannot be empty or null for subject: {}", subject);
+            return false;
+        }
+
         try {
 
             CreateEmailOptions params = CreateEmailOptions.builder()
                     .from(fromEmail)
-                    .to(to)
+                    .to(to.trim())
                     .subject(subject)
                     .html(htmlContent)
                     .build();
@@ -79,13 +84,17 @@ public class EmailSenderService {
             CreateEmailResponse response =
                     resend.emails().send(params);
 
-            log.info("Email sent successfully. ID: {}", response.getId());
+            log.info("Email sent successfully to {}. ID: {}", to, response.getId());
 
             return true;
 
         } catch (ResendException e) {
 
-            log.error("Email sending failed", e);
+            log.error("Email sending failed for {}: {}", to, e.getMessage(), e);
+            return false;
+        } catch (Exception e) {
+
+            log.error("Unexpected error sending email to {}: {}", to, e.getMessage(), e);
             return false;
         }
     }

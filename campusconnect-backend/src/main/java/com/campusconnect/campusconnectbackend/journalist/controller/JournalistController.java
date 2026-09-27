@@ -10,6 +10,10 @@ import com.campusconnect.campusconnectbackend.newspaper.service.NewsPaperService
 import com.campusconnect.campusconnectbackend.newspaper.dto.res.NewsPaperResponseDto;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import com.campusconnect.campusconnectbackend.security.security_management.dto.res.JournalistProfileDto;
+import com.campusconnect.campusconnectbackend.dto.response.AuthResponseDto;
+import com.campusconnect.campusconnectbackend.student.dto.req.SubDashboardLoginRequestDto;
+import com.campusconnect.campusconnectbackend.student.service.SubDashboardService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -17,7 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 @RestController
-@RequestMapping("campus-connect/journalist")
+@RequestMapping("/campus-connect/journalist")
 @RequiredArgsConstructor
 public class JournalistController {
 
@@ -25,6 +29,18 @@ public class JournalistController {
     private final AuthService authService;
     private final NewsPaperService newsPaperService;
     private final JournalistAuth journalistAuth;
+    private final SubDashboardService subDashboardService;
+
+    // return to student dashboard from journalist session
+    @PostMapping("/return-to-student")
+    public AuthResponseDto returnToStudent(@Valid @RequestBody SubDashboardLoginRequestDto request) {
+        Long journalistId = authService.getCurrentUserId();
+        try {
+            return subDashboardService.returnToStudent(journalistId, request);
+        } catch (org.springframework.web.server.ResponseStatusException ex) {
+            return AuthResponseDto.failure(ex.getReason() != null ? ex.getReason() : "Invalid student password");
+        }
+    }
 
     // get journalist details
     @GetMapping("/journalist-detail")
@@ -38,7 +54,7 @@ public class JournalistController {
         return journalistService.getStat(authService.getCurrentUserId());
     }
 
-    // get latest 3 newspaper by journalist
+    // get top 3 newspaper by journalist (ordered by upvotes)
     @GetMapping("/newspapers/latest")
     public List<NewsPaperResponseDto> getLatestNewsPaper(){
         return newsPaperService.getTopNewsPapers(authService.getCurrentUserId());
@@ -62,7 +78,6 @@ public class JournalistController {
         return newsPaperService.unpublishNewsPaper(paperId);
     }
 
-
     // get all drafts by journalist
     @GetMapping("/newspapers/drafts")
     public List<NewsPaperResponseDto> getDraftNewsPaper(){
@@ -75,24 +90,27 @@ public class JournalistController {
         return newsPaperService.deleteDraft(draftId);
     }
 
-
     // save draft
-    @PostMapping("/write/draft")
+    @PostMapping(value = "/write/draft", consumes = {"multipart/form-data"})
     public MessageResponseDto saveDraft(
             @RequestPart("newspaper") NewsPaperRequestDto request,
-            @RequestPart(value = "image", required = false) MultipartFile image
+            @RequestPart(value = "image", required = false) MultipartFile image,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images,
+            @RequestPart(value = "pdf", required = false) MultipartFile pdf
     ){
-        return newsPaperService.createDraft(authService.getCurrentUserId(), request, image);
+        return newsPaperService.createDraft(authService.getCurrentUserId(), request, image, images, pdf);
     }
 
     // modify draft
-    @PatchMapping("/write/drafts/{draftId}")
+    @PatchMapping(value = "/write/drafts/{draftId}", consumes = {"multipart/form-data"})
     public MessageResponseDto updateDraft(
             @PathVariable Long draftId,
             @RequestPart("newspaper") NewsPaperRequestDto request,
-            @RequestPart(value = "image", required = false) MultipartFile image
+            @RequestPart(value = "image", required = false) MultipartFile image,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images,
+            @RequestPart(value = "pdf", required = false) MultipartFile pdf
     ) {
-        return newsPaperService.updateDraft(authService.getCurrentUserId(), draftId, request, image);
+        return newsPaperService.updateDraft(authService.getCurrentUserId(), draftId, request, image, images, pdf);
     }
 
     // publish draft (publish newspaper and delete draft)
@@ -102,14 +120,27 @@ public class JournalistController {
     }
 
     // publish new newspaper
-    @PostMapping("/write/publish")
+    @PostMapping(value = "/write/publish", consumes = {"multipart/form-data"})
     public MessageResponseDto publishNewsPaper(
             @RequestPart("newspaper") NewsPaperRequestDto request,
-            @RequestPart(value = "image", required = false) MultipartFile image
+            @RequestPart(value = "image", required = false) MultipartFile image,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images,
+            @RequestPart(value = "pdf", required = false) MultipartFile pdf
     ){
-        return newsPaperService.publishNewspaper(request, image);
+        return newsPaperService.publishNewspaper(request, image, images, pdf);
     }
 
+    // upvote article
+    @PostMapping("/newspapers/{paperId}/upvote")
+    public MessageResponseDto toggleUpvote(@PathVariable Long paperId) {
+        return newsPaperService.toggleUpvote(paperId, authService.getCurrentUserId());
+    }
+
+    // request globalization of newspaper article
+    @PostMapping("/newspapers/{paperId}/request-global")
+    public MessageResponseDto requestGlobalNewsPaper(@PathVariable Long paperId) {
+        return newsPaperService.requestGlobalNewsPaper(paperId);
+    }
 
     /* Settings */
 
@@ -124,5 +155,4 @@ public class JournalistController {
     public MessageResponseDto updateJournalist(@RequestBody JournalistProfileDto request) {
         return journalistAuth.updateProfile(authService.getCurrentUserId(), request);
     }
-
 }

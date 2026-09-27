@@ -8,6 +8,8 @@ import lombok.Setter;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
@@ -28,6 +30,12 @@ public class NewsPaperResponseDto implements Serializable {
     @NotBlank
     private String imageUrl;
 
+    private String abstractText;
+
+    private String pdfUrl;
+
+    private List<String> images = new ArrayList<>();
+
     @NotBlank
     private String status;
 
@@ -39,4 +47,10 @@ public class NewsPaperResponseDto implements Serializable {
 
     @NotBlank
     private String collegeName;
+
+    private Long upvotesCount = 0L;
+
+    private Boolean isUpvoted = false;
+
+    private Boolean isGlobal = false;
 }

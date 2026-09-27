@@ -24,21 +24,31 @@ public class ResearchesResponseDto implements Serializable {
 
     private String pdfUrl;
 
+    private String websiteUrl;
+
     private String status;
 
     private String department;
 
-    private String reviewerFeedback;
+    private String professorFeedback;
 
     private LocalDateTime createdAt;
 
-    private Long reviewerId;
+    private Long professorId;
 
     private String studentId;
 
     private String studentName;
 
-    private String reviewerName;
+    private String professorName;
 
-    private String reviewerEmail;
+    private String professorEmail;
+
+    private String collegeName;
+
+    private Long upvotesCount = 0L;
+
+    private Boolean isUpvoted = false;
+
+    private Boolean isGlobal = false;
 }
