@@ -23,7 +23,9 @@ public class CorsConfig {
                 "http://10.*.*.*:*",
                 "http://192.168.*.*:*",
                 "https://campus-connect.xyz",
-                "https://campus-conect.xyz"
+                "https://campus-conect.xyz",
+                "https://www.campus-connect.xyz",
+                "https://www.campus-conect.xyz"
         ));
 
         // Allowed HTTP Methods
