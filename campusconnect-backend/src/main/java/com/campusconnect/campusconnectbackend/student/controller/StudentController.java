@@ -27,6 +27,7 @@ import com.campusconnect.campusconnectbackend.student.service.StudentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
@@ -76,7 +77,7 @@ public class StudentController {
 
     // request for a new club
     @PostMapping("/request-club")
-    public MessageResponseDto requestForClub(@RequestBody ClubRequestDto request) {
+    public MessageResponseDto requestForClub(@Valid @RequestBody ClubRequestDto request) {
         return studentService.requestForClub(request);
     }
 
@@ -112,23 +113,6 @@ public class StudentController {
         return clubService.getClub(clubId);
     }
 
-    // follow-unfollow
-    @PostMapping(value = "/clubs/{clubId}", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.ALL_VALUE})
-    public MessageResponseDto changeFollow(
-            @PathVariable Long clubId,
-            @RequestBody(required = false) String rawBody
-    ) {
-        boolean follow = true;
-        if (rawBody != null) {
-            String trimmed = rawBody.trim();
-            if ("false".equalsIgnoreCase(trimmed) || trimmed.contains("\"follow\":false") || trimmed.contains("\"follow\": false")) {
-                follow = false;
-            } else if ("true".equalsIgnoreCase(trimmed) || trimmed.contains("\"follow\":true") || trimmed.contains("\"follow\": true")) {
-                follow = true;
-            }
-        }
-        return clubFollowerService.changeFollow(clubId, follow);
-    }
 
 
     /* Events */

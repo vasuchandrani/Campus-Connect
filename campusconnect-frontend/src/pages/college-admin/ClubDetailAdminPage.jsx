@@ -1,1 +1,1 @@
-export { default } from "../collageAdmin/ClubDetailAdminPage";
+export { default } from "../collegeAdmin/ClubDetailAdminPage";

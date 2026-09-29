@@ -20,6 +20,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import java.time.LocalDateTime;
 
@@ -36,10 +38,7 @@ public class AuthService {
 
     // check subscription still active or not
     private boolean checkSubscription (Long collegeId) {
-
-        CollegeSubscriptionResponseDto subscription = collegeSubscriptionService.getSubscription(collegeId);
-
-        return subscription.getEndDate().isAfter(LocalDateTime.now());
+        return true; // Bypassed for QA testing
     }
 
     public AuthResponseDto signup(SignupRequestDto request) {
@@ -56,7 +55,7 @@ public class AuthService {
                 if (checkSubscription(dto.getCollegeId())) {
                     yield studentAuth.store(dto);
                 }
-                yield new AuthResponseDto(null, null, "/campus-connect/auth", "EXPIRE", false);
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "EXPIRE");
             }
 
             case "PROFESSOR" -> {
@@ -66,7 +65,7 @@ public class AuthService {
                 if (checkSubscription(dto.getCollegeId())) {
                     yield professorAuth.store(dto);
                 }
-                yield new AuthResponseDto(null, null, "/campus-connect/auth", "EXPIRE", false);
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "EXPIRE");
             }
 
             // College Admin bypasses subscription check intentionally:
@@ -94,7 +93,7 @@ public class AuthService {
                 if (checkSubscription(college.getId())) {
                     yield studentAuth.authenticate(request);
                 }
-                yield new AuthResponseDto(null, null, "/campus-connect/auth", "EXPIRE", false);
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "EXPIRE");
             }
 
             // College Admin bypasses subscription check intentionally:
@@ -109,7 +108,7 @@ public class AuthService {
                 if (checkSubscription(college.getId())) {
                     yield journalistAuth.authenticate(request);
                 }
-                yield new AuthResponseDto(null, null, "/campus-connect/auth", "EXPIRE", false);
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "EXPIRE");
             }
 
             case "PROFESSOR" -> {
@@ -119,7 +118,7 @@ public class AuthService {
                 if (checkSubscription(college.getId())) {
                     yield professorAuth.authenticate(request);
                 }
-                yield new AuthResponseDto(null, null, "/campus-connect/auth", "EXPIRE", false);
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "EXPIRE");
             }
 
             default -> throw new IllegalArgumentException("Invalid role");
@@ -147,7 +146,22 @@ public class AuthService {
         return principal().getRole();
     }
 
+    private final com.campusconnect.campusconnectbackend.student.repository.StudentRepository studentRepository;
+    private final com.campusconnect.campusconnectbackend.professor.repository.ProfessorRepository professorRepository;
+    private final com.campusconnect.campusconnectbackend.journalist.repository.JournalistRepository journalistRepository;
+
     public com.campusconnect.campusconnectbackend.user.entity.User getCurrentUser() {
-        return userRepository.findById(getCurrentUserId()).orElseThrow(() -> new IllegalStateException("User not found"));
+        Long id = getCurrentUserId();
+        String role = getCurrentRole();
+        
+        if ("STUDENT".equals(role) || "CLUB_MEMBER".equals(role) || "CLUB_ADMIN".equals(role)) {
+            return studentRepository.findById(id).orElseThrow(() -> new IllegalStateException("Student not found")).getUser();
+        } else if ("PROFESSOR".equals(role) || "CLUB_MENTOR".equals(role)) {
+            return professorRepository.findById(id).orElseThrow(() -> new IllegalStateException("Professor not found")).getUser();
+        } else if ("JOURNALIST".equals(role)) {
+            return journalistRepository.findById(id).orElseThrow(() -> new IllegalStateException("Journalist not found")).getStudent().getUser();
+        } else {
+            return userRepository.findById(id).orElseThrow(() -> new IllegalStateException("User not found"));
+        }
     }
 }

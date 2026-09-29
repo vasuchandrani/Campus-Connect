@@ -145,7 +145,7 @@ public class RedisConfig implements CachingConfigurer {
 
     @Bean
     public org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory redisConnectionFactory(
-            @org.springframework.beans.factory.annotation.Value("${spring.data.redis.host}") String host,
+            @org.springframework.beans.factory.annotation.Value("${spring.data.redis.host:localhost}") String host,
             @org.springframework.beans.factory.annotation.Value("${spring.data.redis.port:6379}") int port,
             @org.springframework.beans.factory.annotation.Value("${spring.data.redis.password:}") String password,
             @org.springframework.beans.factory.annotation.Value("${spring.data.redis.ssl.enabled:true}") boolean sslEnabled

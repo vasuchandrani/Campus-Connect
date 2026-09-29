@@ -35,6 +35,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ClubRequestServiceImpl implements ClubRequestService {
 
     private final ClubRequestRepository clubRequestRepository;
@@ -87,6 +88,7 @@ public class ClubRequestServiceImpl implements ClubRequestService {
             dto.setClubDescription(request.getClubDescription());
             dto.setCreatedAt(request.getCreatedAt());
             dto.setStudentName(request.getStudent().getFullName());
+            dto.setStudentEmail(request.getStudent().getEmail());
             response.add(dto);
         }
 

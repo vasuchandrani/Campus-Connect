@@ -23,6 +23,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from "../../../components/ui/Dialog";
+import { MarkdownEditor } from "../../../components/ui/MarkdownEditor";
+import { MarkdownViewer } from "../../../components/ui/MarkdownViewer";
 import {
   Select,
   SelectContent,
@@ -57,6 +59,8 @@ import {
   UserX,
   Sparkles,
   GraduationCap,
+  Eye,
+  Edit2,
 } from "lucide-react";
 import { clubMemberNavItems } from "../../../config/Navigation";
 import { useAuth } from "../../../contexts/AuthContext";
@@ -172,6 +176,8 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
   // Create Announcement Dialog State
   const [createAnnOpen, setCreateAnnOpen] = useState(false);
   const [annForm, setAnnForm] = useState({ title: "", content: "" });
+  const [editingDraftId, setEditingDraftId] = useState(null);
+  const [viewAnnouncement, setViewAnnouncement] = useState(null);
   const [submittingAnn, setSubmittingAnn] = useState(false);
 
   // Events Tab State
@@ -360,21 +366,41 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
     }
     setSubmittingAnn(true);
     try {
-      if (isDraft) {
-        await clubMemberApi.saveAnnouncementDraft(clubId, annForm);
-        toast({
-          title: "Draft Saved",
-          description: "Announcement saved to your personal drafts.",
-        });
-        setAnnouncementSubtab("draft");
+      if (editingDraftId) {
+        // Updating an existing draft
+        await clubMemberApi.updateAnnouncement(clubId, editingDraftId, annForm);
+        if (isDraft) {
+          toast({
+            title: "Draft Updated",
+            description: "Announcement draft updated successfully.",
+          });
+          setAnnouncementSubtab("draft");
+        } else {
+          await clubMemberApi.publishAnnouncementDraft(clubId, editingDraftId);
+          toast({
+            title: "Announcement Submitted",
+            description: "Submitted for Club Admin approval.",
+          });
+          setAnnouncementSubtab("pending");
+        }
       } else {
-        await clubMemberApi.createAnnouncement(clubId, annForm);
-        toast({
-          title: "Announcement Submitted",
-          description: "Submitted for Club Admin approval.",
-        });
-        setAnnouncementSubtab("pending");
+        if (isDraft) {
+          await clubMemberApi.saveAnnouncementDraft(clubId, annForm);
+          toast({
+            title: "Draft Saved",
+            description: "Announcement saved to your personal drafts.",
+          });
+          setAnnouncementSubtab("draft");
+        } else {
+          await clubMemberApi.createAnnouncement(clubId, annForm);
+          toast({
+            title: "Announcement Submitted",
+            description: "Submitted for Club Admin approval.",
+          });
+          setAnnouncementSubtab("pending");
+        }
       }
+      setEditingDraftId(null);
       setAnnForm({ title: "", content: "" });
       setCreateAnnOpen(false);
       await Promise.all([fetchAnnouncementsData(), fetchDashboardStatsAndFeeds()]);
@@ -999,6 +1025,7 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
                 <Button
                   size="sm"
                   onClick={() => {
+                    setEditingDraftId(null);
                     setAnnForm({ title: "", content: "" });
                     setCreateAnnOpen(true);
                   }}
@@ -1013,6 +1040,7 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
                 <Button
                   size="sm"
                   onClick={() => {
+                    setEditingDraftId(null);
                     setAnnForm({ title: "", content: "" });
                     setCreateAnnOpen(true);
                   }}
@@ -1076,39 +1104,57 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
               </div>
             </div>
 
-          {/* Subtab 1: Published Announcements */}
+            {/* Subtab 1: Published Announcements */}
             {announcementSubtab === "published" && (
-              <div>
+              <div className="space-y-3">
                 {filteredPublishedAnnouncements.length === 0 ? (
-                  <EmptyState
-                    title="No Published Announcements"
-                    desc="There are currently no active announcements published for this club."
-                    icon={<BellOff className="w-8 h-8 text-muted-foreground/60" />}
-                  />
+                  <Card className="border-dashed border-border/80">
+                    <CardContent className="py-12">
+                      <EmptyState
+                        title="No Published Announcements"
+                        desc="There are currently no active announcements published for this club."
+                        icon={<BellOff className="w-8 h-8 text-muted-foreground/60" />}
+                      />
+                    </CardContent>
+                  </Card>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="space-y-3">
                     {filteredPublishedAnnouncements.map((ann) => (
-                      <Card key={ann.id} className="rounded-2xl border-border/60 hover:border-border transition-all shadow-xs flex flex-col justify-between">
-                        <CardHeader className="p-4 pb-2">
+                      <Card key={ann.id} className="border-border/80 shadow-xs hover:border-primary/30 transition-colors">
+                        <CardContent className="p-4 sm:p-5 space-y-3">
                           <div className="flex items-start justify-between gap-2">
-                            <CardTitle className="text-sm font-bold text-foreground">
-                              {ann.title}
-                            </CardTitle>
-                            <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/20 shrink-0">
-                              Live
+                            <div className="flex items-start gap-2.5 min-w-0">
+                              <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 mt-0.5">
+                                <Megaphone className="w-4 h-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <h4 className="text-sm sm:text-base font-bold text-foreground leading-snug break-words">
+                                  {ann.title}
+                                </h4>
+                                <p className="text-[11px] text-muted-foreground mt-0.5">
+                                  {ann.clubName || clubName || "Campus Club"}
+                                </p>
+                              </div>
+                            </div>
+                            <Badge variant="outline" className="text-[10px] font-semibold shrink-0">
+                              Published
                             </Badge>
                           </div>
-                          {ann.createdAt && (
-                            <CardDescription className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
-                              <Clock className="w-3 h-3" />
-                              {new Date(ann.createdAt).toLocaleString()}
-                            </CardDescription>
-                          )}
-                        </CardHeader>
-                        <CardContent className="p-4 pt-1 flex-1">
-                          <p className="text-xs text-muted-foreground leading-relaxed">
+                          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-3 whitespace-pre-line break-words pl-0 sm:pl-10.5">
                             {ann.content}
                           </p>
+                          <div className="pt-2 text-[11px] text-muted-foreground flex flex-wrap items-center justify-between gap-1 border-t border-border/50">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setViewAnnouncement(ann)}
+                              className="h-8 text-xs gap-1.5"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              View Full Details
+                            </Button>
+                            <span>{ann.createdAt ? new Date(ann.createdAt).toLocaleString() : ""}</span>
+                          </div>
                         </CardContent>
                       </Card>
                     ))}
@@ -1119,39 +1165,56 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
 
             {/* Subtab 2: Pending Approval */}
             {announcementSubtab === "pending" && (
-              <div>
+              <div className="space-y-3">
                 {filteredPendingAnnouncements.length === 0 ? (
-                  <EmptyState
-                    title="No Pending Announcements"
-                    desc="You don't have any announcements waiting for approval."
-                    icon={<ShieldCheck className="w-8 h-8 text-muted-foreground/60" />}
-                  />
+                  <Card className="border-dashed border-border/80">
+                    <CardContent className="py-12">
+                      <EmptyState
+                        title="No Pending Announcements"
+                        desc="You don't have any announcements waiting for approval."
+                        icon={<ShieldCheck className="w-8 h-8 text-muted-foreground/60" />}
+                      />
+                    </CardContent>
+                  </Card>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="space-y-3">
                     {filteredPendingAnnouncements.map((ann) => (
-                      <Card key={ann.id} className="rounded-2xl border-amber-500/30 bg-amber-500/5 shadow-xs flex flex-col justify-between">
-                        <CardHeader className="p-4 pb-2">
+                      <Card key={ann.id} className="border-border/80 shadow-xs hover:border-primary/30 transition-colors">
+                        <CardContent className="p-4 sm:p-5 space-y-3">
                           <div className="flex items-start justify-between gap-2">
-                            <CardTitle className="text-sm font-bold text-foreground">
-                              {ann.title}
-                            </CardTitle>
-                            <Badge variant="outline" className="text-[10px] bg-amber-500/15 text-amber-600 border-amber-500/30 shrink-0">
+                            <div className="flex items-start gap-2.5 min-w-0">
+                              <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 mt-0.5">
+                                <Megaphone className="w-4 h-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <h4 className="text-sm sm:text-base font-bold text-foreground leading-snug break-words">
+                                  {ann.title}
+                                </h4>
+                                <span className="text-[11px] text-muted-foreground block">
+                                  Submitted on {ann.createdAt ? new Date(ann.createdAt).toLocaleString() : "Recently"}
+                                </span>
+                              </div>
+                            </div>
+                            <Badge variant="outline" className="text-[10px] font-semibold text-amber-600 bg-amber-500/10 border-amber-500/20 shrink-0">
                               Awaiting Approval
                             </Badge>
                           </div>
-                          {ann.createdAt && (
-                            <CardDescription className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
-                              <Clock className="w-3 h-3" />
-                              Submitted {new Date(ann.createdAt).toLocaleString()}
-                            </CardDescription>
-                          )}
-                        </CardHeader>
-                        <CardContent className="p-4 pt-1 flex-1">
-                          <p className="text-xs text-muted-foreground leading-relaxed">
+                          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-3 whitespace-pre-line break-words pl-0 sm:pl-10.5">
                             {ann.content}
                           </p>
-                          <div className="mt-3 p-2 rounded-lg bg-background/60 border border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-400">
-                            Sent to Club Admin & Mentor for verification and publication.
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-border/50">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setViewAnnouncement(ann)}
+                              className="h-8 text-xs gap-1.5"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              View Full Details
+                            </Button>
+                            <span className="text-[11px] text-amber-600 dark:text-amber-400">
+                              Sent to Club Admin & Mentor for verification
+                            </span>
                           </div>
                         </CardContent>
                       </Card>
@@ -1163,57 +1226,89 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
 
             {/* Subtab 3: My Drafts */}
             {announcementSubtab === "draft" && (
-              <div>
+              <div className="space-y-3">
                 {filteredDraftAnnouncements.length === 0 ? (
-                  <EmptyState
-                    title="No Saved Drafts"
-                    desc="You have not saved any announcement drafts."
-                    icon={<FileText className="w-8 h-8 text-muted-foreground/60" />}
-                  />
+                  <Card className="border-dashed border-border/80">
+                    <CardContent className="py-12">
+                      <EmptyState
+                        title="No Saved Drafts"
+                        desc="You have not saved any announcement drafts."
+                        icon={<FileText className="w-8 h-8 text-muted-foreground/60" />}
+                      />
+                    </CardContent>
+                  </Card>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="space-y-3">
                     {filteredDraftAnnouncements.map((ann) => (
-                      <Card key={ann.id} className="rounded-2xl border-border/60 hover:border-border transition-all shadow-xs flex flex-col justify-between">
-                        <CardHeader className="p-4 pb-2">
+                      <Card key={ann.id} className="border-border/80 shadow-xs hover:border-primary/30 transition-colors">
+                        <CardContent className="p-4 sm:p-5 space-y-3">
                           <div className="flex items-start justify-between gap-2">
-                            <CardTitle className="text-sm font-bold text-foreground">
-                              {ann.title}
-                            </CardTitle>
-                            <Badge variant="secondary" className="text-[10px] shrink-0">
-                              Draft
+                            <div className="flex items-start gap-2.5 min-w-0">
+                              <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
+                                <FileText className="w-4 h-4" />
+                              </div>
+                              <div className="space-y-0.5 min-w-0">
+                                <h4 className="text-sm sm:text-base font-bold text-foreground break-words leading-snug">
+                                  {ann.title}
+                                </h4>
+                                <span className="text-[11px] text-muted-foreground block">
+                                  Draft saved on {ann.createdAt ? new Date(ann.createdAt).toLocaleDateString() : "Recently"}
+                                </span>
+                              </div>
+                            </div>
+                            <Badge variant="secondary" className="text-[10px] font-semibold shrink-0">
+                              Member Draft
                             </Badge>
                           </div>
-                          {ann.createdAt && (
-                            <CardDescription className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
-                              <Clock className="w-3 h-3" />
-                              Saved {new Date(ann.createdAt).toLocaleString()}
-                            </CardDescription>
-                          )}
-                        </CardHeader>
-                        <CardContent className="p-4 pt-1 flex-1">
-                          <p className="text-xs text-muted-foreground leading-relaxed">
+                          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-3 whitespace-pre-line break-words pl-0 sm:pl-10.5">
                             {ann.content}
                           </p>
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-border/50">
+                            <div className="flex items-center gap-1.5">
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleDeleteAnnDraft(ann.id)}
+                                className="text-xs h-8 font-medium"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 mr-1" />
+                                Discard
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setEditingDraftId(ann.id);
+                                  setAnnForm({ title: ann.title || "", content: ann.content || "" });
+                                  setCreateAnnOpen(true);
+                                }}
+                                className="text-xs h-8 gap-1.5"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                                Edit Draft
+                              </Button>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setViewAnnouncement(ann)}
+                                className="text-xs h-8 gap-1.5"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                View Full Details
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => handlePublishAnnDraft(ann.id)}
+                                className="text-xs h-8 font-semibold shadow-xs"
+                              >
+                                <Send className="w-3.5 h-3.5 mr-1" />
+                                Submit for Approval
+                              </Button>
+                            </div>
+                          </div>
                         </CardContent>
-                        <div className="px-4 py-2.5 bg-muted/20 border-t border-border/40 flex items-center justify-between rounded-b-2xl">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteAnnDraft(ann.id)}
-                            className="h-7 text-xs text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 className="w-3.5 h-3.5 mr-1" />
-                            Discard
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => handlePublishAnnDraft(ann.id)}
-                            className="h-7 text-xs font-semibold shadow-xs"
-                          >
-                            <Send className="w-3.5 h-3.5 mr-1" />
-                            Submit for Approval
-                          </Button>
-                        </div>
                       </Card>
                     ))}
                   </div>
@@ -1792,15 +1887,20 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
         {/* DIALOGS SECTION                                           */}
         {/* ========================================================= */}
 
-        {/* 1. Dialog: Create Announcement */}
-        <Dialog open={createAnnOpen} onOpenChange={setCreateAnnOpen}>
+        {/* 1. Dialog: Create/Edit Announcement */}
+        <Dialog open={createAnnOpen} onOpenChange={(open) => {
+          setCreateAnnOpen(open);
+          if (!open) setEditingDraftId(null);
+        }}>
           <DialogContent className="w-[95vw] sm:max-w-lg rounded-2xl p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-base sm:text-lg font-bold">
-                Draft Club Announcement
+                {editingDraftId ? "Edit Announcement Draft" : "Draft Club Announcement"}
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
-                Prepare an announcement for review by {clubName} admins.
+                {editingDraftId
+                  ? "Update your saved draft announcement."
+                  : `Prepare an announcement for review by ${clubName} admins.`}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 pt-2">
@@ -1815,12 +1915,11 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-foreground">Content / Body *</Label>
-                <Textarea
+                <MarkdownEditor
                   value={annForm.content}
-                  onChange={(e) => setAnnForm((prev) => ({ ...prev, content: e.target.value }))}
-                  placeholder="Describe the update, timeline, links, instructions..."
-                  rows={5}
-                  className="text-xs sm:text-sm"
+                  onChange={(val) => setAnnForm((prev) => ({ ...prev, content: val }))}
+                  placeholder="Describe the update, timeline, links, instructions in Markdown..."
+                  rows={6}
                 />
               </div>
               <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-3 border-t border-border/60">
@@ -1828,7 +1927,10 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setCreateAnnOpen(false)}
+                  onClick={() => {
+                    setEditingDraftId(null);
+                    setCreateAnnOpen(false);
+                  }}
                   className="text-xs h-9"
                 >
                   Cancel
@@ -1841,7 +1943,7 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
                   onClick={() => handleCreateAnnouncement(true)}
                   className="text-xs h-9 font-medium"
                 >
-                  Save as Draft
+                  {editingDraftId ? "Update Draft" : "Save as Draft"}
                 </Button>
                 <Button
                   type="button"
@@ -1855,6 +1957,51 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
                 </Button>
               </DialogFooter>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* 1.1 Dialog: View Full Announcement Details */}
+        <Dialog
+          open={!!viewAnnouncement}
+          onOpenChange={(open) => !open && setViewAnnouncement(null)}
+        >
+          <DialogContent className="max-h-[90vh] max-w-lg w-full overflow-y-auto rounded-2xl p-4 sm:p-6">
+            <DialogHeader>
+              <div className="space-y-1">
+                <Badge
+                  variant="outline"
+                  className="text-xs font-semibold bg-primary/5 text-primary border-primary/20 mb-1"
+                >
+                  {viewAnnouncement?.clubName || clubName || "Campus Club Announcement"}
+                </Badge>
+                <DialogTitle className="text-lg sm:text-xl font-bold text-foreground">
+                  {viewAnnouncement?.title}
+                </DialogTitle>
+                <DialogDescription className="sr-only">Announcement details</DialogDescription>
+              </div>
+            </DialogHeader>
+
+            {viewAnnouncement && (
+              <div className="space-y-4 pt-2 text-sm">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground border-b border-border/60 pb-2">
+                  <Calendar className="w-3.5 h-3.5 text-primary" />
+                  <span>
+                    {viewAnnouncement.createdAt
+                      ? new Date(viewAnnouncement.createdAt).toLocaleString()
+                      : "Recently"}
+                  </span>
+                </div>
+
+                <div>
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">
+                    Official Notice & Content
+                  </h4>
+                  <MarkdownViewer
+                    content={viewAnnouncement.content || viewAnnouncement.message || viewAnnouncement.description}
+                  />
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
 

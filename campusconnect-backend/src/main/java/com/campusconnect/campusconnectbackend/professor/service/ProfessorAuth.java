@@ -128,6 +128,7 @@ public class ProfessorAuth {
     }
 
     // get professor profile
+    @Transactional(readOnly = true)
     public ProfessorProfileDto getProfile(Long professorId) {
 
         // find professor
@@ -139,6 +140,10 @@ public class ProfessorAuth {
         ProfessorProfileDto profile = new ProfessorProfileDto();
         profile.setFullName(professor.getFullName());
         profile.setEmail(professor.getEmail());
+        if (professor.getDepartment() != null) {
+            profile.setDepartment(professor.getDepartment().getName());
+            profile.setDepartmentId(professor.getDepartment().getId());
+        }
 
         return profile;
     }

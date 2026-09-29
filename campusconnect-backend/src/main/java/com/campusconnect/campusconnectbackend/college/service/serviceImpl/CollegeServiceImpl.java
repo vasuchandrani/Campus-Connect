@@ -5,12 +5,14 @@ import com.campusconnect.campusconnectbackend.college.repository.CollegeReposito
 import com.campusconnect.campusconnectbackend.college.service.CollegeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class CollegeServiceImpl implements CollegeService {
 
     private final CollegeRepository collegeRepository;

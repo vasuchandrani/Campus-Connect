@@ -16,17 +16,7 @@ public class CorsConfig {
 
         CorsConfiguration config = new CorsConfiguration();
 
-        // Allowed Frontend Origins & Dynamic Patterns (supports localhost, LAN/Hotspot IP addresses, and production domains)
-        config.setAllowedOriginPatterns(List.of(
-                "http://localhost:*",
-                "http://127.0.0.1:*",
-                "http://10.*.*.*:*",
-                "http://192.168.*.*:*",
-                "https://campus-connect.xyz",
-                "https://campus-conect.xyz",
-                "https://www.campus-connect.xyz",
-                "https://www.campus-conect.xyz"
-        ));
+        config.setAllowedOriginPatterns(List.of("*"));
 
         // Allowed HTTP Methods
         config.setAllowedMethods(List.of(

@@ -24,6 +24,7 @@ public interface ClubMentorDashboardService {
     MessageResponseDto deleteAnnouncementDraft(Long clubId, Long annId, Long profId);
     MessageResponseDto approveAnnouncement(Long clubId, Long annId, Long profId);
     MessageResponseDto rejectAnnouncement(Long clubId, Long annId, Long profId);
+    MessageResponseDto updateAnnouncement(Long clubId, Long annId, AnnouncementRequestDto request, Long profId);
 
     // Events
     List<EventResponseDto> getPublishedEvents(Long clubId, Long profId);

@@ -28,6 +28,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class AnnouncementServiceImpl implements AnnouncementService {
 
     private final AnnouncementRepository announcementRepository;
@@ -153,9 +154,35 @@ public class AnnouncementServiceImpl implements AnnouncementService {
         Announcement announcement = new Announcement();
         announcement.setTitle(request.getTitle());
         announcement.setContent(request.getContent());
-        announcement.setClub(clubService.getClubById(clubId));
+        
+        com.campusconnect.campusconnectbackend.club.entity.Club club = clubService.getClubById(clubId);
+        announcement.setClub(club);
+        announcement.setCollege(club.getCollege());
+        
         announcement.setCreatedBy(authService.getCurrentUser());
-        announcement.setState(1); // approved by club-admin
+        
+        String role = authService.getCurrentRole();
+        boolean isClubAdmin = "CLUB_ADMIN".equals(role);
+        String permission = club.getAnnouncementPermission();
+
+        if (isClubAdmin) {
+            if ("ADMIN_ONLY".equalsIgnoreCase(permission) || "DIRECT".equalsIgnoreCase(permission)) {
+                announcement.setStatus(com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.PUBLISHED);
+                announcement.setState(3);
+            } else {
+                announcement.setStatus(com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.CREATED);
+                announcement.setState(1); // waiting for mentor approval
+            }
+        } else {
+            if ("DIRECT".equalsIgnoreCase(permission)) {
+                announcement.setStatus(com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.PUBLISHED);
+                announcement.setState(3);
+            } else {
+                announcement.setStatus(com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.CREATED);
+                announcement.setState(0); // waiting for admin approval
+            }
+        }
+
         announcementRepository.save(announcement);
 
         Long collegeId = announcement.getClub().getCollege().getId();

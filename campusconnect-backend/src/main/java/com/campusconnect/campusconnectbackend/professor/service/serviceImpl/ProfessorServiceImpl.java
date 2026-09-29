@@ -32,6 +32,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ProfessorServiceImpl implements ProfessorService {
     private final ProfessorRepository professorRepository;
     private final AuthService authService;
@@ -43,6 +44,8 @@ public class ProfessorServiceImpl implements ProfessorService {
     private final ClubRepository clubRepository;
     private final StudentRepository studentRepository;
     private final com.campusconnect.campusconnectbackend.college.repository.DepartmentRepository departmentRepository;
+    private final com.campusconnect.campusconnectbackend.club.club_mentor.repository.ClubMentorRepository clubMentorRepository;
+    private final com.campusconnect.campusconnectbackend.club.club_follower.service.ClubFollowerService clubFollowerService;
 
     @Override
     public ProfResponseDto getDto(Professor professor) {
@@ -239,5 +242,64 @@ public class ProfessorServiceImpl implements ProfessorService {
             dto.setDepartmentName(p.getAbout());
         }
         return dto;
+    }
+
+    @Override
+    public List<java.util.Map<String, Object>> getActiveClubs(Long collegeId, Long profId) {
+        List<Long> mentoredClubIds = clubMentorRepository.findClubIdsByProfessorId(profId);
+        java.util.Set<Long> mentoredSet = new java.util.HashSet<>(mentoredClubIds != null ? mentoredClubIds : java.util.Collections.emptyList());
+
+        List<com.campusconnect.campusconnectbackend.club.entity.Club> clubs = clubRepository.findAllByCollege_Id(collegeId);
+        List<java.util.Map<String, Object>> list = new ArrayList<>();
+        for (com.campusconnect.campusconnectbackend.club.entity.Club c : clubs) {
+            if (c.isActive()) {
+                java.util.Map<String, Object> map = new java.util.HashMap<>();
+                map.put("id", c.getId());
+                map.put("name", c.getName());
+                map.put("tagline1", c.getTagline1());
+                map.put("tagline2", c.getTagline2());
+                map.put("description", c.getDescription());
+                map.put("logoUrl", c.getLogoUrl());
+                map.put("website", c.getWebsite());
+                map.put("foundedBy", c.getFoundedBy());
+                boolean isMentor = (c.getMentor() != null && java.util.Objects.equals(c.getMentor().getId(), profId)) || mentoredSet.contains(c.getId());
+                map.put("isMentor", isMentor);
+                map.put("mentorName", c.getMentor() != null ? c.getMentor().getFullName() : null);
+                map.put("adminName", c.getAdmin() != null ? c.getAdmin().getFullName() : null);
+                map.put("isFollowed", clubFollowerService.isFollowing(c.getId()));
+                map.put("followerCount", clubFollowerService.getFollowerCount(c.getId()));
+                list.add(map);
+            }
+        }
+        return list;
+    }
+
+    @Override
+    public List<java.util.Map<String, Object>> getMentoredClubs(Long profId) {
+        java.util.Set<com.campusconnect.campusconnectbackend.club.entity.Club> mentoredClubs = new java.util.LinkedHashSet<>(clubRepository.findAllByMentor_Id(profId));
+        List<Long> extraClubIds = clubMentorRepository.findClubIdsByProfessorId(profId);
+        if (extraClubIds != null && !extraClubIds.isEmpty()) {
+            mentoredClubs.addAll(clubRepository.findAllById(extraClubIds));
+        }
+
+        List<java.util.Map<String, Object>> list = new ArrayList<>();
+        for (com.campusconnect.campusconnectbackend.club.entity.Club c : mentoredClubs) {
+            if (c.isActive()) {
+                java.util.Map<String, Object> map = new java.util.HashMap<>();
+                map.put("id", c.getId());
+                map.put("name", c.getName());
+                map.put("tagline1", c.getTagline1());
+                map.put("tagline2", c.getTagline2());
+                map.put("description", c.getDescription());
+                map.put("logoUrl", c.getLogoUrl());
+                map.put("website", c.getWebsite());
+                map.put("isActive", c.isActive());
+                map.put("foundedBy", c.getFoundedBy());
+                map.put("createdAt", c.getCreatedAt());
+                map.put("adminName", c.getAdmin() != null ? c.getAdmin().getFullName() : null);
+                list.add(map);
+            }
+        }
+        return list;
     }
 }

@@ -72,6 +72,7 @@ public class JournalistAuth {
     }
 
     // get journalist profile
+    @Transactional(readOnly = true)
     public JournalistProfileDto getProfile(Long journalistId) {
 
         // find journalist

@@ -4,7 +4,15 @@ import { authApi, studentApi, journalistApi, clubAdminApi, clubMemberApi, profes
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    const token = localStorage.getItem("authToken");
+    const role = localStorage.getItem("role");
+    const email = localStorage.getItem("userEmail");
+    if (token && role) {
+      return { email: email || "", role };
+    }
+    return null;
+  });
   // set auth token in local storage
   const setToken = (token) => {
     localStorage.setItem("authToken", token);
@@ -29,12 +37,12 @@ export const AuthProvider = ({ children }) => {
         }
         setUser({ email, role: roleName });
         return data.redirectUrl;
-      } else if (data && data.success === false && data.message === "EXPIRE") {
-        return "EXPIRE subscription";
       }
-
       return "Invalid email or password. Please try again.";
     } catch (err) {
+      if (err.message === "EXPIRE") {
+        return "EXPIRE subscription";
+      }
       if (
         err.isServerDown ||
         err.status === 0 ||
@@ -73,6 +81,7 @@ export const AuthProvider = ({ children }) => {
       if (data && data.token && data.success !== false) {
         localStorage.setItem("authToken", data.token);
         localStorage.setItem("role", data.role || "CLUB_ADMIN");
+        localStorage.setItem("subLoginClubId", clubId.toString());
         setUser({ role: data.role || "CLUB_ADMIN" });
         return data.redirectUrl || `/campus-connect/club-admin/${clubId}/dashboard`;
       }
@@ -84,6 +93,7 @@ export const AuthProvider = ({ children }) => {
 
   // Return to student dashboard from sub-dashboard (Journalist, Club Admin, Club Member):
   // Requires only student password (session is securely verified and swapped)
+  // BUG-030 fix: No fallback re-login — if token-swap fails, surface the error.
   const returnToStudent = async (password, emailFallback, clubId) => {
     const currentRole = localStorage.getItem("role") || user?.role;
     const pathMatch =
@@ -91,42 +101,24 @@ export const AuthProvider = ({ children }) => {
       window.location.pathname.match(/\/campus-connect\/clubs\/(\d+)/);
     const targetClubId = clubId || (pathMatch ? pathMatch[1] : null);
 
-    try {
-      let data;
-      if (currentRole === "CLUB_ADMIN" && targetClubId) {
-        data = await clubAdminApi.returnToStudent(targetClubId, password);
-      } else if (currentRole === "CLUB_MEMBER" && targetClubId) {
-        data = await clubMemberApi.returnToStudent(targetClubId, password);
-      } else {
-        data = await journalistApi.returnToStudent(password);
-      }
-
-      if (data && data.token && data.success !== false) {
-        localStorage.setItem("authToken", data.token);
-        localStorage.setItem("role", "STUDENT");
-        const studentEmail = emailFallback || localStorage.getItem("userEmail") || user?.email || "";
-        setUser({ email: studentEmail, role: "STUDENT" });
-        return data.redirectUrl || "/campus-connect/student/dashboard";
-      }
-      throw new Error(data?.message || "Invalid student password");
-    } catch (err) {
-      // Fallback: if student email is known in client session, attempt direct login
-      const fallbackEmail = emailFallback || localStorage.getItem("userEmail") || user?.email;
-      if (fallbackEmail) {
-        try {
-          const fallbackData = await authApi.login(fallbackEmail, password, "student");
-          if (fallbackData && fallbackData.token) {
-            localStorage.setItem("authToken", fallbackData.token);
-            localStorage.setItem("role", "STUDENT");
-            setUser({ email: fallbackEmail, role: "STUDENT" });
-            return fallbackData.redirectUrl || "/campus-connect/student/dashboard";
-          }
-        } catch (_) {
-          // preserve original error from returnToStudent
-        }
-      }
-      throw err;
+    let data;
+    if (currentRole === "CLUB_ADMIN" && targetClubId) {
+      data = await clubAdminApi.returnToStudent(targetClubId, password);
+    } else if (currentRole === "CLUB_MEMBER" && targetClubId) {
+      data = await clubMemberApi.returnToStudent(targetClubId, password);
+    } else {
+      data = await journalistApi.returnToStudent(password);
     }
+
+    if (data && data.token && data.success !== false) {
+      localStorage.setItem("authToken", data.token);
+      localStorage.setItem("role", "STUDENT");
+      localStorage.removeItem("subLoginClubId");
+      const studentEmail = emailFallback || localStorage.getItem("userEmail") || user?.email || "";
+      setUser({ email: studentEmail, role: "STUDENT" });
+      return data.redirectUrl || "/campus-connect/student/dashboard";
+    }
+    throw new Error(data?.message || "Invalid student password");
   };
 
   // Sub-dashboard login for club mentor (Professor -> Club Mentor):
@@ -137,6 +129,7 @@ export const AuthProvider = ({ children }) => {
       if (data && data.token && data.success !== false) {
         localStorage.setItem("authToken", data.token);
         localStorage.setItem("role", data.role || "CLUB_MENTOR");
+        localStorage.setItem("subLoginClubId", clubId.toString());
         setUser({ role: data.role || "CLUB_MENTOR" });
         return data.redirectUrl || `/campus-connect/professor/clubs/${clubId}/mentor-dashboard`;
       }
@@ -159,36 +152,29 @@ export const AuthProvider = ({ children }) => {
       if (data && data.token && data.success !== false) {
         localStorage.setItem("authToken", data.token);
         localStorage.setItem("role", "PROFESSOR");
+        localStorage.removeItem("subLoginClubId");
         const profEmail = localStorage.getItem("userEmail") || user?.email || "";
         setUser({ email: profEmail, role: "PROFESSOR" });
         return data.redirectUrl || "/campus-connect/professor/dashboard";
       }
       throw new Error(data?.message || "Invalid professor password");
     } catch (err) {
-      const fallbackEmail = localStorage.getItem("userEmail") || user?.email;
-      if (fallbackEmail) {
-        try {
-          const fallbackData = await authApi.login(fallbackEmail, password, "professor");
-          if (fallbackData && fallbackData.token) {
-            localStorage.setItem("authToken", fallbackData.token);
-            localStorage.setItem("role", "PROFESSOR");
-            setUser({ email: fallbackEmail, role: "PROFESSOR" });
-            return fallbackData.redirectUrl || "/campus-connect/professor/dashboard";
-          }
-        } catch (_) {
-          // preserve original error
-        }
-      }
       throw err;
     }
   };
 
   // handle logout
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("role");
-    localStorage.removeItem("userEmail");
+  const logout = async () => {
+    try {
+      if (localStorage.getItem("authToken")) {
+        await authApi.logout().catch(() => {});
+      }
+    } finally {
+      setUser(null);
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("role");
+      localStorage.removeItem("userEmail");
+    }
   };
 
   // college admin signup
@@ -247,6 +233,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // BUG-019 fix: Sub-roles (CLUB_ADMIN, CLUB_MEMBER, JOURNALIST) should NOT
+  // inherit STUDENT route access. When operating under a role-swapped JWT,
+  // only routes matching the current role (or its aliases) are allowed.
   const routeProtection = useCallback((roleName) => {
     const authToken = localStorage.getItem("authToken");
     const role = localStorage.getItem("role");
@@ -254,24 +243,33 @@ export const AuthProvider = ({ children }) => {
       return false;
     }
     const currentRole = role.toUpperCase();
+
+    const matchesRole = (target) => {
+      const t = target.toUpperCase();
+      if (t === currentRole) return true;
+      // CLUB_ADMIN aliases: ADMIN
+      if (t === "CLUB_ADMIN" && currentRole === "ADMIN") return true;
+      if (t === "ADMIN" && currentRole === "CLUB_ADMIN") return true;
+      // CLUB_MEMBER aliases: MEMBER (CLUB_ADMIN can also access CLUB_MEMBER routes)
+      if (t === "CLUB_MEMBER" && (currentRole === "MEMBER" || currentRole === "CLUB_ADMIN" || currentRole === "ADMIN")) return true;
+      if (t === "MEMBER" && currentRole === "CLUB_MEMBER") return true;
+      // CLUB_MENTOR aliases: MENTOR
+      if ((t === "CLUB_MENTOR" || t === "MENTOR") && (currentRole === "MENTOR" || currentRole === "CLUB_MENTOR")) return true;
+      // STUDENT: only exact match — sub-roles do NOT inherit student access
+      if (t === "STUDENT") return currentRole === "STUDENT";
+      // PROFESSOR: only exact match
+      if (t === "PROFESSOR") return currentRole === "PROFESSOR";
+      // JOURNALIST: only exact match
+      if (t === "JOURNALIST") return currentRole === "JOURNALIST";
+      // COLLEGE_ADMIN: only exact match
+      if (t === "COLLEGE_ADMIN") return currentRole === "COLLEGE_ADMIN";
+      return false;
+    };
+
     if (Array.isArray(roleName)) {
-      return roleName.some((r) => {
-        const target = r.toUpperCase();
-        if (target === currentRole) return true;
-        if (target === "CLUB_ADMIN" && (currentRole === "ADMIN" || currentRole === "CLUB_ADMIN")) return true;
-        if (target === "CLUB_MEMBER" && (currentRole === "MEMBER" || currentRole === "CLUB_MEMBER" || currentRole === "ADMIN" || currentRole === "CLUB_ADMIN")) return true;
-        if ((target === "CLUB_MENTOR" || target === "MENTOR") && (currentRole === "MENTOR" || currentRole === "CLUB_MENTOR")) return true;
-        if (target === "STUDENT" && (currentRole === "STUDENT" || currentRole === "CLUB_ADMIN" || currentRole === "CLUB_MEMBER" || currentRole === "JOURNALIST")) return true;
-        return false;
-      });
+      return roleName.some(matchesRole);
     }
-    const target = roleName.toUpperCase();
-    if (target === currentRole) return true;
-    if (target === "CLUB_ADMIN") return currentRole === "CLUB_ADMIN" || currentRole === "ADMIN";
-    if (target === "CLUB_MEMBER") return currentRole === "CLUB_MEMBER" || currentRole === "MEMBER" || currentRole === "CLUB_ADMIN" || currentRole === "ADMIN";
-    if (target === "CLUB_MENTOR" || target === "MENTOR") return currentRole === "CLUB_MENTOR" || currentRole === "MENTOR";
-    if (target === "STUDENT") return currentRole === "STUDENT" || currentRole === "CLUB_ADMIN" || currentRole === "CLUB_MEMBER" || currentRole === "JOURNALIST";
-    return false;
+    return matchesRole(roleName);
   }, []);
 
   const isClubAdmin = () => {

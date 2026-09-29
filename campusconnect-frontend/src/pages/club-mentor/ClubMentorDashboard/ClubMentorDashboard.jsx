@@ -34,6 +34,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from "../../../components/ui/Dialog";
+import { MarkdownEditor } from "../../../components/ui/MarkdownEditor";
+import { MarkdownViewer } from "../../../components/ui/MarkdownViewer";
 import {
   LayoutDashboard,
   Users,
@@ -60,6 +62,8 @@ import {
   Info,
   ShieldAlert,
   GraduationCap,
+  Eye,
+  Edit2,
 } from "lucide-react";
 import { clubMentorNavItems } from "../../../config/Navigation";
 import { useAuth } from "../../../contexts/AuthContext";
@@ -162,6 +166,8 @@ export default function ClubMentorDashboard() {
   // Dialog States
   const [createAnnDraftOpen, setCreateAnnDraftOpen] = useState(false);
   const [annDraftForm, setAnnDraftForm] = useState({ title: "", content: "" });
+  const [editingDraftId, setEditingDraftId] = useState(null);
+  const [viewAnnouncement, setViewAnnouncement] = useState(null);
   const [savingAnnDraft, setSavingAnnDraft] = useState(false);
 
   const [createEventDraftOpen, setCreateEventDraftOpen] = useState(false);
@@ -298,11 +304,20 @@ export default function ClubMentorDashboard() {
     }
     setSavingAnnDraft(true);
     try {
-      await professorApi.saveMentorAnnouncementDraft(clubId, annDraftForm);
-      toast({
-        title: "Draft Saved",
-        description: "Announcement draft saved successfully.",
-      });
+      if (editingDraftId) {
+        await professorApi.updateMentorAnnouncement(clubId, editingDraftId, annDraftForm);
+        toast({
+          title: "Draft Updated",
+          description: "Announcement draft updated successfully.",
+        });
+      } else {
+        await professorApi.saveMentorAnnouncementDraft(clubId, annDraftForm);
+        toast({
+          title: "Draft Saved",
+          description: "Announcement draft saved successfully.",
+        });
+      }
+      setEditingDraftId(null);
       setAnnDraftForm({ title: "", content: "" });
       setCreateAnnDraftOpen(false);
       const drafts = await professorApi.getMentorDraftAnnouncements(clubId);
@@ -1097,7 +1112,11 @@ export default function ClubMentorDashboard() {
                 </div>
                 <Button
                   size="sm"
-                  onClick={() => setCreateAnnDraftOpen(true)}
+                  onClick={() => {
+                    setEditingDraftId(null);
+                    setAnnDraftForm({ title: "", content: "" });
+                    setCreateAnnDraftOpen(true);
+                  }}
                   className="sm:hidden h-8 text-xs font-semibold shadow-xs gap-1 px-2.5 shrink-0"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -1108,7 +1127,11 @@ export default function ClubMentorDashboard() {
               <div className="hidden sm:flex items-center gap-2 shrink-0">
                 <Button
                   size="sm"
-                  onClick={() => setCreateAnnDraftOpen(true)}
+                  onClick={() => {
+                    setEditingDraftId(null);
+                    setAnnDraftForm({ title: "", content: "" });
+                    setCreateAnnDraftOpen(true);
+                  }}
                   className="h-9 text-xs font-semibold shadow-xs gap-1.5 px-3.5"
                 >
                   <Plus className="w-4 h-4" />
@@ -1183,7 +1206,7 @@ export default function ClubMentorDashboard() {
                                 {ann.title}
                               </h4>
                               <p className="text-[11px] text-muted-foreground mt-0.5">
-                                {ann.clubName || dashboardData.clubName}
+                                {ann.clubName || dashboardData?.clubName}
                               </p>
                             </div>
                           </div>
@@ -1191,11 +1214,19 @@ export default function ClubMentorDashboard() {
                             Published
                           </Badge>
                         </div>
-                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed whitespace-pre-line break-words pl-0 sm:pl-10.5">
+                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-3 whitespace-pre-line break-words pl-0 sm:pl-10.5">
                           {ann.content}
                         </p>
                         <div className="pt-2 text-[11px] text-muted-foreground flex flex-wrap items-center justify-between gap-1 border-t border-border/50">
-                          <span className="font-medium text-foreground/80">Active Campus Announcement</span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setViewAnnouncement(ann)}
+                            className="h-7 text-xs gap-1"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            View Full Details
+                          </Button>
                           <span>{ann.createdAt ? new Date(ann.createdAt).toLocaleString() : ""}</span>
                         </div>
                       </CardContent>
@@ -1240,28 +1271,54 @@ export default function ClubMentorDashboard() {
                             Mentor Draft
                           </Badge>
                         </div>
-                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed whitespace-pre-line break-words pl-0 sm:pl-10.5">
+                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-3 whitespace-pre-line break-words pl-0 sm:pl-10.5">
                           {ann.content}
                         </p>
-                        <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-3 border-t border-border/50">
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDeleteAnnouncementDraft(ann.id)}
-                            className="text-xs h-8 font-medium w-full sm:w-auto"
-                          >
-                            <Trash2 className="w-3.5 h-3.5 mr-1" />
-                            Delete Draft
-                          </Button>
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={() => handlePublishAnnouncementDraft(ann.id)}
-                            className="text-xs h-8 font-medium shadow-xs w-full sm:w-auto"
-                          >
-                            <Send className="w-3.5 h-3.5 mr-1" />
-                            Publish Draft
-                          </Button>
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-border/50">
+                          <div className="flex items-center gap-1.5">
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteAnnouncementDraft(ann.id)}
+                              className="text-xs h-7 font-medium"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 mr-1" />
+                              Delete
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setEditingDraftId(ann.id);
+                                setAnnDraftForm({ title: ann.title || "", content: ann.content || "" });
+                                setCreateAnnDraftOpen(true);
+                              }}
+                              className="text-xs h-7 gap-1"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                              Edit
+                            </Button>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setViewAnnouncement(ann)}
+                              className="text-xs h-7 gap-1"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              View
+                            </Button>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handlePublishAnnouncementDraft(ann.id)}
+                              className="text-xs h-7 font-medium shadow-xs"
+                            >
+                              <Send className="w-3.5 h-3.5 mr-1" />
+                              Publish Draft
+                            </Button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -1326,28 +1383,39 @@ export default function ClubMentorDashboard() {
                             Awaiting Review
                           </Badge>
                         </div>
-                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed whitespace-pre-line break-words pl-0 sm:pl-10.5">
+                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-3 whitespace-pre-line break-words pl-0 sm:pl-10.5">
                           {ann.content}
                         </p>
-                        <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-3 border-t border-border/50">
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-border/50">
                           <Button
-                            variant="destructive"
+                            variant="outline"
                             size="sm"
-                            onClick={() => handleRejectAnnouncement(ann.id)}
-                            className="text-xs h-8 font-medium w-full sm:w-auto"
+                            onClick={() => setViewAnnouncement(ann)}
+                            className="h-7 text-xs gap-1"
                           >
-                            <XCircle className="w-3.5 h-3.5 mr-1" />
-                            Reject
+                            <Eye className="w-3.5 h-3.5" />
+                            View Full Details
                           </Button>
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={() => handleApproveAnnouncement(ann.id)}
-                            className="text-xs h-8 font-medium shadow-xs w-full sm:w-auto"
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                            Approve & Publish
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleRejectAnnouncement(ann.id)}
+                              className="text-xs h-7 font-medium"
+                            >
+                              <XCircle className="w-3.5 h-3.5 mr-1" />
+                              Reject
+                            </Button>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleApproveAnnouncement(ann.id)}
+                              className="text-xs h-7 font-medium shadow-xs"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                              Approve & Publish
+                            </Button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -2288,15 +2356,20 @@ export default function ClubMentorDashboard() {
           </TabsContent>
         </Tabs>
 
-        {/* Dialog: Create Announcement Draft */}
-        <Dialog open={createAnnDraftOpen} onOpenChange={setCreateAnnDraftOpen}>
+        {/* Dialog: Create/Edit Announcement Draft */}
+        <Dialog open={createAnnDraftOpen} onOpenChange={(open) => {
+          setCreateAnnDraftOpen(open);
+          if (!open) setEditingDraftId(null);
+        }}>
           <DialogContent className="w-[95vw] sm:max-w-lg rounded-2xl p-4 sm:p-6">
             <DialogHeader>
               <DialogTitle className="text-base sm:text-lg font-bold">
-                Create Announcement Draft
+                {editingDraftId ? "Edit Announcement Draft" : "Create Announcement Draft"}
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
-                Draft a new bulletin for {dashboardData.clubName}. You can edit and publish it anytime.
+                {editingDraftId
+                  ? "Update your saved bulletin draft for " + (dashboardData?.clubName || "this club") + "."
+                  : "Draft a new bulletin for " + (dashboardData?.clubName || "this club") + ". You can edit and publish it anytime."}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSaveAnnouncementDraft} className="space-y-4 pt-2">
@@ -2314,14 +2387,13 @@ export default function ClubMentorDashboard() {
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-foreground">Content / Body</label>
-                <Textarea
+                <MarkdownEditor
                   value={annDraftForm.content}
-                  onChange={(e) =>
-                    setAnnDraftForm((prev) => ({ ...prev, content: e.target.value }))
+                  onChange={(val) =>
+                    setAnnDraftForm((prev) => ({ ...prev, content: val }))
                   }
-                  placeholder="Provide complete announcement details, instructions, or meeting links..."
-                  rows={5}
-                  className="text-xs sm:text-sm"
+                  placeholder="Provide complete announcement details, instructions, links, or meeting info in Markdown..."
+                  rows={6}
                 />
               </div>
               <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-3 border-t border-border/60">
@@ -2329,7 +2401,10 @@ export default function ClubMentorDashboard() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setCreateAnnDraftOpen(false)}
+                  onClick={() => {
+                    setEditingDraftId(null);
+                    setCreateAnnDraftOpen(false);
+                  }}
                   className="text-xs h-9"
                 >
                   Cancel
@@ -2340,10 +2415,55 @@ export default function ClubMentorDashboard() {
                   disabled={savingAnnDraft}
                   className="text-xs h-9 font-medium shadow-xs"
                 >
-                  {savingAnnDraft ? "Saving..." : "Save Draft"}
+                  {savingAnnDraft ? "Saving..." : (editingDraftId ? "Update Draft" : "Save Draft")}
                 </Button>
               </DialogFooter>
             </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog: View Full Announcement Details */}
+        <Dialog
+          open={!!viewAnnouncement}
+          onOpenChange={(open) => !open && setViewAnnouncement(null)}
+        >
+          <DialogContent className="max-h-[90vh] max-w-lg w-full overflow-y-auto rounded-2xl p-4 sm:p-6">
+            <DialogHeader>
+              <div className="space-y-1">
+                <Badge
+                  variant="outline"
+                  className="text-xs font-semibold bg-primary/5 text-primary border-primary/20 mb-1"
+                >
+                  {viewAnnouncement?.clubName || dashboardData?.clubName || "Campus Club Announcement"}
+                </Badge>
+                <DialogTitle className="text-lg sm:text-xl font-bold text-foreground">
+                  {viewAnnouncement?.title}
+                </DialogTitle>
+                <DialogDescription className="sr-only">Announcement details</DialogDescription>
+              </div>
+            </DialogHeader>
+
+            {viewAnnouncement && (
+              <div className="space-y-4 pt-2 text-sm">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground border-b border-border/60 pb-2">
+                  <Calendar className="w-3.5 h-3.5 text-primary" />
+                  <span>
+                    {viewAnnouncement.createdAt
+                      ? new Date(viewAnnouncement.createdAt).toLocaleString()
+                      : "Recently"}
+                  </span>
+                </div>
+
+                <div>
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">
+                    Official Notice & Content
+                  </h4>
+                  <MarkdownViewer
+                    content={viewAnnouncement.content || viewAnnouncement.message || viewAnnouncement.description}
+                  />
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
 

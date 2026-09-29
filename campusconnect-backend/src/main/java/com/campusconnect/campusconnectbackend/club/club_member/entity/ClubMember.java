@@ -51,8 +51,9 @@ public class ClubMember {
     @Column(name = "joined_at", nullable = false, updatable = false)
     private LocalDateTime joinedAt;
 
-    @Column(name = "password_hash", nullable = false)
+    @Column(name = "password_hash")
     private String passwordHash;
+
 
     public void setRole(String roleName) {
         try {

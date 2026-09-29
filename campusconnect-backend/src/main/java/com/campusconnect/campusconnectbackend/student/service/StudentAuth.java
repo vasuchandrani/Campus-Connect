@@ -111,6 +111,7 @@ public class StudentAuth {
     }
 
     // student login
+    @Transactional(readOnly = true)
     public AuthResponseDto authenticate(LoginRequestDto request) {
 
         String compositeUsername = "STUDENT:" + request.getEmail();
@@ -124,7 +125,7 @@ public class StudentAuth {
 
         Student student = studentRepository
                 .findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found, Try again!"));
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.UNAUTHORIZED, "Invalid email or password. Please try again."));
 
         // generate jwt-token
         String token = jwtTokenProvider.generateToken(
@@ -141,6 +142,7 @@ public class StudentAuth {
     }
 
     // get profile
+    @Transactional(readOnly = true)
     public StudentProfileDto getProfile(Long studentId) {
 
         // find student
@@ -152,6 +154,10 @@ public class StudentAuth {
         StudentProfileDto profile = new StudentProfileDto();
         profile.setFullName(student.getFullName());
         profile.setGender(student.getGender());
+        profile.setDepartment(student.getDepartment());
+        if (student.getDepartmentEntity() != null) {
+            profile.setDepartmentId(student.getDepartmentEntity().getId());
+        }
 
         return profile;
     }
@@ -230,9 +236,10 @@ public class StudentAuth {
         return new MessageResponseDto("Your password changed successfully!");
     }
 
+    @Transactional(readOnly = true)
     public Student getStudentByEmail(String email) {
         return studentRepository.findByEmail(email).orElseThrow(
-                () -> new RuntimeException("Student not found, Try again!")
+                () -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.UNAUTHORIZED, "Invalid email or password. Please try again.")
         );
     }
 }

@@ -41,6 +41,7 @@ import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ClubServiceImpl implements ClubService {
 
     private final ClubRepository clubRepository;

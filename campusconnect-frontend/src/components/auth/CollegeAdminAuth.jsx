@@ -9,7 +9,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/Tabs";
 import { ArrowLeft, Building2 } from "lucide-react";
 
-import CollegeAdminLogin from "./CollageAdminLogin";
+import CollegeAdminLogin from "./CollegeAdminLogin";
 import CollegeSignup from "./CollegeSignup";
 
 const CollegeAdminAuth = ({

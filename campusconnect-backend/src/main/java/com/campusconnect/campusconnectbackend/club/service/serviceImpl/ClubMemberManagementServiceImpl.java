@@ -20,6 +20,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ClubMemberManagementServiceImpl implements ClubMemberManagementService {
 
     private final ClubMemberRepository clubMemberRepository;

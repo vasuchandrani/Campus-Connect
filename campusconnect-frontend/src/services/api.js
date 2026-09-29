@@ -2,23 +2,11 @@
 
 export const getBaseUrl = () => {
   const envUrl = import.meta.env.VITE_BACKEND_URL;
-
-  // When accessing via network IP/LAN/hotspot (e.g. 10.134.126.152),
-  // always target that host's port 8080 unless a real remote production domain is configured.
-  if (typeof window !== "undefined" && window.location) {
-    const hostname = window.location.hostname;
-    if (hostname && hostname !== "localhost" && hostname !== "127.0.0.1") {
-      if (!envUrl || envUrl.includes("localhost") || envUrl.includes("127.0.0.1")) {
-        const protocol = window.location.protocol === "https:" ? "https:" : "http:";
-        return `${protocol}//${hostname}:8080`;
-      }
-    }
-  }
-
   if (envUrl) {
     return envUrl;
   }
-
+  // Default to localhost:8080 for local development.
+  // Set VITE_BACKEND_URL in .env to point to a different backend.
   return "http://localhost:8080";
 };
 
@@ -93,6 +81,24 @@ async function request(endpoint, options = {}) {
   }
 
   if (!response.ok) {
+    // BUG-016 fix: Intercept 401 on non-auth endpoints FIRST — always redirect
+    // for expired sessions regardless of response body content.
+    const isAuthEndpoint = endpoint.includes("/login") || endpoint.includes("/signup");
+    if (response.status === 401 && !isAuthEndpoint) {
+      // Session expired — clear stale auth and redirect to login
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("role");
+      localStorage.removeItem("userEmail");
+      localStorage.removeItem("subLoginClubId");
+      if (typeof window !== "undefined") {
+        window.location.href = "/auth";
+      }
+      const expiredError = new Error("Your session has expired. Please log in again.");
+      expiredError.status = 401;
+      expiredError.isSessionExpired = true;
+      throw expiredError;
+    }
+
     let errorMessage =
       (data && (data.message || data.error || data.detail)) || "";
 
@@ -157,10 +163,9 @@ export const authApi = {
     });
   },
 
-  adminLogin: (email, password) =>
-    request("/campus-connect/admin/login", {
+  logout: () =>
+    request("/campus-connect/logout", {
       method: "POST",
-      body: { email, password },
     }),
 
   collegeSignup: (payload) =>
@@ -636,6 +641,11 @@ export const professorApi = {
   rejectMentorAnnouncement: (clubId, id) =>
     request(`/campus-connect/professor/clubs/${clubId}/mentor-dashboard/announcements/${id}/reject`, {
       method: "POST",
+    }),
+  updateMentorAnnouncement: (clubId, id, data) =>
+    request(`/campus-connect/professor/clubs/${clubId}/mentor-dashboard/announcements/${id}`, {
+      method: "PATCH",
+      body: data,
     }),
 
   getMentorPublishedEvents: (clubId) =>

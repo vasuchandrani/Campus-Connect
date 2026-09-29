@@ -11,9 +11,9 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 public class ApiError {
-    public LocalDateTime time;
-    public String error;
-    public HttpStatus status;
+    private LocalDateTime time;
+    private String error;
+    private HttpStatus status;
 
     public ApiError(String error, HttpStatus status) {
         this.time = LocalDateTime.now();

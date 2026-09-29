@@ -11,7 +11,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "../../../components/ui/Dialog";
+import { MarkdownViewer } from "../../../components/ui/MarkdownViewer";
 import { toast } from "../../../hooks/use-toast";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -189,6 +191,7 @@ const AnnouncementsPage = () => {
                   <DialogTitle className="text-lg sm:text-xl font-bold text-foreground">
                     {viewAnnouncement?.title}
                   </DialogTitle>
+                  <DialogDescription className="sr-only">Announcement details</DialogDescription>
                 </div>
               </DialogHeader>
 
@@ -207,9 +210,9 @@ const AnnouncementsPage = () => {
                     <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">
                       Official Notice & Content
                     </h4>
-                    <p className="text-xs sm:text-sm text-foreground/90 leading-relaxed whitespace-pre-line">
-                      {viewAnnouncement.message || viewAnnouncement.description || viewAnnouncement.content}
-                    </p>
+                    <MarkdownViewer
+                      content={viewAnnouncement.message || viewAnnouncement.description || viewAnnouncement.content}
+                    />
                   </div>
                 </div>
               )}
