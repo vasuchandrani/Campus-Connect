@@ -15,7 +15,9 @@ import {
   DialogTrigger,
   DialogDescription,
 } from "../../../components/ui/Dialog";
-import { Megaphone, Plus, Eye, Edit, Trash2 } from "lucide-react";
+import { MarkdownEditor } from "../../../components/ui/MarkdownEditor";
+import { MarkdownViewer } from "../../../components/ui/MarkdownViewer";
+import { Megaphone, Plus, Eye, Edit, Trash2, Calendar } from "lucide-react";
 import { clubMemberNavItems } from "../../../config/Navigation";
 import { useParams } from "react-router-dom";
 import { toast } from "../../../hooks/use-toast";
@@ -245,10 +247,11 @@ const ClubMemberAnnouncementsPage = () => {
 
                 <div className="space-y-2">
                   <Label>Content</Label>
-                  <Textarea
-                    className="min-h-32"
+                  <MarkdownEditor
                     value={newContent}
-                    onChange={(e) => setNewContent(e.target.value)}
+                    onChange={(val) => setNewContent(val)}
+                    placeholder="Write announcement in Markdown..."
+                    rows={6}
                   />
                 </div>
 
@@ -265,21 +268,41 @@ const ClubMemberAnnouncementsPage = () => {
           open={!!viewAnnouncement}
           onOpenChange={(open) => !open && setViewAnnouncement(null)}
         >
-          <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-h-[90vh] max-w-lg w-full overflow-y-auto rounded-2xl p-4 sm:p-6">
             <DialogHeader>
-              <DialogTitle>Announcement Details</DialogTitle>
+              <div className="space-y-1">
+                <Badge
+                  variant="outline"
+                  className="text-xs font-semibold bg-primary/5 text-primary border-primary/20 mb-1"
+                >
+                  {viewAnnouncement?.clubName || "Campus Club Announcement"}
+                </Badge>
+                <DialogTitle className="text-lg sm:text-xl font-bold text-foreground">
+                  {viewAnnouncement?.title}
+                </DialogTitle>
+                <DialogDescription className="sr-only">Announcement details</DialogDescription>
+              </div>
             </DialogHeader>
-            <DialogDescription></DialogDescription>
 
             {viewAnnouncement && (
-              <div className="space-y-4 pt-4">
-                <p><strong>Title:</strong> {viewAnnouncement.title}</p>
-                <p>
-                  <strong>Date:</strong>{" "}
-                  {viewAnnouncement.createdAt.split("T")[0]} at{" "}
-                  {viewAnnouncement.createdAt.split("T")[1].split(".")[0]}
-                </p>
-                <p><strong>Content:</strong> {viewAnnouncement.content}</p>
+              <div className="space-y-4 pt-2 text-sm">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground border-b border-border/60 pb-2">
+                  <Calendar className="w-3.5 h-3.5 text-primary" />
+                  <span>
+                    {viewAnnouncement.createdAt
+                      ? new Date(viewAnnouncement.createdAt).toLocaleString()
+                      : "Recently"}
+                  </span>
+                </div>
+
+                <div>
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">
+                    Official Notice & Content
+                  </h4>
+                  <MarkdownViewer
+                    content={viewAnnouncement.content || viewAnnouncement.message || viewAnnouncement.description}
+                  />
+                </div>
               </div>
             )}
           </DialogContent>

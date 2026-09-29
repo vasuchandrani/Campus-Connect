@@ -19,4 +19,6 @@ public interface ProfessorService {
     MessageResponseDto assignProfessor(Long id, Long professorId);
     ProfStatsResponseDto getStats(Long professorId);
     ProfDetailResponseDto getDetails(Long professorId);
+    java.util.List<java.util.Map<String, Object>> getActiveClubs(Long collegeId, Long profId);
+    java.util.List<java.util.Map<String, Object>> getMentoredClubs(Long profId);
 }

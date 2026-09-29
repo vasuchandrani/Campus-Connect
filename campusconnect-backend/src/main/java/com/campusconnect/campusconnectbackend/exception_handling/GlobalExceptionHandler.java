@@ -175,6 +175,6 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(status)
-                .body(new ApiError("Image exceeds the maximum allowed size (5MB)", status));
+                .body(new ApiError("File exceeds the maximum allowed size (10MB)", status));
     }
 }

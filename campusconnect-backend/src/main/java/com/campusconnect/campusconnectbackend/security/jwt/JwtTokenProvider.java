@@ -5,7 +5,7 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.security.Key;
+import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -19,32 +19,29 @@ public class JwtTokenProvider {
     @Value("${jwt.expiration}")
     private long jwtExpiration;
 
-    private Key getSigningKey() {
+    private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes());
     }
 
     public String generateToken(Long userId, String role, Long collegeId) {
-
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", userId);
-        claims.put("role", role);
-        claims.put("collegeId", collegeId);
-
         return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(String.valueOf(userId))
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .claim("userId", userId)
+                .claim("role", role)
+                .claim("collegeId", collegeId)
+                .subject(String.valueOf(userId))
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
+                .signWith(getSigningKey())
                 .compact();
     }
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder()
-                    .setSigningKey(getSigningKey())
+            // JJWT 0.12.x API: use .parser().verifyWith() instead of deprecated parserBuilder().setSigningKey()
+            Jwts.parser()
+                    .verifyWith(getSigningKey())
                     .build()
-                    .parseClaimsJws(token);
+                    .parseSignedClaims(token);
             return true;
         } catch (JwtException | IllegalArgumentException ex) {
             return false;
@@ -52,15 +49,26 @@ public class JwtTokenProvider {
     }
 
     public Claims getClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
+        return Jwts.parser()
+                .verifyWith(getSigningKey())
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
     }
 
     public Long getUserId(String token) {
-        return Long.parseLong(getClaims(token).getSubject());
+        Claims claims = getClaims(token);
+        Object userIdObj = claims.get("userId");
+        if (userIdObj instanceof Number) {
+            return ((Number) userIdObj).longValue();
+        } else if (userIdObj instanceof String) {
+            return Long.parseLong((String) userIdObj);
+        }
+        String subject = claims.getSubject();
+        if (subject != null && !subject.isEmpty()) {
+            return Long.parseLong(subject);
+        }
+        throw new JwtException("User ID is missing from token");
     }
 
     public String getRole(String token) {
@@ -68,6 +76,12 @@ public class JwtTokenProvider {
     }
 
     public Long getCollegeId(String token) {
-        return getClaims(token).get("collegeId", Long.class);
+        Object collegeIdObj = getClaims(token).get("collegeId");
+        if (collegeIdObj instanceof Number) {
+            return ((Number) collegeIdObj).longValue();
+        } else if (collegeIdObj instanceof String) {
+            return Long.parseLong((String) collegeIdObj);
+        }
+        return null;
     }
 }

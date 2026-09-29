@@ -15,11 +15,25 @@ public interface AnnouncementRepository extends JpaRepository<Announcement, Long
         select a
         from Announcement a
         where a.club in :clubs
+          and a.status <> com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.DRAFT
+          and a.status <> com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.DELETED
+          and a.status <> com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.REJECTED
+          and (a.status = com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.PUBLISHED or a.state >= 2 or a.status is null)
         order by a.createdAt desc
     """)
-    List<Announcement> findAllByClubs(List<Club> clubs);
+    List<Announcement> findAllByClubs(@Param("clubs") List<Club> clubs);
 
-    List<Announcement> findByClub_IdOrderByCreatedAtDesc(Long clubId);
+    @Query("""
+        select a
+        from Announcement a
+        where a.club.id = :clubId
+          and a.status <> com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.DRAFT
+          and a.status <> com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.DELETED
+          and a.status <> com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.REJECTED
+          and (a.status = com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.PUBLISHED or a.state >= 2 or a.status is null)
+        order by a.createdAt desc
+    """)
+    List<Announcement> findByClub_IdOrderByCreatedAtDesc(@Param("clubId") Long clubId);
 
     @Query("""
         select a
@@ -38,6 +52,7 @@ public interface AnnouncementRepository extends JpaRepository<Announcement, Long
         where a.club.id = :clubId
           and a.status <> com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.DRAFT
           and a.status <> com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.DELETED
+          and a.status <> com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.REJECTED
           and (a.status = com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.PUBLISHED or a.state >= 2 or a.status is null)
         order by a.createdAt desc
     """)
@@ -59,6 +74,7 @@ public interface AnnouncementRepository extends JpaRepository<Announcement, Long
         where a.club.id = :clubId
           and a.status <> com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.DRAFT
           and a.status <> com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.DELETED
+          and a.status <> com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.REJECTED
           and (a.status = com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.APPROVED_BY_CLUB_ADMIN or a.state = 1)
         order by a.createdAt desc
     """)
@@ -70,6 +86,8 @@ public interface AnnouncementRepository extends JpaRepository<Announcement, Long
         where a.club.id = :clubId
           and a.status <> com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.DRAFT
           and a.status <> com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.DELETED
+          and a.status <> com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.REJECTED
+          and a.status <> com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.PUBLISHED
           and (a.status = com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.CREATED or a.status = com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.PENDING_APPROVAL or a.state = 0)
         order by a.createdAt desc
     """)
@@ -82,8 +100,10 @@ public interface AnnouncementRepository extends JpaRepository<Announcement, Long
           and a.createdBy.id = :userId
           and a.status <> com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.DRAFT
           and a.status <> com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.DELETED
+          and a.status <> com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.REJECTED
           and a.status <> com.campusconnect.campusconnectbackend.announcement.entity.enums.AnnouncementStatus.PUBLISHED
           and a.state < 3
+          and a.state >= 0
         order by a.createdAt desc
     """)
     List<Announcement> findMyPendingByClubIdAndUserId(@Param("clubId") Long clubId, @Param("userId") Long userId);

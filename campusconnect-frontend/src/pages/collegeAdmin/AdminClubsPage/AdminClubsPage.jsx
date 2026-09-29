@@ -949,8 +949,8 @@ export default function AdminClubsPage() {
                   <p className="font-semibold text-foreground">
                     Applicant:{" "}
                     <span className="font-normal text-muted-foreground">
-                      {approveDialog.clubReq.studentName} (
-                      {approveDialog.clubReq.studentEmail})
+                      {approveDialog.clubReq.studentName}
+                      {approveDialog.clubReq.studentEmail ? ` (${approveDialog.clubReq.studentEmail})` : ""}
                     </span>
                   </p>
                 </div>
@@ -989,8 +989,8 @@ export default function AdminClubsPage() {
                       </option>
                       {professors.map((p) => (
                         <option key={p.id} value={p.id}>
-                          {p.name} — {p.department || "Faculty"} (
-                          {p.email || ""})
+                          {p.name} — {p.department || "Faculty"}
+                          {p.email ? ` (${p.email})` : ""}
                         </option>
                       ))}
                     </select>

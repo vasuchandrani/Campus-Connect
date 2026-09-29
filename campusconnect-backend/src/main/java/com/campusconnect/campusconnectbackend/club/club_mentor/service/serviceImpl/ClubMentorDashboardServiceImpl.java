@@ -45,6 +45,7 @@ import java.util.*;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ClubMentorDashboardServiceImpl implements ClubMentorDashboardService {
 
     private final ClubRepository clubRepository;
@@ -280,9 +281,29 @@ public class ClubMentorDashboardServiceImpl implements ClubMentorDashboardServic
         if (!Objects.equals(ann.getClub().getId(), clubId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Announcement does not belong to this club");
         }
-        ann.setStatus(AnnouncementStatus.DELETED);
+        ann.setStatus(AnnouncementStatus.REJECTED);
+        ann.setState(-1);
         announcementRepository.save(ann);
         return new MessageResponseDto("Announcement rejected");
+    }
+
+    @Override
+    @Transactional
+    public MessageResponseDto updateAnnouncement(Long clubId, Long annId, AnnouncementRequestDto request, Long profId) {
+        getMentoredClubOrThrow(clubId, profId);
+        Announcement ann = announcementRepository.findById(annId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Announcement not found"));
+        if (!Objects.equals(ann.getClub().getId(), clubId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Announcement does not belong to this club");
+        }
+        if (request.getTitle() != null) {
+            ann.setTitle(request.getTitle());
+        }
+        if (request.getContent() != null) {
+            ann.setContent(request.getContent());
+        }
+        announcementRepository.save(ann);
+        return new MessageResponseDto("Announcement updated successfully");
     }
 
     @Override
@@ -422,7 +443,8 @@ public class ClubMentorDashboardServiceImpl implements ClubMentorDashboardServic
         if (!Objects.equals(event.getClub().getId(), clubId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event does not belong to this club");
         }
-        event.setStatus(EventStatus.DELETED);
+        event.setStatus(EventStatus.REJECTED);
+        event.setState(-1);
         eventRepository.save(event);
         return new MessageResponseDto("Event rejected");
     }

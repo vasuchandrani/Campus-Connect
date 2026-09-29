@@ -23,6 +23,9 @@ public interface EventRepository extends JpaRepository<Event, Long> {
         SELECT e
         FROM Event e
         WHERE e.club IN :clubs
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DRAFT
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DELETED
+          AND (e.status = com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.PUBLISHED OR e.state >= 2 OR e.status IS NULL)
           AND e.startTime <= :now
           AND e.endTime >= :now
         ORDER BY e.startTime ASC
@@ -37,6 +40,9 @@ public interface EventRepository extends JpaRepository<Event, Long> {
         SELECT e
         FROM Event e
         WHERE e.club IN :clubs
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DRAFT
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DELETED
+          AND (e.status = com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.PUBLISHED OR e.state >= 2 OR e.status IS NULL)
           AND e.startTime > :now
         ORDER BY e.startTime ASC
     """)
@@ -50,6 +56,9 @@ public interface EventRepository extends JpaRepository<Event, Long> {
         SELECT e
         FROM Event e
         WHERE e.club IN :clubs
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DRAFT
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DELETED
+          AND (e.status = com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.PUBLISHED OR e.state >= 2 OR e.status IS NULL)
           AND (
                 (e.startTime <= :now AND e.endTime >= :now)
              OR (e.startTime > :now)
@@ -62,6 +71,9 @@ public interface EventRepository extends JpaRepository<Event, Long> {
         SELECT e
         FROM Event e
         WHERE e.club IN :clubs
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DRAFT
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DELETED
+          AND (e.status = com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.PUBLISHED OR e.state >= 2 OR e.status IS NULL)
           AND e.endTime < :now
         ORDER BY e.endTime DESC
     """)
@@ -71,6 +83,9 @@ public interface EventRepository extends JpaRepository<Event, Long> {
         SELECT COUNT(e)
         FROM Event e
         WHERE e.club IN :clubs
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DRAFT
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DELETED
+          AND (e.status = com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.PUBLISHED OR e.state >= 2 OR e.status IS NULL)
           AND (
                 (e.startTime <= :now AND e.endTime >= :now)
              OR (e.startTime > :now)
@@ -86,6 +101,9 @@ public interface EventRepository extends JpaRepository<Event, Long> {
         SELECT e
         FROM Event e
         WHERE e.club.id = :clubId
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DRAFT
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DELETED
+          AND (e.status = com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.PUBLISHED OR e.state >= 2 OR e.status IS NULL)
           AND e.startTime <= :now
           AND e.endTime >= :now
         ORDER BY e.startTime ASC
@@ -100,6 +118,9 @@ public interface EventRepository extends JpaRepository<Event, Long> {
         SELECT e
         FROM Event e
         WHERE e.club.id = :clubId
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DRAFT
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DELETED
+          AND (e.status = com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.PUBLISHED OR e.state >= 2 OR e.status IS NULL)
           AND e.startTime > :now
         ORDER BY e.startTime ASC
     """)
@@ -113,6 +134,9 @@ public interface EventRepository extends JpaRepository<Event, Long> {
         SELECT COUNT(e)
         FROM Event e
         WHERE e.club.id = :clubId
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DRAFT
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DELETED
+          AND (e.status = com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.PUBLISHED OR e.state >= 2 OR e.status IS NULL)
           AND (
                 (e.startTime <= :now AND e.endTime >= :now)
              OR (e.startTime > :now)
@@ -125,6 +149,10 @@ public interface EventRepository extends JpaRepository<Event, Long> {
         SELECT e
         FROM Event e
         WHERE e.club.id = :clubId
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DRAFT
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DELETED
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.REJECTED
+          AND (e.status = com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.PUBLISHED OR e.state >= 2 OR e.status IS NULL)
           AND (
                 (e.startTime <= :now AND e.endTime >= :now)
              OR (e.startTime > :now)
@@ -137,6 +165,10 @@ public interface EventRepository extends JpaRepository<Event, Long> {
         SELECT e
         FROM Event e
         WHERE e.club.id = :clubId
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DRAFT
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DELETED
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.REJECTED
+          AND (e.status = com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.PUBLISHED OR e.state >= 2 OR e.status IS NULL)
           AND e.endTime < :now
         ORDER BY e.endTime DESC
     """)
@@ -158,6 +190,7 @@ public interface EventRepository extends JpaRepository<Event, Long> {
         WHERE e.club.id = :clubId
           AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DRAFT
           AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DELETED
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.REJECTED
           AND (e.status = com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.APPROVED_BY_CLUB_ADMIN or e.state = 1)
         ORDER BY e.createdAt DESC
     """)
@@ -169,6 +202,8 @@ public interface EventRepository extends JpaRepository<Event, Long> {
         WHERE e.club.id = :clubId
           AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DRAFT
           AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DELETED
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.REJECTED
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.PUBLISHED
           AND (e.status = com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.CREATED or e.status = com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.PENDING_APPROVAL or e.state = 0)
         ORDER BY e.createdAt DESC
     """)
@@ -181,8 +216,10 @@ public interface EventRepository extends JpaRepository<Event, Long> {
           AND e.createdBy.id = :userId
           AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DRAFT
           AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DELETED
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.REJECTED
           AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.PUBLISHED
           AND e.state < 2
+          AND e.state >= 0
         ORDER BY e.createdAt DESC
     """)
     List<Event> findMyPendingByClubIdAndUserId(@Param("clubId") Long clubId, @Param("userId") Long userId);

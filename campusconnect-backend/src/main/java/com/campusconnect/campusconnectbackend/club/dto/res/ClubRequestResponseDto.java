@@ -23,4 +23,6 @@ public class ClubRequestResponseDto implements Serializable {
     private LocalDateTime createdAt;
 
     private String studentName;
+
+    private String studentEmail;
 }

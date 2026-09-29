@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Local/project documentation
+documentation/
+campusconnect_qa_report.md

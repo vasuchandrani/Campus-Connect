@@ -45,7 +45,7 @@ public class CollegeSubscription {
     @Column(name = "payment_id", nullable = false)
     private String paymentId;
 
-    @Column(name = "invoice_url", nullable = false)
+    @Column(name = "invoice_url")
     private String invoiceUrl = "";
 
     @Enumerated(EnumType.STRING)

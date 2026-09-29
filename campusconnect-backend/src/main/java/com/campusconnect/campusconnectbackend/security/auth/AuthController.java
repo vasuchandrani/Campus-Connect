@@ -7,6 +7,9 @@ import com.campusconnect.campusconnectbackend.student.dto.req.StudentSignupReque
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import jakarta.servlet.http.HttpServletRequest;
+import java.time.Duration;
 
 @RestController
 @RequestMapping("/campus-connect")
@@ -14,11 +17,12 @@ import jakarta.validation.Valid;
 public class AuthController {
 
     private final AuthService authService;
+    private final StringRedisTemplate redisTemplate;
 
     // student
     @PostMapping("/student/signup")
     public AuthResponseDto studentSignup(
-            @RequestBody StudentSignupRequestDto request) {
+            @Valid @RequestBody StudentSignupRequestDto request) {
         return authService.signup(request);
     }
     @PostMapping("/student/login")
@@ -30,7 +34,7 @@ public class AuthController {
     // college-admin
     @PostMapping("/college-admin/signup")
     public AuthResponseDto collegeAdminSignup(
-            @RequestBody CollegeAdminSignupRequestDto request
+            @Valid @RequestBody CollegeAdminSignupRequestDto request
     ) {
         if (request.isPaid()) {
             return authService.signup(request);
@@ -59,7 +63,7 @@ public class AuthController {
     // professor
     @PostMapping("/professor/signup")
     public AuthResponseDto professorSignup(
-            @RequestBody com.campusconnect.campusconnectbackend.professor.dto.req.ProfessorSignupRequestDto request
+            @Valid @RequestBody com.campusconnect.campusconnectbackend.professor.dto.req.ProfessorSignupRequestDto request
     ) {
         return authService.signup(request);
     }
@@ -87,5 +91,15 @@ public class AuthController {
         return authService.getCurrentRole();
     }
 
-
+    // logout
+    @PostMapping("/logout")
+    public AuthResponseDto logout(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            // blacklist token for 7 days (or JWT expiration)
+            redisTemplate.opsForValue().set("jwt_blacklist:" + token, "true", Duration.ofDays(7));
+        }
+        return new AuthResponseDto(null, "Logged out successfully", "/auth");
+    }
 }

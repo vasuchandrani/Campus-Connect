@@ -28,6 +28,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ClubTeamServiceImpl implements ClubTeamService {
 
     private final ClubTeamRepository clubTeamRepository;

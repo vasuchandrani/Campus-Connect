@@ -49,6 +49,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class EventServiceImpl implements EventService {
 
     private final EventRepository eventRepository;
@@ -448,8 +449,30 @@ public class EventServiceImpl implements EventService {
         // Set created by — NOT NULL in DB
         event.setCreatedBy(authService.getCurrentUser());
 
-        // Set status — NOT NULL in DB
-        event.setStatus(EventStatus.PUBLISHED);
+        // Determine state based on creator role and club permissions
+        String role = authService.getCurrentRole();
+        String permission = club.getEventPermission();
+        
+        if ("PROFESSOR".equals(role)) {
+            event.setStatus(EventStatus.PUBLISHED);
+            event.setState(3); // created by mentor, always published
+        } else if ("CLUB_ADMIN".equals(role)) {
+            if ("ADMIN_ONLY".equalsIgnoreCase(permission) || "DIRECT".equalsIgnoreCase(permission)) {
+                event.setStatus(EventStatus.PUBLISHED);
+                event.setState(3);
+            } else {
+                event.setStatus(EventStatus.CREATED);
+                event.setState(1); // waiting for mentor approval
+            }
+        } else { // CLUB_MEMBER
+            if ("DIRECT".equalsIgnoreCase(permission)) {
+                event.setStatus(EventStatus.PUBLISHED);
+                event.setState(3);
+            } else {
+                event.setStatus(EventStatus.CREATED);
+                event.setState(0); // waiting for admin approval
+            }
+        }
 
         // Set hosted by — defaults to CLUB for club-created events
         event.setHostedBy(EventHost.CLUB);
@@ -461,16 +484,6 @@ public class EventServiceImpl implements EventService {
 
         // Populate all new fields from DTO
         populateEventFromRequest(event, request);
-
-        // Determine state based on creator role
-        String role = authService.getCurrentRole();
-        if ("CLUB_ADMIN".equals(role)) {
-            event.setState(1); // created by club-admin
-        } else if ("PROFESSOR".equals(role)) {
-            event.setState(2); // created by mentor
-        } else {
-            event.setState(0); // created by club-member
-        }
 
         // Save event first to get ID for image path and related entities
         Event savedEvent = eventRepository.save(event);

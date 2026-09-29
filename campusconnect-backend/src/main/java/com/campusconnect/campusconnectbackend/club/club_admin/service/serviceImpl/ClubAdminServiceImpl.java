@@ -32,6 +32,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ClubAdminServiceImpl implements ClubAdminService {
     private final ClubService clubService;
     private final StudentRepoService studentRepoService;
@@ -73,10 +74,20 @@ public class ClubAdminServiceImpl implements ClubAdminService {
         return mapAnnouncementList(list);
     }
 
+    private Long resolveUserId() {
+        try {
+            com.campusconnect.campusconnectbackend.user.entity.User currentUser = authService.getCurrentUser();
+            if (currentUser != null) {
+                return currentUser.getId();
+            }
+        } catch (Exception ignored) {}
+        return authService.getCurrentUserId();
+    }
+
     @Override
     @Transactional(readOnly = true)
     public List<AnnouncementResponseDto> getDraftAnnouncements(Long clubId) {
-        Long userId = authService.getCurrentUserId();
+        Long userId = resolveUserId();
         List<Announcement> list = announcementRepository.findDraftsByClubIdAndUserId(clubId, userId);
         return mapAnnouncementList(list);
     }
@@ -166,6 +177,7 @@ public class ClubAdminServiceImpl implements ClubAdminService {
         Announcement ann = announcementRepository.findById(annId)
                 .orElseThrow(() -> new RuntimeException("Announcement not found"));
         ann.setStatus(AnnouncementStatus.REJECTED);
+        ann.setState(-1);
         announcementRepository.save(ann);
         return new MessageResponseDto("Announcement rejected");
     }
@@ -187,7 +199,7 @@ public class ClubAdminServiceImpl implements ClubAdminService {
     @Override
     @Transactional(readOnly = true)
     public List<EventResponseDto> getDraftEvents(Long clubId) {
-        Long userId = authService.getCurrentUserId();
+        Long userId = resolveUserId();
         List<Event> list = eventRepository.findDraftsByClubIdAndUserId(clubId, userId);
         return mapEventList(list);
     }
@@ -280,6 +292,7 @@ public class ClubAdminServiceImpl implements ClubAdminService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new RuntimeException("Event not found"));
         event.setStatus(EventStatus.REJECTED);
+        event.setState(-1);
         eventRepository.save(event);
         return new MessageResponseDto("Event proposal rejected");
     }

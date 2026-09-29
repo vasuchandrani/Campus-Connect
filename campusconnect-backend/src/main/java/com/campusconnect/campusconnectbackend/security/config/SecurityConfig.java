@@ -20,9 +20,11 @@ import org.springframework.security.config.Customizer;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final RateLimitFilter rateLimitFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, RateLimitFilter rateLimitFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.rateLimitFilter = rateLimitFilter;
     }
 
     @Bean
@@ -43,6 +45,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/campus-connect/college-admin/signup",
                                 "/campus-connect/college-admin/login",
+                                "/campus-connect/college-admin/create-order",
+                                "/campus-connect/college-admin/verify",
 
                                 "/campus-connect/student/signup",
                                 "/campus-connect/student/login",
@@ -96,6 +100,10 @@ public class SecurityConfig {
                         .hasAnyRole("STUDENT", "CLUB_ADMIN", "CLUB_MEMBER")
 
                         .anyRequest().authenticated()
+                )
+                .addFilterBefore(
+                        rateLimitFilter,
+                        UsernamePasswordAuthenticationFilter.class
                 )
                 .addFilterBefore(
                         jwtAuthenticationFilter,

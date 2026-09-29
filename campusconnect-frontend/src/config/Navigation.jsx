@@ -88,7 +88,7 @@ export const professorNavItems = [
 
 // Get navigation items based on user role
 export const getNavItemsByRole = (role) => {
-  switch (role) {
+  switch ((role || "").toLowerCase()) {
     case "student":
       return studentNavItems;
     case "club_admin":
@@ -102,6 +102,7 @@ export const getNavItemsByRole = (role) => {
     case "professor":
       return professorNavItems;
     case "club_mentor":
+    case "mentor":
       return clubMentorNavItems;
     default:
       return studentNavItems;

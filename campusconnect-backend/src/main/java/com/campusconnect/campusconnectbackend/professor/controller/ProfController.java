@@ -1,21 +1,21 @@
 package com.campusconnect.campusconnectbackend.professor.controller;
 
+import com.campusconnect.campusconnectbackend.announcement.dto.req.AnnouncementRequestDto;
 import com.campusconnect.campusconnectbackend.announcement.dto.res.AnnouncementResponseDto;
 import com.campusconnect.campusconnectbackend.announcement.service.AnnouncementService;
+import com.campusconnect.campusconnectbackend.club.club_mentor.dto.ClubMentorDashboardDto;
+import com.campusconnect.campusconnectbackend.club.club_mentor.dto.ClubPermissionSettingsDto;
+import com.campusconnect.campusconnectbackend.club.club_mentor.service.ClubMentorDashboardService;
 import com.campusconnect.campusconnectbackend.club.dto.res.club_card.ClubDetailsResponseDto;
 import com.campusconnect.campusconnectbackend.club.entity.Club;
-import com.campusconnect.campusconnectbackend.club.repository.ClubRepository;
 import com.campusconnect.campusconnectbackend.club.service.ClubService;
+import com.campusconnect.campusconnectbackend.dto.response.AuthResponseDto;
 import com.campusconnect.campusconnectbackend.dto.response.MessageResponseDto;
+import com.campusconnect.campusconnectbackend.event.dto.req.EventRequestDto;
 import com.campusconnect.campusconnectbackend.event.dto.res.EventResponseDto;
 import com.campusconnect.campusconnectbackend.event.service.EventService;
 import com.campusconnect.campusconnectbackend.newspaper.dto.res.NewsPaperResponseDto;
 import com.campusconnect.campusconnectbackend.newspaper.service.NewsPaperService;
-import com.campusconnect.campusconnectbackend.announcement.dto.req.AnnouncementRequestDto;
-import com.campusconnect.campusconnectbackend.club.club_mentor.dto.ClubMentorDashboardDto;
-import com.campusconnect.campusconnectbackend.club.club_mentor.dto.ClubPermissionSettingsDto;
-import com.campusconnect.campusconnectbackend.club.club_mentor.service.ClubMentorDashboardService;
-import com.campusconnect.campusconnectbackend.event.dto.req.EventRequestDto;
 import com.campusconnect.campusconnectbackend.professor.dto.req.ProfRequestDto;
 import com.campusconnect.campusconnectbackend.professor.dto.res.ProfDetailResponseDto;
 import com.campusconnect.campusconnectbackend.professor.dto.res.ProfStatsResponseDto;
@@ -24,8 +24,6 @@ import com.campusconnect.campusconnectbackend.professor.service.ProfessorService
 import com.campusconnect.campusconnectbackend.research_paper.dto.req.ResearchRequestDto;
 import com.campusconnect.campusconnectbackend.research_paper.dto.res.ResearchesResponseDto;
 import com.campusconnect.campusconnectbackend.research_paper.service.ResearchPaperService;
-import com.campusconnect.campusconnectbackend.club.club_mentor.repository.ClubMentorRepository;
-import com.campusconnect.campusconnectbackend.dto.response.AuthResponseDto;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import com.campusconnect.campusconnectbackend.security.security_management.dto.res.ProfessorProfileDto;
 import com.campusconnect.campusconnectbackend.student.dto.req.SubDashboardLoginRequestDto;
@@ -48,13 +46,11 @@ public class ProfController {
     private final AuthService authService;
     private final ProfessorAuth professorAuth;
     private final ClubService clubService;
-    private final ClubRepository clubRepository;
     private final EventService eventService;
     private final AnnouncementService announcementService;
     private final NewsPaperService newsPaperService;
     private final ClubMentorDashboardService clubMentorDashboardService;
     private final com.campusconnect.campusconnectbackend.club.club_follower.service.ClubFollowerService clubFollowerService;
-    private final ClubMentorRepository clubMentorRepository;
     private final SubDashboardService subDashboardService;
 
     // get professor details
@@ -74,65 +70,13 @@ public class ProfController {
     // get all active clubs in college with mentor indicators
     @GetMapping("/clubs/active")
     public List<Map<String, Object>> getActiveClubs() {
-        Long collegeId = authService.getCurrentCollegeId();
-        Long profId = authService.getCurrentUserId();
-        List<Long> mentoredClubIds = clubMentorRepository.findClubIdsByProfessorId(profId);
-        Set<Long> mentoredSet = new HashSet<>(mentoredClubIds != null ? mentoredClubIds : Collections.emptyList());
-
-        List<Club> clubs = clubRepository.findAllByCollege_Id(authService.getCurrentCollegeId());
-        List<Map<String, Object>> list = new ArrayList<>();
-        for (Club c : clubs) {
-            if (c.isActive()) {
-                Map<String, Object> map = new HashMap<>();
-                map.put("id", c.getId());
-                map.put("name", c.getName());
-                map.put("tagline1", c.getTagline1());
-                map.put("tagline2", c.getTagline2());
-                map.put("description", c.getDescription());
-                map.put("logoUrl", c.getLogoUrl());
-                map.put("website", c.getWebsite());
-                map.put("foundedBy", c.getFoundedBy());
-                boolean isMentor = (c.getMentor() != null && Objects.equals(c.getMentor().getId(), profId)) || mentoredSet.contains(c.getId());
-                map.put("isMentor", isMentor);
-                map.put("mentorName", c.getMentor() != null ? c.getMentor().getFullName() : null);
-                map.put("adminName", c.getAdmin() != null ? c.getAdmin().getFullName() : null);
-                map.put("isFollowed", clubFollowerService.isFollowing(c.getId()));
-                map.put("followerCount", clubFollowerService.getFollowerCount(c.getId()));
-                list.add(map);
-            }
-        }
-        return list;
+        return professorService.getActiveClubs(authService.getCurrentCollegeId(), authService.getCurrentUserId());
     }
 
     // get clubs mentored by current professor (Position of Responsibility)
     @GetMapping("/clubs/mentored")
     public List<Map<String, Object>> getMentoredClubs() {
-        Long profId = authService.getCurrentUserId();
-        Set<Club> mentoredClubs = new LinkedHashSet<>(clubRepository.findAllByMentor_Id(profId));
-        List<Long> extraClubIds = clubMentorRepository.findClubIdsByProfessorId(profId);
-        if (extraClubIds != null && !extraClubIds.isEmpty()) {
-            mentoredClubs.addAll(clubRepository.findAllById(extraClubIds));
-        }
-
-        List<Map<String, Object>> list = new ArrayList<>();
-        for (Club c : mentoredClubs) {
-            if (c.isActive()) {
-                Map<String, Object> map = new HashMap<>();
-                map.put("id", c.getId());
-                map.put("name", c.getName());
-                map.put("tagline1", c.getTagline1());
-                map.put("tagline2", c.getTagline2());
-                map.put("description", c.getDescription());
-                map.put("logoUrl", c.getLogoUrl());
-                map.put("website", c.getWebsite());
-                map.put("isActive", c.isActive());
-                map.put("foundedBy", c.getFoundedBy());
-                map.put("createdAt", c.getCreatedAt());
-                map.put("adminName", c.getAdmin() != null ? c.getAdmin().getFullName() : null);
-                list.add(map);
-            }
-        }
-        return list;
+        return professorService.getMentoredClubs(authService.getCurrentUserId());
     }
 
     // Sub-login to Club Mentor Dashboard from Professor Dashboard
@@ -247,6 +191,15 @@ public class ProfController {
     @PostMapping("/clubs/{clubId}/mentor-dashboard/announcements/{id}/reject")
     public MessageResponseDto rejectMentorAnnouncement(@PathVariable Long clubId, @PathVariable Long id) {
         return clubMentorDashboardService.rejectAnnouncement(clubId, id, authService.getCurrentUserId());
+    }
+
+    @PatchMapping("/clubs/{clubId}/mentor-dashboard/announcements/{id}")
+    public MessageResponseDto updateMentorAnnouncement(
+            @PathVariable Long clubId,
+            @PathVariable Long id,
+            @RequestBody AnnouncementRequestDto request
+    ) {
+        return clubMentorDashboardService.updateAnnouncement(clubId, id, request, authService.getCurrentUserId());
     }
 
     // 3. Events

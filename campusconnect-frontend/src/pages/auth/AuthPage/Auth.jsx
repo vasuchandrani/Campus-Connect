@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import ProfessorAuth from "../../../components/auth/ProfessorAuth";
 import StudentAuth from "../../../components/auth/StudentAuth";
-import CollegeAdminAuth from "../../../components/auth/CollageAdminAuth";
+import CollegeAdminAuth from "../../../components/auth/CollegeAdminAuth";
 import { toast } from "../../../hooks/use-toast";
 
 // configuration for primary user roles

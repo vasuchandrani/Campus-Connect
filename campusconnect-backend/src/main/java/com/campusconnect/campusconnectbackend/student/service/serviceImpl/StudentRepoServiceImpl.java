@@ -29,6 +29,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class StudentRepoServiceImpl implements StudentRepoService {
 
     private final StudentRepository studentRepository;
@@ -76,7 +77,7 @@ public class StudentRepoServiceImpl implements StudentRepoService {
 
     @Override
     public Student getStudent(Long studentId) {
-        return studentRepository.findStudentById(studentId)
+        return studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
     }
 

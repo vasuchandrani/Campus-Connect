@@ -31,6 +31,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class JournalistServiceImpl implements JournalistService {
 
     private final JournalistRepository journalistRepository;

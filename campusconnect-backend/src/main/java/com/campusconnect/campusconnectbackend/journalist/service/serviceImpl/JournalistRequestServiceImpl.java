@@ -29,9 +29,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.transaction.annotation.Transactional;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class JournalistRequestServiceImpl implements JournalistRequestService {
 
     private final AuthService authService;

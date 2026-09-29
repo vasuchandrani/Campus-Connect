@@ -32,6 +32,7 @@ import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ClubMemberServiceImpl implements ClubMemberService {
 
     private final ClubMemberRepository clubMemberRepository;
@@ -76,17 +77,27 @@ public class ClubMemberServiceImpl implements ClubMemberService {
         return mapAnnouncementList(list);
     }
 
+    private Long resolveUserId(Long passedId) {
+        try {
+            com.campusconnect.campusconnectbackend.user.entity.User currentUser = authService.getCurrentUser();
+            if (currentUser != null) {
+                return currentUser.getId();
+            }
+        } catch (Exception ignored) {}
+        return passedId;
+    }
+
     @Override
     @Transactional(readOnly = true)
     public List<AnnouncementResponseDto> getMyPendingAnnouncements(Long clubId, Long userId) {
-        List<Announcement> list = announcementRepository.findMyPendingByClubIdAndUserId(clubId, userId);
+        List<Announcement> list = announcementRepository.findMyPendingByClubIdAndUserId(clubId, resolveUserId(userId));
         return mapAnnouncementList(list);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<AnnouncementResponseDto> getMyDraftAnnouncements(Long clubId, Long userId) {
-        List<Announcement> list = announcementRepository.findDraftsByClubIdAndUserId(clubId, userId);
+        List<Announcement> list = announcementRepository.findDraftsByClubIdAndUserId(clubId, resolveUserId(userId));
         return mapAnnouncementList(list);
     }
 
@@ -118,7 +129,8 @@ public class ClubMemberServiceImpl implements ClubMemberService {
         Announcement ann = announcementRepository.findById(annId)
                 .orElseThrow(() -> new RuntimeException("Announcement not found with id: " + annId));
 
-        if (!Objects.equals(ann.getCreatedBy().getId(), userId)) {
+        Long actualUserId = resolveUserId(userId);
+        if (!Objects.equals(ann.getCreatedBy().getId(), actualUserId)) {
             throw new RuntimeException("Access Denied: You are not the author of this draft");
         }
 
@@ -141,7 +153,8 @@ public class ClubMemberServiceImpl implements ClubMemberService {
         Announcement ann = announcementRepository.findById(annId)
                 .orElseThrow(() -> new RuntimeException("Announcement not found with id: " + annId));
 
-        if (!Objects.equals(ann.getCreatedBy().getId(), userId)) {
+        Long actualUserId = resolveUserId(userId);
+        if (!Objects.equals(ann.getCreatedBy().getId(), actualUserId)) {
             throw new RuntimeException("Access Denied: You can only delete your own draft");
         }
 
@@ -166,14 +179,14 @@ public class ClubMemberServiceImpl implements ClubMemberService {
     @Override
     @Transactional(readOnly = true)
     public List<EventResponseDto> getMyPendingEvents(Long clubId, Long userId) {
-        List<Event> list = eventRepository.findMyPendingByClubIdAndUserId(clubId, userId);
+        List<Event> list = eventRepository.findMyPendingByClubIdAndUserId(clubId, resolveUserId(userId));
         return mapEventList(list);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<EventResponseDto> getMyDraftEvents(Long clubId, Long userId) {
-        List<Event> list = eventRepository.findDraftsByClubIdAndUserId(clubId, userId);
+        List<Event> list = eventRepository.findDraftsByClubIdAndUserId(clubId, resolveUserId(userId));
         return mapEventList(list);
     }
 
@@ -209,7 +222,8 @@ public class ClubMemberServiceImpl implements ClubMemberService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new RuntimeException("Event not found with id: " + eventId));
 
-        if (!Objects.equals(event.getCreatedBy().getId(), userId)) {
+        Long actualUserId = resolveUserId(userId);
+        if (!Objects.equals(event.getCreatedBy().getId(), actualUserId)) {
             throw new RuntimeException("Access Denied: You are not the creator of this draft");
         }
 
@@ -232,7 +246,8 @@ public class ClubMemberServiceImpl implements ClubMemberService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new RuntimeException("Event not found with id: " + eventId));
 
-        if (!Objects.equals(event.getCreatedBy().getId(), userId)) {
+        Long actualUserId = resolveUserId(userId);
+        if (!Objects.equals(event.getCreatedBy().getId(), actualUserId)) {
             throw new RuntimeException("Access Denied: You can only delete your own draft");
         }
 

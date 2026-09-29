@@ -40,19 +40,8 @@ export default function CollegeAdminDashboard() {
 
   const fetchStats = async () => {
     try {
-      const [statsData, studentsData] = await Promise.all([
-        collegeAdminApi.getStats().catch(() => ({})),
-        collegeAdminApi.getStudents().catch(() => null),
-      ]);
-
-      const listCount = Array.isArray(studentsData) ? studentsData.length : 0;
-      const statsCount = Number(statsData?.students || 0);
-      const studentCount = Math.max(listCount, statsCount);
-
-      setStats({
-        ...(statsData || {}),
-        students: studentCount,
-      });
+      const statsData = await collegeAdminApi.getStats();
+      setStats(statsData || {});
     } catch (err) {
       console.error("Error fetching stats:", err);
     }
