@@ -2,6 +2,7 @@ import React from "react";
 import { Button } from "../ui/Button";
 import { useState } from "react";
 import { ArrowRight, Download, Newspaper, BookOpen, Users, Bell } from "lucide-react"
+import DemoPreview from "./DemoPreview";
 
 const HeroSection = () => {
   const [showVideo, setShowVideo] = useState(false);
@@ -80,50 +81,9 @@ const HeroSection = () => {
           </div>
         </div>
 
-        <div className="mt-16 max-w-5xl mx-auto animate-scale-in" style={{ animationDelay: "0.5s" }}>
+        <div className="mt-16 max-w-6xl mx-auto animate-scale-in" style={{ animationDelay: "0.5s" }}>
           <div className="relative">
-
-            <div className="absolute -inset-4 bg-primary/10 rounded-3xl blur-2xl" />
-
-            <div className="relative glass rounded-2xl p-4 shadow-medium">
-              <div className="bg-card rounded-xl overflow-hidden border border-border">
-
-                <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted/50">
-                  <div className="flex gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-destructive/60" />
-                    <div className="w-3 h-3 rounded-full bg-accent/60" />
-                    <div className="w-3 h-3 rounded-full bg-primary/60" />
-                  </div>
-                  <div className="flex-1 flex justify-center">
-                    <div className="px-4 py-1 rounded-md bg-background text-xs text-muted-foreground">
-                      campusconnect.edu
-                    </div>
-                  </div>
-                </div>
-
-
-                <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="md:col-span-2 space-y-4">
-                    <div className="h-8 w-48 bg-muted rounded-md" />
-                    <div className="h-32 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl flex items-center justify-center">
-                      <Newspaper className="w-12 h-12 text-primary/30" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="h-20 bg-muted/50 rounded-lg" />
-                      <div className="h-20 bg-muted/50 rounded-lg" />
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="h-6 w-24 bg-muted rounded-md" />
-                    <div className="space-y-2">
-                      {[1, 2, 3, 4].map((i) => (
-                        <div key={i} className="h-12 bg-muted/50 rounded-lg" />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <DemoPreview />
           </div>
         </div>
       </div>
