@@ -35,6 +35,8 @@ import com.campusconnect.campusconnectbackend.event.repository.EventRepository;
 import com.campusconnect.campusconnectbackend.club.club_mentor.repository.ClubMentorRepository;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
