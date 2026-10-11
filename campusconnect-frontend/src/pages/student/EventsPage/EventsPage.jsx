@@ -91,22 +91,39 @@ const EventsPage = () => {
     return "FINISHED";
   };
 
-  const isRegistrationOpen = (event) => {
-    if (!event.registrationEnd) return true;
-    return new Date() < new Date(event.registrationEnd);
+  const getRegistrationStatus = (event) => {
+    const now = new Date();
+    if (event.registrationStart && now < new Date(event.registrationStart)) return "NOT_STARTED";
+    if (event.registrationEnd && now > new Date(event.registrationEnd)) return "CLOSED";
+    return "OPEN";
   };
 
   // Load all events (active, global, finished)
   const loadAllEvents = async () => {
     setLoading(true);
     try {
-      const [activeData, globalData, finishedData] = await Promise.all([
+      const [activeData, globalData, finishedData, myRegistrations] = await Promise.all([
         eventApi.getActiveEvents().catch(() => []),
         eventApi.getGlobalEvents().catch(() => []),
         eventApi.getFinishedEvents().catch(() => []),
+        eventApi.getMyRegisteredEvents().catch(() => []),
       ]);
-      setUpcomingEvents(Array.isArray(activeData) ? activeData : []);
-      setGlobalEvents(Array.isArray(globalData) ? globalData : []);
+
+      const activeArray = Array.isArray(activeData) ? activeData : [];
+      const globalArray = Array.isArray(globalData) ? globalData : [];
+      const myRegList = Array.isArray(myRegistrations) ? myRegistrations : [];
+
+      activeArray.forEach(e => {
+        if (myRegList.includes(e.id)) e.register = true;
+        else e.register = false;
+      });
+      globalArray.forEach(e => {
+        if (myRegList.includes(e.id)) e.register = true;
+        else e.register = false;
+      });
+
+      setUpcomingEvents(activeArray);
+      setGlobalEvents(globalArray);
       setFinishedEvents(Array.isArray(finishedData) ? finishedData : []);
     } catch (err) {
       toast({
@@ -361,7 +378,7 @@ const EventsPage = () => {
     const isFinished = category === "finished";
     const status = getEventStatus(event);
     const isRegistered = !!event.register;
-    const canRegister = isRegistrationOpen(event);
+    const regStatus = getRegistrationStatus(event);
     const poster = event.posterUrl || event.imageUrl || event.image || event.coverImage;
     const eventTime = event.eventDate || event.startTime;
     const venueText = formatLocation(event);
@@ -485,7 +502,11 @@ const EventsPage = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setSelectedEvent(event)}
+            onClick={() => 
+              isFinished 
+                ? navigate(`/campus-connect/student/events/${event.id}`) 
+                : setSelectedEvent(event)
+            }
             className="flex-1 text-xs font-semibold h-9"
           >
             <Eye className="w-3.5 h-3.5 mr-1.5" />
@@ -493,52 +514,50 @@ const EventsPage = () => {
           </Button>
 
           {!isFinished && (
-            canRegister ? (
-              isRegistered ? (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={requesting}
-                  onClick={() =>
-                    isGlobal
-                      ? toggleGlobalRegistration(event.id)
-                      : handleUnregister(event.id)
-                  }
-                  className="flex-1 text-xs font-semibold h-9 gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/10"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  Registered
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="default"
-                  disabled={requesting}
-                  onClick={() =>
-                    isGlobal
-                      ? toggleGlobalRegistration(event.id)
-                      : isPaid
-                      ? setSelectedEvent(event)
-                      : handleEventRegistration(event)
-                  }
-                  className="flex-1 text-xs font-semibold h-9 gap-1.5"
-                >
-                  {isPaid ? (
-                    <>
-                      <CreditCard className="w-3.5 h-3.5 shrink-0" />
-                      Get Tickets
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="w-3.5 h-3.5 shrink-0" />
-                      Register Free
-                    </>
-                  )}
-                </Button>
-              )
+            isRegistered ? (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={requesting}
+                onClick={() =>
+                  isGlobal
+                    ? toggleGlobalRegistration(event.id)
+                    : handleUnregister(event.id)
+                }
+                className="flex-1 text-xs font-semibold h-9 gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/10"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                Unregister
+              </Button>
+            ) : regStatus === "OPEN" ? (
+              <Button
+                size="sm"
+                variant="default"
+                disabled={requesting}
+                onClick={() =>
+                  isGlobal
+                    ? toggleGlobalRegistration(event.id)
+                    : isPaid
+                    ? setSelectedEvent(event)
+                    : handleEventRegistration(event)
+                }
+                className="flex-1 text-xs font-semibold h-9 gap-1.5"
+              >
+                {isPaid ? (
+                  <>
+                    <CreditCard className="w-3.5 h-3.5 shrink-0" />
+                    Get Tickets
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="w-3.5 h-3.5 shrink-0" />
+                    Register Free
+                  </>
+                )}
+              </Button>
             ) : (
-              <Button size="sm" variant="secondary" disabled className="flex-1 text-xs font-semibold h-9">
-                Closed
+              <Button size="sm" variant="secondary" disabled className="flex-1 text-xs font-semibold h-9 opacity-50 bg-muted text-muted-foreground">
+                {regStatus === "NOT_STARTED" ? "Starts Soon" : "Closed"}
               </Button>
             )
           )}
@@ -738,12 +757,6 @@ const EventsPage = () => {
                         <p className="text-base font-extrabold text-foreground">₹{selectedEvent.prizeMoney.toLocaleString()}</p>
                       </div>
                     </div>
-                    {selectedEvent.eligibility && (
-                      <div className="text-right">
-                        <p className="text-[10px] text-muted-foreground">Eligibility</p>
-                        <p className="text-xs font-medium text-foreground">{selectedEvent.eligibility}</p>
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -764,9 +777,14 @@ const EventsPage = () => {
                       <Clock className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                       <div>
                         <span className="font-semibold text-foreground block">Event Schedule</span>
-                        <span className="text-muted-foreground">
-                          {new Date(selectedEvent.eventDate || selectedEvent.startTime).toLocaleString()}
+                        <span className="text-muted-foreground block">
+                          Start: {new Date(selectedEvent.eventDate || selectedEvent.startTime).toLocaleString()}
                         </span>
+                        {selectedEvent?.endTime && (
+                          <span className="text-muted-foreground block">
+                            End: {new Date(selectedEvent.endTime).toLocaleString()}
+                          </span>
+                        )}
                       </div>
                     </div>
                   )}
@@ -781,14 +799,21 @@ const EventsPage = () => {
                     </div>
                   )}
 
-                  {selectedEvent?.registrationEnd && (
+                  {(selectedEvent?.registrationStart || selectedEvent?.registrationEnd) && (
                     <div className="flex items-start gap-2">
                       <Calendar className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                       <div>
-                        <span className="font-semibold text-foreground block">Registration Closes</span>
-                        <span className="text-muted-foreground">
-                          {new Date(selectedEvent.registrationEnd).toLocaleString()}
-                        </span>
+                        <span className="font-semibold text-foreground block">Registration Window</span>
+                        {selectedEvent?.registrationStart && (
+                          <span className="text-muted-foreground block">
+                            Starts: {new Date(selectedEvent.registrationStart).toLocaleString()}
+                          </span>
+                        )}
+                        {selectedEvent?.registrationEnd && (
+                          <span className="text-muted-foreground block">
+                            Closes: {new Date(selectedEvent.registrationEnd).toLocaleString()}
+                          </span>
+                        )}
                       </div>
                     </div>
                   )}
@@ -805,8 +830,14 @@ const EventsPage = () => {
                 </div>
 
                 {/* Criteria / Eligibility Details */}
-                {(selectedEvent?.criteria || selectedEvent?.eligibility) && (
+                {(selectedEvent?.criteria || selectedEvent?.eligibility || selectedEvent?.batchYear) && (
                   <div className="p-3 rounded-xl bg-muted/40 border border-border/50 text-xs space-y-1.5">
+                    {selectedEvent.batchYear != null && (
+                      <div>
+                        <span className="font-semibold text-foreground">Target Batch Year: </span>
+                        <span className="text-muted-foreground">{selectedEvent.batchYear}</span>
+                      </div>
+                    )}
                     {selectedEvent.criteria && (
                       <div>
                         <span className="font-semibold text-foreground">Selection / Participation Criteria: </span>
@@ -830,9 +861,14 @@ const EventsPage = () => {
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {selectedEvent.speakers.map((sp, idx) => (
-                        <div key={idx} className="p-2.5 rounded-lg border border-border/60 bg-card/60 text-xs">
+                        <div key={idx} className="p-2.5 rounded-lg border border-border/60 bg-card/60 text-xs space-y-0.5">
                           <p className="font-semibold text-foreground">{sp.name}</p>
-                          <p className="text-muted-foreground text-[11px]">{sp.description || sp.tagline || sp.email || "Speaker"}</p>
+                          {(sp.tagline || sp.description || sp.position) && (
+                            <p className="text-muted-foreground text-[11px]">{sp.tagline || sp.description || sp.position}</p>
+                          )}
+                          {sp.email && (
+                            <p className="text-[10px] text-primary/80 truncate">{sp.email}</p>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -929,12 +965,12 @@ const EventsPage = () => {
                         </span>
                       ) : (
                         <span>
-                          Status: <strong className="text-foreground">{isRegistrationOpen(selectedEvent) ? "Open for Registration" : "Registration Closed"}</strong>
+                          Status: <strong className="text-foreground">{getRegistrationStatus(selectedEvent) === "OPEN" ? "Open for Registration" : getRegistrationStatus(selectedEvent) === "NOT_STARTED" ? "Registration Starts Soon" : "Registration Closed"}</strong>
                         </span>
                       )}
                     </div>
 
-                    {isRegistrationOpen(selectedEvent) ? (
+                    {getRegistrationStatus(selectedEvent) === "OPEN" ? (
                       selectedEvent.register ? (
                         <Button
                           size="sm"
@@ -976,8 +1012,8 @@ const EventsPage = () => {
                         </Button>
                       )
                     ) : (
-                      <Button size="sm" variant="secondary" disabled className="w-full sm:w-auto">
-                        Registration Closed
+                      <Button size="sm" variant="secondary" disabled className="w-full sm:w-auto opacity-50 bg-muted text-muted-foreground">
+                        {getRegistrationStatus(selectedEvent) === "NOT_STARTED" ? "Starts Soon" : "Registration Closed"}
                       </Button>
                     )}
                   </div>

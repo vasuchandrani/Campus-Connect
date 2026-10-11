@@ -21,6 +21,7 @@ public class EventRequestDto {
     private String eventType;
 
     // Event visibility
+    @com.fasterxml.jackson.annotation.JsonProperty("isPublic")
     private boolean isPublic;
 
     // "FREE" | "PAID" | "PAID_FOR_GUEST"

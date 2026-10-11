@@ -85,10 +85,10 @@ function App() {
       <Route path="/campus-connect/professor/clubs/:clubId" element={<ProtectedRoute allowedRoles={["PROFESSOR", "STUDENT", "COLLEGE_ADMIN", "CLUB_ADMIN", "CLUB_MEMBER"]}><ClubDetailPage /></ProtectedRoute>} />
       
       {/* Club Mentor Routes — Protected */}
-      <Route path="/campus-connect/professor/clubs/:clubId/mentor-dashboard" element={<ProtectedRoute allowedRoles={["CLUB_MENTOR", "MENTOR"]}><ClubMentorDashboard /></ProtectedRoute>} />
-      <Route path="/campus-connect/professor/clubs/:clubId/mentor-dashboard/:subTab" element={<ProtectedRoute allowedRoles={["CLUB_MENTOR", "MENTOR"]}><ClubMentorDashboard /></ProtectedRoute>} />
-      <Route path="/campus-connect/club-mentor/:clubId/dashboard" element={<ProtectedRoute allowedRoles={["CLUB_MENTOR", "MENTOR"]}><ClubMentorDashboard /></ProtectedRoute>} />
-      <Route path="/campus-connect/club-mentor/:clubId/dashboard/:subTab" element={<ProtectedRoute allowedRoles={["CLUB_MENTOR", "MENTOR"]}><ClubMentorDashboard /></ProtectedRoute>} />
+      <Route path="/campus-connect/professor/clubs/:clubId/mentor-dashboard" element={<ProtectedRoute allowedRoles={["CLUB_MENTOR", "MENTOR", "PRIMARY_MENTOR", "PROFESSOR"]}><ClubMentorDashboard /></ProtectedRoute>} />
+      <Route path="/campus-connect/professor/clubs/:clubId/mentor-dashboard/:subTab" element={<ProtectedRoute allowedRoles={["CLUB_MENTOR", "MENTOR", "PRIMARY_MENTOR", "PROFESSOR"]}><ClubMentorDashboard /></ProtectedRoute>} />
+      <Route path="/campus-connect/club-mentor/:clubId/dashboard" element={<ProtectedRoute allowedRoles={["CLUB_MENTOR", "MENTOR", "PRIMARY_MENTOR", "PROFESSOR"]}><ClubMentorDashboard /></ProtectedRoute>} />
+      <Route path="/campus-connect/club-mentor/:clubId/dashboard/:subTab" element={<ProtectedRoute allowedRoles={["CLUB_MENTOR", "MENTOR", "PRIMARY_MENTOR", "PROFESSOR"]}><ClubMentorDashboard /></ProtectedRoute>} />
 
       <Route path="/campus-connect/professor/events" element={<ProtectedRoute allowedRoles={["PROFESSOR"]}><ProfessorEventsPage /></ProtectedRoute>} />
       <Route path="/campus-connect/professor/announcements" element={<ProtectedRoute allowedRoles={["PROFESSOR"]}><ProfessorAnnouncementsPage /></ProtectedRoute>} />
@@ -102,7 +102,7 @@ function App() {
       <Route path="/campus-connect/student/clubs" element={<ProtectedRoute allowedRoles={["STUDENT"]}><ClubsPage /></ProtectedRoute>} />
       <Route path="/campus-connect/student/clubs/:clubId" element={<ProtectedRoute allowedRoles={["STUDENT", "PROFESSOR", "COLLEGE_ADMIN", "CLUB_ADMIN", "CLUB_MEMBER"]}><ClubDetailPage /></ProtectedRoute>} />
       <Route path="/campus-connect/student/events" element={<ProtectedRoute allowedRoles={["STUDENT"]}><EventsPage /></ProtectedRoute>} />
-      <Route path="/campus-connect/student/events/:id" element={<ProtectedRoute allowedRoles={["STUDENT"]}><EventDetailPage /></ProtectedRoute>} />
+      <Route path="/campus-connect/student/events/:id" element={<ProtectedRoute allowedRoles={["STUDENT", "PROFESSOR", "MENTOR", "CLUB_MENTOR", "PRIMARY_MENTOR"]}><EventDetailPage /></ProtectedRoute>} />
       <Route path="/campus-connect/student/announcements" element={<ProtectedRoute allowedRoles={["STUDENT"]}><AnnouncementsPage /></ProtectedRoute>} />
       <Route path="/campus-connect/student/newspaper" element={<ProtectedRoute allowedRoles={["STUDENT"]}><StudentNewspaperPage /></ProtectedRoute>} />
       <Route path="/campus-connect/student/research" element={<ProtectedRoute allowedRoles={["STUDENT"]}><ResearchPage /></ProtectedRoute>} />

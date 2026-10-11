@@ -25,7 +25,7 @@ public interface ClubMemberService {
     List<EventResponseDto> getFinishedEvents(Long clubId);
     List<EventResponseDto> getMyPendingEvents(Long clubId, Long userId);
     List<EventResponseDto> getMyDraftEvents(Long clubId, Long userId);
-    MessageResponseDto saveEventDraft(Long clubId, EventRequestDto request, Long userId);
+    MessageResponseDto saveEventDraft(Long clubId, EventRequestDto request, Long userId, org.springframework.web.multipart.MultipartFile image);
     MessageResponseDto publishEventDraft(Long clubId, Long eventId, Long userId);
     MessageResponseDto deleteEventDraft(Long clubId, Long eventId, Long userId);
 }

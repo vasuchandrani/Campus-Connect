@@ -22,6 +22,8 @@ import com.campusconnect.campusconnectbackend.event.service.EventService;
 import com.campusconnect.campusconnectbackend.security.auth.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,7 +37,7 @@ import java.util.Objects;
 @Transactional(readOnly = true)
 public class ClubMemberServiceImpl implements ClubMemberService {
 
-    private final ClubMemberRepository clubMemberRepository;
+    private final com.campusconnect.campusconnectbackend.club.club_member.repository.ClubMemberRepository clubMemberRepository;
     private final EventService eventService;
     private final ClubTeamRepository clubTeamRepository;
     private final ClubFollowerRepository clubFollowerRepository;
@@ -43,6 +45,8 @@ public class ClubMemberServiceImpl implements ClubMemberService {
     private final EventRepository eventRepository;
     private final ClubRepository clubRepository;
     private final AuthService authService;
+    private final com.campusconnect.campusconnectbackend.integrations.cloudinary.service.CloudinaryService cloudinaryService;
+    private final com.campusconnect.campusconnectbackend.common.location.repository.LocationRepository locationRepository;
 
     @Override
     public String getMyRole(Long clubId, Long studentId) {
@@ -192,7 +196,7 @@ public class ClubMemberServiceImpl implements ClubMemberService {
 
     @Override
     @Transactional
-    public MessageResponseDto saveEventDraft(Long clubId, EventRequestDto request, Long userId) {
+    public MessageResponseDto saveEventDraft(Long clubId, EventRequestDto request, Long userId, org.springframework.web.multipart.MultipartFile image) {
         Club club = clubRepository.findById(clubId)
                 .orElseThrow(() -> new RuntimeException("Club not found with id: " + clubId));
 
@@ -208,13 +212,53 @@ public class ClubMemberServiceImpl implements ClubMemberService {
         event.setCreatedBy(authService.getCurrentUser());
         event.setStatus(EventStatus.DRAFT);
         event.setState(0);
-        eventRepository.save(event);
+
+        if (request.getEventType() != null) event.setEventType(com.campusconnect.campusconnectbackend.event.entity.enums.EventType.valueOf(request.getEventType()));
+        event.setPublic(request.isPublic());
+        System.out.println("RECEIVED REQUEST: " + request);
+        System.out.println("IS LOCATION NULL? " + (request.getLocation() == null));
+        if (request.getRegistrationPayment() != null) event.setRegistrationPayment(com.campusconnect.campusconnectbackend.event.entity.enums.EventRegistrationPayment.valueOf(request.getRegistrationPayment()));
+        if (request.getRegistrationStart() != null) event.setRegistrationStart(request.getRegistrationStart());
+        
+        if (request.getLocation() != null) {
+            System.out.println("RECEIVED LOCATION: " + request.getLocation().getCountry() + ", " + request.getLocation().getState());
+            com.campusconnect.campusconnectbackend.common.location.entity.Location loc = new com.campusconnect.campusconnectbackend.common.location.entity.Location();
+            loc.setAddress(request.getLocation().getAddress() != null ? request.getLocation().getAddress() : "");
+            loc.setCity(request.getLocation().getCity() != null ? request.getLocation().getCity() : "");
+            loc.setState(request.getLocation().getState() != null ? request.getLocation().getState() : "");
+            loc.setCountry(request.getLocation().getCountry() != null ? request.getLocation().getCountry() : "");
+            event.setLocation(locationRepository.save(loc));
+        }
+
+        event.setBatchYear(request.getBatchYear());
+        event.setCriteria(request.getCriteria());
+        event.setEligibility(request.getEligibility());
+        event.setPrizeMoney(request.getPrizeMoney());
+
+        // We can save the hacky description JSON string here manually if needed, 
+        // but since we will fix the frontend we don't strictly need it.
+        // Actually, we SHOULD keep the frontend hack for the location payload!
+
+        Event savedEvent = eventRepository.save(event);
+
+        if (image != null && !image.isEmpty()) {
+            String path = "clubs/" + clubId + "/events/" + savedEvent.getId() + "/draft";
+            String imageUrl = cloudinaryService.uploadImage(image, path);
+            savedEvent.setCoverImage(imageUrl);
+            eventRepository.save(savedEvent);
+        }
 
         return new MessageResponseDto("Event draft saved successfully");
     }
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "active_events", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "active_clubEvents", key = "#clubId"),
+            @CacheEvict(value = "topActive_events", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "topActive_clubEvents", key = "#clubId")
+    })
     public MessageResponseDto publishEventDraft(Long clubId, Long eventId, Long userId) {
         Club club = clubRepository.findById(clubId)
                 .orElseThrow(() -> new RuntimeException("Club not found with id: " + clubId));
@@ -286,7 +330,21 @@ public class ClubMemberServiceImpl implements ClubMemberService {
             dto.setRegistrationEnd(e.getRegistrationEnd());
             if (e.getLocation() != null) {
                 dto.setLocation(e.getLocation().getAddress());
+                com.campusconnect.campusconnectbackend.common.location.dto.LocationResponseDto locDto = new com.campusconnect.campusconnectbackend.common.location.dto.LocationResponseDto();
+                locDto.setId(e.getLocation().getId());
+                locDto.setAddress(e.getLocation().getAddress());
+                locDto.setCity(e.getLocation().getCity());
+                locDto.setState(e.getLocation().getState());
+                locDto.setCountry(e.getLocation().getCountry());
+                dto.setLocationDetails(locDto);
             }
+            if (e.getEventType() != null) dto.setEventType(e.getEventType().name());
+            if (e.getRegistrationPayment() != null) dto.setRegistrationPayment(e.getRegistrationPayment().name());
+            dto.setRegistrationStart(e.getRegistrationStart());
+            dto.setBatchYear(e.getBatchYear());
+            dto.setCriteria(e.getCriteria());
+            dto.setEligibility(e.getEligibility());
+            dto.setPrizeMoney(e.getPrizeMoney());
             if (e.getClub() != null) {
                 dto.setClubName(e.getClub().getName());
             }

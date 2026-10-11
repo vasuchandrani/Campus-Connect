@@ -174,13 +174,8 @@ export default function ClubMentorDashboardPage() {
   });
 
   useEffect(() => {
-    if (!routeProtection(["CLUB_MENTOR", "MENTOR"])) {
-      const currentRole = (localStorage.getItem("role") || "").toUpperCase();
-      if (currentRole === "PROFESSOR") {
-        navigate(`/campus-connect/professor/clubs/${clubId}`, { replace: true });
-      } else {
-        navigate("/auth", { replace: true });
-      }
+    if (!routeProtection(["CLUB_MENTOR", "MENTOR", "PRIMARY_MENTOR", "PROFESSOR"])) {
+      navigate("/auth", { replace: true });
       return;
     }
     loadAllDashboardData();

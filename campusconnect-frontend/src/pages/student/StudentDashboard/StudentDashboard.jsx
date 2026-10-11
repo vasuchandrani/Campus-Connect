@@ -36,6 +36,7 @@ import {
   PenTool,
   Loader2,
   Eye,
+  Mic,
 } from "lucide-react";
 import { studentNavItems } from "../../../config/Navigation";
 import { useAuth } from "../../../contexts/AuthContext";
@@ -216,6 +217,12 @@ export default function StudentDashboard() {
     isSwitchingSessionRef.current = true;
     try {
       const redirectUrl = await subLoginClub(selectedClubForLogin.id, password);
+      
+      // Save logo URL to localStorage so the Club Member portal can access it immediately
+      if (selectedClubForLogin.logoUrl) {
+        localStorage.setItem(`clubLogo_${selectedClubForLogin.id}`, selectedClubForLogin.logoUrl);
+      }
+      
       const isAdmin = selectedClubForLogin.role === "ADMIN";
       toast({
         title: "Session Swapped",
@@ -1155,6 +1162,27 @@ export default function StudentDashboard() {
                   {selectedEventModal.description || "No description provided."}
                 </p>
               </div>
+
+              {selectedEventModal.speakers && selectedEventModal.speakers.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-xs uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                    <Mic className="w-3.5 h-3.5 text-primary" /> Keynote Speakers ({selectedEventModal.speakers.length})
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {selectedEventModal.speakers.map((sp, idx) => (
+                      <div key={idx} className="p-2.5 rounded-lg border border-border/60 bg-muted/40 text-xs space-y-0.5">
+                        <p className="font-semibold text-foreground">{sp.name}</p>
+                        {(sp.tagline || sp.description || sp.position) && (
+                          <p className="text-muted-foreground text-[11px]">{sp.tagline || sp.description || sp.position}</p>
+                        )}
+                        {sp.email && (
+                          <p className="text-[10px] text-primary/80 truncate">{sp.email}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <DialogFooter className="pt-2">
                 <Button

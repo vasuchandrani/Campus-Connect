@@ -23,6 +23,7 @@ export default function ConfirmDialog({
   variant = "destructive", // "destructive" | "success" | "warning" | "default"
   icon: CustomIcon,
   loading = false,
+  loadingText = "Processing...",
   onConfirm,
 }) {
   const getIcon = () => {
@@ -113,7 +114,7 @@ export default function ConfirmDialog({
               }
             }}
           >
-            {loading ? "Processing..." : getDefaultConfirmText()}
+            {loading ? loadingText : getDefaultConfirmText()}
           </Button>
         </DialogFooter>
       </DialogContent>

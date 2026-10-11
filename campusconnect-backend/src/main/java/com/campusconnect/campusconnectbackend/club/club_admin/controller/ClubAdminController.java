@@ -282,9 +282,8 @@ public class ClubAdminController {
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=event_registrations.xlsx")
-                .contentType(MediaType.parseMediaType(
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                        "attachment; filename=event_registrations.csv")
+                .contentType(MediaType.parseMediaType("text/csv"))
                 .body(excelData);
     }
 

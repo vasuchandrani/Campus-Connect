@@ -193,6 +193,13 @@ export const publicApi = {
   downloadBlob: (url) => request(url, { responseType: "blob" }),
 };
 
+// ---------------- LOCATION API ----------------
+export const locationApi = {
+  getCountries: () => request("/api/locations/countries"),
+  getStates: (country) => request(`/api/locations/states?country=${encodeURIComponent(country)}`),
+  getCities: (state) => request(`/api/locations/cities?state=${encodeURIComponent(state)}`),
+};
+
 // ---------------- SECURITY API ----------------
 export const securityApi = {
   changePassword: (data) =>
@@ -287,6 +294,7 @@ export const eventApi = {
     request(`/campus-connect/student/events/active/${eventId}/unregister`, {
       method: "POST",
     }),
+  getMyRegisteredEvents: () => request("/campus-connect/student/events/my-registrations"),
 
   // Global events
   getGlobalEvents: () => request("/campus-connect/student/events/global"),

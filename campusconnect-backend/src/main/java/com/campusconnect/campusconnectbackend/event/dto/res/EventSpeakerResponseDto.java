@@ -10,17 +10,12 @@ import lombok.Setter;
 @Setter
 public class EventSpeakerResponseDto {
 
-    @NotNull
     private Long id;
 
-    @NotBlank
-    @Email
     private String email;
 
-    @NotBlank
     private String name;
 
-    @NotBlank
     private String tagline;
 
     public String getDescription() {
@@ -29,5 +24,13 @@ public class EventSpeakerResponseDto {
 
     public void setDescription(String description) {
         this.tagline = description;
+    }
+
+    public String getPosition() {
+        return tagline != null ? tagline : "";
+    }
+
+    public void setPosition(String position) {
+        this.tagline = position;
     }
 }

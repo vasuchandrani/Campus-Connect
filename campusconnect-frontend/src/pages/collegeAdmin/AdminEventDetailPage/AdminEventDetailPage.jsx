@@ -288,9 +288,9 @@ export default function AdminEventDetailPage() {
                     <p className="text-xs sm:text-sm font-bold text-foreground">
                       {speaker.name}
                     </p>
-                    {speaker.tagline && (
+                    {(speaker.tagline || speaker.description || speaker.position) && (
                       <p className="text-[11px] text-muted-foreground">
-                        {speaker.tagline}
+                        {speaker.tagline || speaker.description || speaker.position}
                       </p>
                     )}
                     {speaker.email && (

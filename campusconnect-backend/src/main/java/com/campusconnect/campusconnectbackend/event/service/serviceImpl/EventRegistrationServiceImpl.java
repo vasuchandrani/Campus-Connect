@@ -48,7 +48,11 @@ public class EventRegistrationServiceImpl implements EventRegistrationService {
             return new MessageResponseDto("You are already registered for this event");
         }
 
-        if (event.getRegistrationEnd().isBefore(LocalDateTime.now())) {
+        if (event.getRegistrationStart() != null && event.getRegistrationStart().isAfter(LocalDateTime.now())) {
+            return new MessageResponseDto("Registration has not started yet for this event");
+        }
+
+        if (event.getRegistrationEnd() != null && event.getRegistrationEnd().isBefore(LocalDateTime.now())) {
             return new MessageResponseDto("Registration has been closed for this event");
         }
 
@@ -90,39 +94,34 @@ public class EventRegistrationServiceImpl implements EventRegistrationService {
         List<EventRegistration> registrations =
                 eventRegistrationRepository.findByEventIdWithStudent(eventId);
 
-        try (Workbook workbook = new XSSFWorkbook()) {
-            Sheet sheet = workbook.createSheet("Registrations");
+        java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        java.time.format.DateTimeFormatter timeFormatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss");
 
-            Row header = sheet.createRow(0);
-            header.createCell(0).setCellValue("Student ID");
-            header.createCell(1).setCellValue("Name");
-            header.createCell(2).setCellValue("Email");
-            header.createCell(3).setCellValue("Branch");
-            header.createCell(4).setCellValue("Year");
+        StringBuilder csvBuilder = new StringBuilder();
+        csvBuilder.append("Student ID,Name,Email,Branch,Year,Date,Time\n");
 
-            int rowNum = 1;
-
-            for (EventRegistration reg : registrations) {
-                Student s = reg.getStudent();
-
-                Row row = sheet.createRow(rowNum++);
-                row.createCell(0).setCellValue(s.getStudentId());
-                row.createCell(1).setCellValue(s.getFullName());
-                row.createCell(2).setCellValue(s.getEmail());
-                row.createCell(3).setCellValue(s.getDepartment());
-                row.createCell(4).setCellValue(s.getYear());
+        for (EventRegistration reg : registrations) {
+            Student s = reg.getStudent();
+            csvBuilder.append(s.getStudentId() != null ? s.getStudentId() : "").append(",");
+            csvBuilder.append(s.getFullName() != null ? s.getFullName().replace(",", " ") : "").append(",");
+            csvBuilder.append(s.getEmail() != null ? s.getEmail() : "").append(",");
+            csvBuilder.append(s.getDepartment() != null ? s.getDepartment() : "").append(",");
+            csvBuilder.append(s.getYear()).append(",");
+            
+            if (reg.getRegisteredAt() != null) {
+                csvBuilder.append(reg.getRegisteredAt().format(dateFormatter)).append(",");
+                csvBuilder.append(reg.getRegisteredAt().format(timeFormatter)).append("\n");
+            } else {
+                csvBuilder.append(",\n");
             }
-
-            for (int i = 0; i < 5; i++) {
-                sheet.autoSizeColumn(i);
-            }
-
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            workbook.write(out);
-
-            return out.toByteArray();
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to generate Excel", e);
         }
+
+        return csvBuilder.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    @Override
+    public List<Long> getMyRegisteredEventIds() {
+        Long studentId = authService.getCurrentUserId();
+        return eventRegistrationRepository.findEventIdsByStudentId(studentId);
     }
 }

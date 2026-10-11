@@ -2,6 +2,7 @@ import "./ClubAdminDashboard.css";
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import DashboardLayout from "../../../components/dashboard/DashboardLayout";
+import EventPreviewModal from "../../../components/ui/EventPreviewModal";
 import {
   Card,
   CardContent,
@@ -23,8 +24,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from "../../../components/ui/Dialog";
-import { MarkdownEditor } from "../../../components/ui/MarkdownEditor";
-import { MarkdownViewer } from "../../../components/ui/MarkdownViewer";
 import {
   Select,
   SelectTrigger,
@@ -32,6 +31,8 @@ import {
   SelectContent,
   SelectItem,
 } from "../../../components/ui/Select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../../components/ui/Tabs";
+import { marked } from "marked";
 import {
   LayoutDashboard,
   Megaphone,
@@ -46,6 +47,7 @@ import {
   Heart,
   Clock,
   MapPin,
+  Eye,
   Globe,
   Building2,
   Upload,
@@ -72,8 +74,10 @@ import {
   UserX,
   Download,
   GraduationCap,
-  Eye,
-  Edit2,
+  X,
+  UploadCloud,
+  Loader2,
+  Mic,
 } from "lucide-react";
 import { clubAdminNavItems } from "../../../config/Navigation";
 import { useAuth } from "../../../contexts/AuthContext";
@@ -81,7 +85,7 @@ import EmptyState from "../../../components/ui/EmptyState";
 import PageSkeleton from "../../../components/ui/PageSkeleton";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import SubDashboardLoginDialog from "../../../components/dashboard/SubDashboardLoginDialog";
-import { clubAdminApi, securityApi } from "../../../services/api";
+import { clubAdminApi, securityApi, locationApi } from "../../../services/api";
 import { toast } from "../../../hooks/use-toast";
 
 export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
@@ -191,8 +195,6 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
   // Create Announcement Dialog State
   const [createAnnOpen, setCreateAnnOpen] = useState(false);
   const [annForm, setAnnForm] = useState({ title: "", content: "" });
-  const [editingDraftId, setEditingDraftId] = useState(null);
-  const [viewAnnouncement, setViewAnnouncement] = useState(null);
   const [submittingAnn, setSubmittingAnn] = useState(false);
 
   // Events Tab State
@@ -205,6 +207,61 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
 
   // Create Event Dialog State
   const [createEventOpen, setCreateEventOpen] = useState(false);
+  const [overviewOpen, setOverviewOpen] = useState(false);
+  const [overviewForm, setOverviewForm] = useState({ overview: "" });
+  const [overviewImages, setOverviewImages] = useState([]);
+  const [generating, setGenerating] = useState(false);
+  const [savingOverview, setSavingOverview] = useState(false);
+  const [selectedFinishedEvent, setSelectedFinishedEvent] = useState(null);
+
+  const handleOpenOverviewModal = (evt) => {
+    setSelectedFinishedEvent(evt);
+    setOverviewForm({ overview: evt.overview || "" });
+    setOverviewImages([]);
+    setOverviewOpen(true);
+  };
+
+  const handleGenerateOverview = async () => {
+    if (!selectedFinishedEvent) return;
+    setGenerating(true);
+    try {
+      const data = await clubAdminApi.generateOverview(clubId, selectedFinishedEvent.id);
+      setOverviewForm(prev => ({ ...prev, overview: data }));
+      toast({ title: "Generated", description: "AI Overview generated successfully." });
+    } catch (err) {
+      toast({ title: "Generation failed", description: err.message, variant: "destructive" });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleSaveOverview = async () => {
+    if (!selectedFinishedEvent) return;
+    setSavingOverview(true);
+    try {
+      const formData = new FormData();
+      const overviewDto = {
+        overview: overviewForm.overview,
+        winners: [], // Assuming winners are managed elsewhere or not changed here
+        oldImages: selectedFinishedEvent.images || []
+      };
+      formData.append("overview", new Blob([JSON.stringify(overviewDto)], { type: "application/json" }));
+      overviewImages.forEach(img => formData.append("images", img));
+
+      await clubAdminApi.saveOverview(clubId, selectedFinishedEvent.id, formData);
+      toast({ title: "Success", description: "Post-event details saved." });
+      setOverviewOpen(false);
+      fetchEventsData();
+    } catch (err) {
+      toast({ title: "Save failed", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingOverview(false);
+    }
+  };
+
+  const removeOverviewImage = (idx) => {
+    setOverviewImages(prev => prev.filter((_, i) => i !== idx));
+  };
   const [eventForm, setEventForm] = useState({
     title: "",
     description: "",
@@ -221,7 +278,13 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
     eligibility: "",
     prizeMoney: "",
     registrationPlans: [],
+    speakers: [],
     image: null,
+  });
+  const [newSpeaker, setNewSpeaker] = useState({
+    name: "",
+    tagline: "",
+    email: "",
   });
   const [newPlan, setNewPlan] = useState({
     planName: "",
@@ -231,6 +294,34 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
   });
   const [eventImagePreview, setEventImagePreview] = useState(null);
   const [submittingEvent, setSubmittingEvent] = useState(false);
+  const [previewEvent, setPreviewEvent] = useState(null);
+
+  // Dynamic Location State
+  const [countries, setCountries] = useState([]);
+  const [statesList, setStatesList] = useState([]);
+  const [citiesList, setCitiesList] = useState([]);
+
+  useEffect(() => {
+    if (createEventOpen) {
+      locationApi.getCountries().then(setCountries).catch(console.error);
+    }
+  }, [createEventOpen]);
+
+  useEffect(() => {
+    if (eventForm.location?.country) {
+      locationApi.getStates(eventForm.location.country).then(setStatesList).catch(console.error);
+    } else {
+      setStatesList([]);
+    }
+  }, [eventForm.location?.country]);
+
+  useEffect(() => {
+    if (eventForm.location?.state) {
+      locationApi.getCities(eventForm.location.state).then(setCitiesList).catch(console.error);
+    } else {
+      setCitiesList([]);
+    }
+  }, [eventForm.location?.state]);
 
   // Members Tab State
   const [membersList, setMembersList] = useState([]);
@@ -284,7 +375,7 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
       const [name, statsData, recAnn, pubEvents] = await Promise.all([
         clubAdminApi.getClubName(clubId).catch(() => "Club Admin"),
         clubAdminApi.getStats(clubId).catch(() => ({})),
-        clubAdminApi.getLatestAnnouncements(clubId).catch(() => []),
+        clubAdminApi.getPublishedAnnouncements(clubId).catch(() => []),
         clubAdminApi.getPublishedEvents(clubId).catch(() => []),
       ]);
 
@@ -294,6 +385,7 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
         members: statsData?.members || 0,
         teams: statsData?.teams || 0,
         events: statsData?.events || 0,
+        logoUrl: statsData?.logoUrl || null,
       });
 
       setRecentAnnouncements(Array.isArray(recAnn) ? recAnn.slice(0, 5) : []);
@@ -432,39 +524,20 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
     }
     setSubmittingAnn(true);
     try {
-      if (editingDraftId) {
-        await clubAdminApi.updateAnnouncement(clubId, editingDraftId, annForm);
-        if (isDraft) {
-          toast({
-            title: "Draft Updated",
-            description: "Announcement draft updated successfully.",
-          });
-          setAnnouncementSubtab("draft");
-        } else {
-          await clubAdminApi.publishAnnouncementDraft(clubId, editingDraftId);
-          toast({
-            title: "Announcement Published",
-            description: "Announcement has been published or sent for approval.",
-          });
-          setAnnouncementSubtab("published");
-        }
+      if (isDraft) {
+        await clubAdminApi.saveAnnouncementDraft(clubId, annForm);
+        toast({
+          title: "Draft Saved",
+          description: "Announcement saved to your drafts successfully.",
+        });
+        setAnnouncementSubtab("draft");
       } else {
-        if (isDraft) {
-          await clubAdminApi.saveAnnouncementDraft(clubId, annForm);
-          toast({
-            title: "Draft Saved",
-            description: "Announcement saved to your drafts successfully.",
-          });
-          setAnnouncementSubtab("draft");
-        } else {
-          await clubAdminApi.createAnnouncement(clubId, annForm);
-          toast({
-            title: "Announcement Submitted",
-            description: "Announcement has been published or sent for approval.",
-          });
-        }
+        await clubAdminApi.createAnnouncement(clubId, annForm);
+        toast({
+          title: "Announcement Submitted",
+          description: "Announcement has been published or sent for approval.",
+        });
       }
-      setEditingDraftId(null);
       setAnnForm({ title: "", content: "" });
       setCreateAnnOpen(false);
       await Promise.all([fetchAnnouncementsData(), fetchDashboardStatsAndFeeds()]);
@@ -571,17 +644,21 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
     setConfirmDialog({
       open: true,
       title: "Approve Announcement?",
-      description: "Are you sure you want to approve this announcement submission?",
-      confirmText: "Approve Announcement",
+      description: "Are you sure you want to approve this announcement?",
+      confirmText: "Approve",
       variant: "success",
       loading: false,
+      loadingText: "Approving...",
       onConfirm: async () => {
         try {
+          setConfirmDialog((prev) => ({ ...prev, loading: true }));
           await clubAdminApi.approveAnnouncement(clubId, annId);
           toast({
             title: "Announcement Approved",
             description: "The submission was approved and advanced in the workflow.",
           });
+          setConfirmDialog((prev) => ({ ...prev, open: false }));
+          setPageLoading(true);
           await Promise.all([fetchAnnouncementsData(), fetchDashboardStatsAndFeeds()]);
         } catch (err) {
           toast({
@@ -589,8 +666,9 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
             description: err?.message || "Could not approve announcement.",
             variant: "destructive",
           });
-        } finally {
           setConfirmDialog((prev) => ({ ...prev, open: false }));
+        } finally {
+          setPageLoading(false);
         }
       },
     });
@@ -600,26 +678,31 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
     setConfirmDialog({
       open: true,
       title: "Reject Announcement?",
-      description: "Are you sure you want to reject this announcement submission? This action cannot be undone.",
-      confirmText: "Reject Announcement",
+      description: "Are you sure you want to reject this announcement submission?",
+      confirmText: "Reject",
       variant: "destructive",
       loading: false,
+      loadingText: "Rejecting...",
       onConfirm: async () => {
         try {
+          setConfirmDialog((prev) => ({ ...prev, loading: true }));
           await clubAdminApi.rejectAnnouncement(clubId, annId);
           toast({
             title: "Announcement Rejected",
             description: "The pending announcement has been rejected.",
           });
-          await Promise.all([fetchAnnouncementsData(), fetchDashboardStatsAndFeeds()]);
+          setConfirmDialog((prev) => ({ ...prev, open: false }));
+          setPageLoading(true);
+          await fetchAnnouncementsData();
         } catch (err) {
           toast({
             title: "Rejection Failed",
             description: err?.message || "Could not reject announcement.",
             variant: "destructive",
           });
-        } finally {
           setConfirmDialog((prev) => ({ ...prev, open: false }));
+        } finally {
+          setPageLoading(false);
         }
       },
     });
@@ -634,6 +717,11 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
       setEventForm((prev) => ({ ...prev, image: file }));
       setEventImagePreview(URL.createObjectURL(file));
     }
+  };
+
+  const handleRemoveEventImage = () => {
+    setEventForm((prev) => ({ ...prev, image: null, coverImage: null }));
+    setEventImagePreview(null);
   };
 
   const handleAddPlan = () => {
@@ -662,6 +750,29 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
     setEventForm((prev) => ({
       ...prev,
       registrationPlans: prev.registrationPlans.filter((_, i) => i !== idx),
+    }));
+  };
+
+  const handleAddSpeaker = () => {
+    if (!newSpeaker.name.trim()) return;
+    setEventForm((prev) => ({
+      ...prev,
+      speakers: [
+        ...(prev.speakers || []),
+        {
+          name: newSpeaker.name.trim(),
+          tagline: (newSpeaker.tagline || "").trim(),
+          email: (newSpeaker.email || "").trim(),
+        },
+      ],
+    }));
+    setNewSpeaker({ name: "", tagline: "", email: "" });
+  };
+
+  const handleRemoveSpeaker = (index) => {
+    setEventForm((prev) => ({
+      ...prev,
+      speakers: (prev.speakers || []).filter((_, i) => i !== index),
     }));
   };
 
@@ -715,6 +826,18 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
           eventForm.registrationPayment === "PAID"
             ? eventForm.registrationPlans
             : [],
+        speakers: (eventForm.speakers || [])
+          .map((s) => ({
+            name: s.name ? s.name.trim() : "",
+            tagline: (s.tagline || s.description || s.position || "").trim(),
+            email: s.email && s.email.trim() ? s.email.trim() : null,
+          }))
+          .filter((s) => s.name),
+        coverImage: eventForm.image
+          ? null
+          : eventForm.coverImage !== undefined
+          ? eventForm.coverImage
+          : (eventImagePreview || null),
       };
 
       if (isDraft) {
@@ -725,7 +848,7 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
         });
         setEventSubtab("draft");
       } else {
-        if (!eventForm.image) {
+        if (!eventForm.image && !eventForm.coverImage && !eventImagePreview) {
           toast({
             title: "Banner Required",
             description: "Please upload an event banner image to publish.",
@@ -737,16 +860,26 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
 
         const formData = new FormData();
         formData.append(
-          "eventDto",
+          "event",
           new Blob([JSON.stringify(payload)], { type: "application/json" })
         );
-        formData.append("image", eventForm.image);
+        if (eventForm.image) {
+          formData.append("image", eventForm.image);
+        }
 
-        await clubAdminApi.createEvent(clubId, formData);
-        toast({
-          title: "Event Created",
-          description: "Event has been created or submitted for mentor approval.",
-        });
+        if (eventForm.id) {
+          await clubAdminApi.updateEvent(clubId, eventForm.id, formData);
+          toast({
+            title: "Event Updated",
+            description: "Published event has been successfully updated.",
+          });
+        } else {
+          await clubAdminApi.createEvent(clubId, formData);
+          toast({
+            title: "Event Created",
+            description: "Event has been created or submitted for mentor approval.",
+          });
+        }
         setEventSubtab("published");
       }
 
@@ -767,9 +900,11 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
         eligibility: "",
         prizeMoney: "",
         registrationPlans: [],
+        speakers: [],
         image: null,
       });
       setNewPlan({ planName: "", planDescription: "", amount: "", maxSeats: "" });
+      setNewSpeaker({ name: "", tagline: "", email: "" });
       setEventImagePreview(null);
       setCreateEventOpen(false);
       await Promise.all([fetchEventsData(), fetchDashboardStatsAndFeeds()]);
@@ -792,13 +927,17 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
       confirmText: "Publish Event",
       variant: "default",
       loading: false,
+      loadingText: "Publishing...",
       onConfirm: async () => {
         try {
+          setConfirmDialog((prev) => ({ ...prev, loading: true }));
           await clubAdminApi.publishEventDraft(clubId, eventId);
           toast({
             title: "Draft Published",
             description: "Event is now officially active.",
           });
+          setConfirmDialog((prev) => ({ ...prev, open: false }));
+          setPageLoading(true);
           await Promise.all([fetchEventsData(), fetchDashboardStatsAndFeeds()]);
           setEventSubtab("published");
         } catch (err) {
@@ -807,8 +946,9 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
             description: err?.message || "Could not publish event draft.",
             variant: "destructive",
           });
-        } finally {
           setConfirmDialog((prev) => ({ ...prev, open: false }));
+        } finally {
+          setPageLoading(false);
         }
       },
     });
@@ -822,13 +962,17 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
       confirmText: "Delete Draft",
       variant: "destructive",
       loading: false,
+      loadingText: "Deleting...",
       onConfirm: async () => {
         try {
+          setConfirmDialog((prev) => ({ ...prev, loading: true }));
           await clubAdminApi.deleteEventDraft(clubId, eventId);
           toast({
             title: "Draft Deleted",
             description: "Event draft was removed.",
           });
+          setConfirmDialog((prev) => ({ ...prev, open: false }));
+          setPageLoading(true);
           await fetchEventsData();
         } catch (err) {
           toast({
@@ -836,8 +980,43 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
             description: err?.message || "Failed to delete draft.",
             variant: "destructive",
           });
-        } finally {
           setConfirmDialog((prev) => ({ ...prev, open: false }));
+        } finally {
+          setPageLoading(false);
+        }
+      },
+    });
+  };
+
+  const handleDeletePublishedEvent = (eventId) => {
+    setConfirmDialog({
+      open: true,
+      title: "Delete Published Event?",
+      description: "This event will be permanently deleted and all registrations will be cancelled.",
+      confirmText: "Delete Event",
+      variant: "destructive",
+      loading: false,
+      loadingText: "Deleting...",
+      onConfirm: async () => {
+        try {
+          setConfirmDialog((prev) => ({ ...prev, loading: true }));
+          await clubAdminApi.deleteEvent(clubId, eventId);
+          toast({
+            title: "Event Deleted",
+            description: "Published event has been removed.",
+          });
+          setConfirmDialog((prev) => ({ ...prev, open: false }));
+          setPageLoading(true);
+          await fetchEventsData();
+        } catch (err) {
+          toast({
+            title: "Delete Failed",
+            description: err?.message || "Could not delete published event.",
+            variant: "destructive",
+          });
+          setConfirmDialog((prev) => ({ ...prev, open: false }));
+        } finally {
+          setPageLoading(false);
         }
       },
     });
@@ -846,18 +1025,22 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
   const handleApproveEvent = (eventId) => {
     setConfirmDialog({
       open: true,
-      title: "Approve Event Proposal?",
-      description: "Are you sure you want to approve this event proposal?",
-      confirmText: "Approve Event",
+      title: "Approve Event?",
+      description: "Are you sure you want to approve this event?",
+      confirmText: "Approve",
       variant: "success",
       loading: false,
+      loadingText: "Approving...",
       onConfirm: async () => {
         try {
+          setConfirmDialog((prev) => ({ ...prev, loading: true }));
           await clubAdminApi.approveEvent(clubId, eventId);
           toast({
             title: "Event Approved",
             description: "Event approved and transitioned to the next stage.",
           });
+          setConfirmDialog((prev) => ({ ...prev, open: false }));
+          setPageLoading(true);
           await Promise.all([fetchEventsData(), fetchDashboardStatsAndFeeds()]);
         } catch (err) {
           toast({
@@ -865,8 +1048,9 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
             description: err?.message || "Could not approve event.",
             variant: "destructive",
           });
-        } finally {
           setConfirmDialog((prev) => ({ ...prev, open: false }));
+        } finally {
+          setPageLoading(false);
         }
       },
     });
@@ -880,13 +1064,17 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
       confirmText: "Reject",
       variant: "destructive",
       loading: false,
+      loadingText: "Rejecting...",
       onConfirm: async () => {
         try {
+          setConfirmDialog((prev) => ({ ...prev, loading: true }));
           await clubAdminApi.rejectEvent(clubId, eventId);
           toast({
             title: "Event Rejected",
             description: "Event submission has been rejected.",
           });
+          setConfirmDialog((prev) => ({ ...prev, open: false }));
+          setPageLoading(true);
           await fetchEventsData();
         } catch (err) {
           toast({
@@ -894,11 +1082,70 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
             description: err?.message || "Failed to reject event.",
             variant: "destructive",
           });
-        } finally {
           setConfirmDialog((prev) => ({ ...prev, open: false }));
+        } finally {
+          setPageLoading(false);
         }
       },
     });
+  };
+
+  const formatForInput = (dateStr) => {
+    if (!dateStr) return "";
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return String(dateStr).slice(0, 16);
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    } catch {
+      return String(dateStr).slice(0, 16);
+    }
+  };
+
+  const handleEditDraft = (evt) => {
+    const loc =
+      evt.locationDetails && typeof evt.locationDetails === "object"
+        ? {
+            address: evt.locationDetails.address || "",
+            city: evt.locationDetails.city || "",
+            state: evt.locationDetails.state || "",
+            country: evt.locationDetails.country || "",
+          }
+        : typeof evt.location === "object"
+        ? evt.location
+        : { address: evt.location || "", city: "", state: "", country: "" };
+
+    const existingImage = evt.coverImage || evt.image || evt.imageUrl || null;
+    setEventForm({
+      id: evt.id,
+      title: evt.title || "",
+      description: evt.description || "",
+      eventType: evt.eventType || "OFFLINE",
+      isPublic: Boolean(evt.isPublic || evt.public || evt.global),
+      registrationPayment: evt.registrationPayment || "FREE",
+      registrationStart: formatForInput(evt.registrationStart),
+      registrationEnd: formatForInput(evt.registrationEnd),
+      startTime: formatForInput(evt.startTime),
+      endTime: formatForInput(evt.endTime),
+      location: loc,
+      batchYear: evt.batchYear !== null && evt.batchYear !== undefined ? String(evt.batchYear) : "",
+      criteria: evt.criteria || "",
+      eligibility: evt.eligibility || "",
+      prizeMoney: evt.prizeMoney !== null && evt.prizeMoney !== undefined ? String(evt.prizeMoney) : "",
+      registrationPlans: evt.registrationPlans || [],
+      speakers: Array.isArray(evt.speakers)
+        ? evt.speakers.map((s) => ({
+            name: s.name || "",
+            tagline: s.tagline || s.description || s.position || "",
+            email: s.email || "",
+          }))
+        : [],
+      coverImage: existingImage,
+      image: null,
+    });
+    setNewSpeaker({ name: "", tagline: "", email: "" });
+    setEventImagePreview(existingImage);
+    setCreateEventOpen(true);
   };
 
   const handleDownloadRegistrations = async (eventId, eventTitle) => {
@@ -907,7 +1154,7 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
       const url = window.URL.createObjectURL(new Blob([blob]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `${eventTitle || "event"}_registrations.csv`);
+      link.setAttribute("download", `${eventTitle || "event"}_Registers.csv`);
       document.body.appendChild(link);
       link.click();
       link.parentNode.removeChild(link);
@@ -1367,27 +1614,30 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
           <div className="space-y-6">
             {/* Hero Header Banner - Ultra-Responsive (Only displayed on Dashboard tab) */}
             <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br from-card via-card/90 to-primary/5 p-4 sm:p-6 shadow-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
-                  <Avatar className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl border-2 border-primary/30 shadow-xs shrink-0">
-                    {logoPreview ? (
-                      <AvatarImage src={logoPreview} alt={clubName} className="object-cover" />
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-start gap-3.5 sm:gap-4 min-w-0">
+                  <div className="w-14 h-14 sm:w-18 sm:h-18 rounded-2xl bg-background/90 border border-border/80 flex items-center justify-center shrink-0 overflow-hidden shadow-xs">
+                    {(stats.logoUrl || logoPreview) ? (
+                      <img
+                        src={stats.logoUrl || logoPreview}
+                        alt={clubName}
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
-                      <AvatarFallback className="rounded-2xl bg-primary/20 text-primary font-bold text-xl">
-                        {clubName.charAt(0).toUpperCase()}
-                      </AvatarFallback>
+                      <Users className="w-7 h-7 sm:w-9 sm:h-9 text-primary" />
                     )}
-                  </Avatar>
-                  <div className="min-w-0 space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-foreground truncate">
+                  </div>
+                  <div className="space-y-1.5 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h1 className="text-lg sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-foreground truncate">
                         {clubName}
                       </h1>
-                      <Badge variant="default" className="text-[10px] sm:text-[11px] font-semibold tracking-wide uppercase px-2 py-0.5">
-                        Club Admin
+                      <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[11px] font-semibold py-0.5">
+                        <ShieldCheck className="w-3.5 h-3.5 mr-1" />
+                        CLUB ADMIN
                       </Badge>
                     </div>
-                    <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
+                    <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 leading-relaxed">
                       Centralized command hub for announcements, events, teams, and member leadership.
                     </p>
                   </div>
@@ -1617,7 +1867,6 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
                 <Button
                   size="sm"
                   onClick={() => {
-                    setEditingDraftId(null);
                     setAnnForm({ title: "", content: "" });
                     setCreateAnnOpen(true);
                   }}
@@ -1632,7 +1881,6 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
                 <Button
                   size="sm"
                   onClick={() => {
-                    setEditingDraftId(null);
                     setAnnForm({ title: "", content: "" });
                     setCreateAnnOpen(true);
                   }}
@@ -1698,67 +1946,49 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
 
             {/* Subtab 1: Published */}
             {announcementSubtab === "published" && (
-              <div className="space-y-3">
+              <div>
                 {filteredPublishedAnnouncements.length === 0 ? (
-                  <Card className="border-dashed border-border/80">
-                    <CardContent className="py-12">
-                      <EmptyState
-                        title="No Published Announcements"
-                        desc="There are currently no active announcements published within your club."
-                        icon={<BellOff className="w-8 h-8 text-muted-foreground/60" />}
-                      />
-                    </CardContent>
-                  </Card>
+                  <EmptyState
+                    title="No Published Announcements"
+                    desc="There are currently no active announcements published within your college."
+                    icon={<BellOff className="w-8 h-8 text-muted-foreground/60" />}
+                  />
                 ) : (
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                     {filteredPublishedAnnouncements.map((ann) => (
-                      <Card key={ann.id} className="border-border/80 shadow-xs hover:border-primary/30 transition-colors">
-                        <CardContent className="p-4 sm:p-5 space-y-3">
+                      <Card key={ann.id} className="rounded-2xl border-border/60 hover:border-border transition-all shadow-xs flex flex-col justify-between">
+                        <CardHeader className="p-4 pb-2">
                           <div className="flex items-start justify-between gap-2">
-                            <div className="flex items-start gap-2.5 min-w-0">
-                              <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 mt-0.5">
-                                <Megaphone className="w-4 h-4" />
-                              </div>
-                              <div className="min-w-0">
-                                <h4 className="text-sm sm:text-base font-bold text-foreground leading-snug break-words">
-                                  {ann.title}
-                                </h4>
-                                <p className="text-[11px] text-muted-foreground mt-0.5">
-                                  {ann.clubName || clubName || "Campus Club"}
-                                </p>
-                              </div>
-                            </div>
-                            <Badge variant="outline" className="text-[10px] font-semibold shrink-0">
-                              Published
+                            <CardTitle className="text-sm font-bold text-foreground">
+                              {ann.title}
+                            </CardTitle>
+                            <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/20 shrink-0">
+                              Live
                             </Badge>
                           </div>
-                          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-3 whitespace-pre-line break-words pl-0 sm:pl-10.5">
+                          {ann.createdAt && (
+                            <CardDescription className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
+                              <Clock className="w-3 h-3" />
+                              {new Date(ann.createdAt).toLocaleString()}
+                            </CardDescription>
+                          )}
+                        </CardHeader>
+                        <CardContent className="p-4 pt-1 flex-1">
+                          <p className="text-xs text-muted-foreground leading-relaxed">
                             {ann.content}
                           </p>
-                          <div className="pt-2 text-[11px] text-muted-foreground flex flex-wrap items-center justify-between gap-1 border-t border-border/50">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setViewAnnouncement(ann)}
-                              className="h-8 text-xs gap-1.5"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              View Full Details
-                            </Button>
-                            <div className="flex items-center gap-2">
-                              <span>{ann.createdAt ? new Date(ann.createdAt).toLocaleString() : ""}</span>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeletePublishedAnn(ann.id)}
-                                className="h-8 text-xs text-destructive hover:bg-destructive/10 px-2.5"
-                              >
-                                <Trash2 className="w-3.5 h-3.5 mr-1" />
-                                Delete
-                              </Button>
-                            </div>
-                          </div>
                         </CardContent>
+                        <div className="px-4 py-2.5 bg-muted/20 border-t border-border/40 flex items-center justify-end rounded-b-2xl">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeletePublishedAnn(ann.id)}
+                            className="h-7 text-xs text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 mr-1" />
+                            Delete
+                          </Button>
+                        </div>
                       </Card>
                     ))}
                   </div>
@@ -1768,89 +1998,57 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
 
             {/* Subtab 2: My Draft */}
             {announcementSubtab === "draft" && (
-              <div className="space-y-3">
+              <div>
                 {filteredDraftAnnouncements.length === 0 ? (
-                  <Card className="border-dashed border-border/80">
-                    <CardContent className="py-12">
-                      <EmptyState
-                        title="No Saved Drafts"
-                        desc="You haven't saved any announcement drafts yet."
-                        icon={<FileText className="w-8 h-8 text-muted-foreground/60" />}
-                      />
-                    </CardContent>
-                  </Card>
+                  <EmptyState
+                    title="No Saved Drafts"
+                    desc="You haven't saved any announcement drafts yet."
+                    icon={<FileText className="w-8 h-8 text-muted-foreground/60" />}
+                  />
                 ) : (
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                     {filteredDraftAnnouncements.map((ann) => (
-                      <Card key={ann.id} className="border-border/80 shadow-xs hover:border-primary/30 transition-colors">
-                        <CardContent className="p-4 sm:p-5 space-y-3">
+                      <Card key={ann.id} className="rounded-2xl border-border/60 hover:border-border transition-all shadow-xs flex flex-col justify-between">
+                        <CardHeader className="p-4 pb-2">
                           <div className="flex items-start justify-between gap-2">
-                            <div className="flex items-start gap-2.5 min-w-0">
-                              <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
-                                <FileText className="w-4 h-4" />
-                              </div>
-                              <div className="space-y-0.5 min-w-0">
-                                <h4 className="text-sm sm:text-base font-bold text-foreground break-words leading-snug">
-                                  {ann.title}
-                                </h4>
-                                <span className="text-[11px] text-muted-foreground block">
-                                  Draft saved on {ann.createdAt ? new Date(ann.createdAt).toLocaleDateString() : "Recently"}
-                                </span>
-                              </div>
-                            </div>
-                            <Badge variant="secondary" className="text-[10px] font-semibold shrink-0">
-                              Admin Draft
+                            <CardTitle className="text-sm font-bold text-foreground">
+                              {ann.title}
+                            </CardTitle>
+                            <Badge variant="secondary" className="text-[10px] shrink-0">
+                              Draft
                             </Badge>
                           </div>
-                          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-3 whitespace-pre-line break-words pl-0 sm:pl-10.5">
+                          {ann.createdAt && (
+                            <CardDescription className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
+                              <Clock className="w-3 h-3" />
+                              Saved {new Date(ann.createdAt).toLocaleString()}
+                            </CardDescription>
+                          )}
+                        </CardHeader>
+                        <CardContent className="p-4 pt-1 flex-1">
+                          <p className="text-xs text-muted-foreground leading-relaxed">
                             {ann.content}
                           </p>
-                          <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-border/50">
-                            <div className="flex items-center gap-1.5">
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => handleDeleteAnnDraft(ann.id)}
-                                className="text-xs h-8 font-medium"
-                              >
-                                <Trash2 className="w-3.5 h-3.5 mr-1" />
-                                Discard
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setEditingDraftId(ann.id);
-                                  setAnnForm({ title: ann.title || "", content: ann.content || "" });
-                                  setCreateAnnOpen(true);
-                                }}
-                                className="text-xs h-8 gap-1.5"
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                                Edit Draft
-                              </Button>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setViewAnnouncement(ann)}
-                                className="text-xs h-8 gap-1.5"
-                              >
-                                <Eye className="w-3.5 h-3.5" />
-                                View Full Details
-                              </Button>
-                              <Button
-                                size="sm"
-                                onClick={() => handlePublishAnnDraft(ann.id)}
-                                className="text-xs h-8 font-semibold shadow-xs"
-                              >
-                                <Send className="w-3.5 h-3.5 mr-1" />
-                                Publish Draft
-                              </Button>
-                            </div>
-                          </div>
                         </CardContent>
+                        <div className="px-4 py-2.5 bg-muted/20 border-t border-border/40 flex items-center justify-between rounded-b-2xl">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteAnnDraft(ann.id)}
+                            className="h-7 text-xs text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 mr-1" />
+                            Discard
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => handlePublishAnnDraft(ann.id)}
+                            className="h-7 text-xs font-semibold shadow-xs"
+                          >
+                            <Send className="w-3.5 h-3.5 mr-1" />
+                            Publish Draft
+                          </Button>
+                        </div>
                       </Card>
                     ))}
                   </div>
@@ -1860,74 +2058,57 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
 
             {/* Subtab 3: Pending Approval */}
             {announcementSubtab === "pending" && (
-              <div className="space-y-3">
+              <div>
                 {filteredPendingAnnouncements.length === 0 ? (
-                  <Card className="border-dashed border-border/80">
-                    <CardContent className="py-12">
-                      <EmptyState
-                        title="No Pending Announcements"
-                        desc="There are no announcements currently waiting for review or approval."
-                        icon={<ShieldCheck className="w-8 h-8 text-muted-foreground/60" />}
-                      />
-                    </CardContent>
-                  </Card>
+                  <EmptyState
+                    title="No Pending Announcements"
+                    desc="There are no announcements currently waiting for review or approval."
+                    icon={<ShieldCheck className="w-8 h-8 text-muted-foreground/60" />}
+                  />
                 ) : (
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                     {filteredPendingAnnouncements.map((ann) => (
-                      <Card key={ann.id} className="border-border/80 shadow-xs hover:border-primary/30 transition-colors">
-                        <CardContent className="p-4 sm:p-5 space-y-3">
+                      <Card key={ann.id} className="rounded-2xl border-amber-500/30 bg-amber-500/5 transition-all shadow-xs flex flex-col justify-between">
+                        <CardHeader className="p-4 pb-2">
                           <div className="flex items-start justify-between gap-2">
-                            <div className="flex items-start gap-2.5 min-w-0">
-                              <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 mt-0.5">
-                                <Megaphone className="w-4 h-4" />
-                              </div>
-                              <div className="min-w-0">
-                                <h4 className="text-sm sm:text-base font-bold text-foreground leading-snug break-words">
-                                  {ann.title}
-                                </h4>
-                                <p className="text-[11px] text-muted-foreground mt-0.5">
-                                  Submitted by: {ann.authorName || "Club Member"}
-                                </p>
-                              </div>
-                            </div>
-                            <Badge variant="outline" className="text-[10px] font-semibold text-amber-600 bg-amber-500/10 border-amber-500/20 shrink-0">
-                              Awaiting Review
+                            <CardTitle className="text-sm font-bold text-foreground">
+                              {ann.title}
+                            </CardTitle>
+                            <Badge variant="outline" className="text-[10px] bg-amber-500/15 text-amber-600 border-amber-500/30 shrink-0">
+                              Awaiting Approval
                             </Badge>
                           </div>
-                          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-3 whitespace-pre-line break-words pl-0 sm:pl-10.5">
+                          {ann.createdAt && (
+                            <CardDescription className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
+                              <Clock className="w-3 h-3" />
+                              Submitted {new Date(ann.createdAt).toLocaleString()}
+                            </CardDescription>
+                          )}
+                        </CardHeader>
+                        <CardContent className="p-4 pt-1 flex-1">
+                          <p className="text-xs text-muted-foreground leading-relaxed">
                             {ann.content}
                           </p>
-                          <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-border/50">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setViewAnnouncement(ann)}
-                              className="h-8 text-xs gap-1.5"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              View Full Details
-                            </Button>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => handleRejectAnnouncement(ann.id)}
-                                className="text-xs h-8 font-medium bg-red-600 hover:bg-red-700 text-white"
-                              >
-                                <XCircle className="w-3.5 h-3.5 mr-1" />
-                                Reject
-                              </Button>
-                              <Button
-                                size="sm"
-                                onClick={() => handleApproveAnnouncement(ann.id)}
-                                className="text-xs h-8 font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
-                              >
-                                <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                                Approve & Publish
-                              </Button>
-                            </div>
-                          </div>
                         </CardContent>
+                        <div className="px-4 py-2.5 bg-background/60 border-t border-amber-500/20 flex items-center justify-end gap-2 rounded-b-2xl">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRejectAnnouncement(ann.id)}
+                            className="h-7 text-xs text-destructive hover:bg-destructive/10 border-destructive/30"
+                          >
+                            <XCircle className="w-3.5 h-3.5 mr-1" />
+                            Reject
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => handleApproveAnnouncement(ann.id)}
+                            className="h-7 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                            Approve
+                          </Button>
+                        </div>
                       </Card>
                     ))}
                   </div>
@@ -1972,9 +2153,11 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
                       eligibility: "",
                       prizeMoney: "",
                       registrationPlans: [],
+                      speakers: [],
                       image: null,
                     });
                     setNewPlan({ planName: "", planDescription: "", amount: "", maxSeats: "" });
+                    setNewSpeaker({ name: "", tagline: "", email: "" });
                     setEventImagePreview(null);
                     setCreateEventOpen(true);
                   }}
@@ -2005,9 +2188,11 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
                       eligibility: "",
                       prizeMoney: "",
                       registrationPlans: [],
+                      speakers: [],
                       image: null,
                     });
                     setNewPlan({ planName: "", planDescription: "", amount: "", maxSeats: "" });
+                    setNewSpeaker({ name: "", tagline: "", email: "" });
                     setEventImagePreview(null);
                     setCreateEventOpen(true);
                   }}
@@ -2096,76 +2281,85 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredPublishedEvents.map((evt) => {
                       const isGlobal = Boolean(evt.isGlobal || evt.global || evt.state >= 5);
+                      const poster = evt.imageUrl || evt.coverImage || evt.image || evt.posterUrl;
                       return (
-                        <Card key={evt.id} className="rounded-2xl border-border/60 hover:border-border transition-all shadow-xs overflow-hidden flex flex-col justify-between">
-                          {evt.imageUrl && (
-                            <div className="h-36 w-full overflow-hidden bg-muted/40">
-                              <img
-                                src={evt.imageUrl}
-                                alt={evt.title}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          )}
-                          <CardHeader className="p-4 pb-2">
-                            <div className="flex items-center justify-between gap-2 mb-1.5">
-                              {isGlobal ? (
-                                <Badge variant="default" className="text-[10px] font-semibold bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1">
-                                  <Globe className="w-3 h-3" />
-                                  Global Event
-                                </Badge>
+                        <Card key={evt.id} className="flex flex-col justify-between border-border/80 hover:border-primary/40 hover:shadow-md transition-all duration-200 overflow-hidden group">
+                          <div>
+                            {/* Event Cover Banner */}
+                            <div className="h-44 w-full bg-gradient-to-br from-primary/10 via-accent/20 to-muted relative overflow-hidden border-b border-border/60">
+                              {poster ? (
+                                <img src={poster} alt={evt.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={(e) => { e.target.style.display = "none"; }} />
                               ) : (
-                                <Badge variant="secondary" className="text-[10px] font-semibold flex items-center gap-1">
-                                  <Building2 className="w-3 h-3" />
-                                  Campus Event
+                                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/60 p-4 text-center">
+                                  <Calendar className="w-10 h-10 text-primary/40 mb-1" />
+                                  <span className="text-xs font-medium">Campus Connect Event</span>
+                                </div>
+                              )}
+                              {/* Badges on Top */}
+                              <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5 max-w-[70%]">
+                                <Badge className="bg-emerald-500 text-white border border-emerald-500 text-[10px] font-bold shadow-xs">
+                                  Active
                                 </Badge>
-                              )}
-                              <Badge variant="outline" className="text-[10px] text-emerald-600 bg-emerald-500/10 border-emerald-500/20">
-                                Active
-                              </Badge>
+                              </div>
+                              <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
+                                {isGlobal ? (
+                                  <Badge className="bg-indigo-600 text-white text-[10px] font-bold shadow-xs flex items-center gap-1">
+                                    <Globe className="w-3 h-3" /> Global
+                                  </Badge>
+                                ) : (
+                                  <Badge className="bg-secondary text-secondary-foreground text-[10px] font-bold shadow-xs flex items-center gap-1">
+                                    <Building2 className="w-3 h-3" /> Campus
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
-                            <CardTitle className="text-sm font-bold text-foreground line-clamp-1">
-                              {evt.title}
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent className="p-4 pt-1 space-y-2 flex-1">
-                            <p className="text-xs text-muted-foreground line-clamp-2">
-                              {evt.description}
-                            </p>
-                            <div className="space-y-1 text-[11px] text-muted-foreground pt-1">
-                              {evt.startTime && (
-                                <div className="flex items-center gap-1.5">
-                                  <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
-                                  <span>{new Date(evt.startTime).toLocaleString()}</span>
+                            <CardContent className="p-4 sm:p-5 space-y-3">
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <Badge variant="outline" className="text-[10px] font-semibold bg-primary/5 text-primary border-primary/20 truncate">
+                                    {clubName || "Club Event"}
+                                  </Badge>
+                                  {evt.eventType && (
+                                    <span className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+                                      {evt.eventType === "ONLINE" ? (<><Globe className="w-3 h-3 text-sky-500" /> Online</>) : (<><MapPin className="w-3 h-3 text-emerald-500" /> Offline</>)}
+                                    </span>
+                                  )}
                                 </div>
-                              )}
-                              {evt.location && (
-                                <div className="flex items-center gap-1.5">
-                                  <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                                  <span className="truncate">{evt.location}</span>
-                                </div>
-                              )}
-                            </div>
-                          </CardContent>
-                          <div className="p-3 bg-muted/20 border-t border-border/40 flex items-center justify-between gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDownloadRegistrations(evt.id, evt.title)}
-                              className="h-7 text-[11px] px-2 text-muted-foreground hover:text-foreground"
-                            >
-                              <Download className="w-3 h-3 mr-1" />
-                              Registrations
+                                <h3 className="text-base font-bold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                                  {evt.title}
+                                </h3>
+                              </div>
+                              <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                                {evt.description || "No description provided."}
+                              </p>
+                              <div className="pt-2 border-t border-border/60 space-y-1.5 text-xs text-muted-foreground">
+                                {evt.startTime && (
+                                  <div className="flex items-center gap-1.5">
+                                    <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
+                                    <span>{new Date(evt.startTime).toLocaleString()}</span>
+                                  </div>
+                                )}
+                                {evt.location && (
+                                  <div className="flex items-center gap-1.5">
+                                    <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
+                                    <span className="truncate">{typeof evt.location === "object" ? evt.location.address : evt.location}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
+                          </div>
+                          <div className="p-3.5 bg-muted/20 border-t border-border/40 mt-auto grid grid-cols-2 xl:grid-cols-4 gap-2.5">
+                            <Button variant="ghost" size="sm" onClick={() => handleDownloadRegistrations(evt.id, evt.title)} className="h-9 text-[11px] text-muted-foreground hover:text-foreground w-full px-1">
+                              <Download className="w-3 h-3 mr-1" /> Reg.
                             </Button>
-                            <Button
-                              size="sm"
-                              onClick={() =>
-                                navigate(`/campus-connect/club-admin/${clubId}/events/${evt.id}`)
-                              }
-                              className="h-7 text-xs font-semibold px-3"
-                            >
-                              Manage
-                              <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                            <Button variant="outline" size="sm" onClick={() => handleEditDraft(evt)} className="h-9 text-[11px] font-semibold w-full px-1">
+                              <Edit3 className="w-3 h-3 mr-1" /> Edit
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleDeletePublishedEvent(evt.id)} className="h-9 text-[11px] text-destructive hover:bg-destructive/10 hover:text-destructive w-full px-1">
+                              <Trash2 className="w-3 h-3 mr-1" /> Delete
+                            </Button>
+                            <Button size="sm" onClick={() => navigate(`/campus-connect/club-admin/${clubId}/events/${evt.id}`)} className="h-9 text-[11px] font-semibold shadow-xs w-full px-1">
+                              Manage <ChevronRight className="w-3 h-3 ml-1" />
                             </Button>
                           </div>
                         </Card>
@@ -2187,51 +2381,79 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
                   />
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredFinishedEvents.map((evt) => (
-                      <Card key={evt.id} className="rounded-2xl border-border/60 shadow-xs flex flex-col justify-between">
-                        <CardHeader className="p-4 pb-2">
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <Badge variant="outline" className="text-[10px] text-muted-foreground">
-                              Finished
-                            </Badge>
-                            {evt.endTime && (
-                              <span className="text-[10px] text-muted-foreground">
-                                {new Date(evt.endTime).toLocaleDateString()}
-                              </span>
-                            )}
+                    {filteredFinishedEvents.map((evt) => {
+                      const poster = evt.imageUrl || evt.coverImage || evt.image || evt.posterUrl;
+                      return (
+                        <Card key={evt.id} className="flex flex-col justify-between border-border/80 hover:border-primary/40 hover:shadow-md transition-all duration-200 overflow-hidden group">
+                          <div>
+                            {/* Event Cover Banner */}
+                            <div className="h-44 w-full bg-gradient-to-br from-primary/10 via-accent/20 to-muted relative overflow-hidden border-b border-border/60">
+                              {poster ? (
+                                <img src={poster} alt={evt.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={(e) => { e.target.style.display = "none"; }} />
+                              ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/60 p-4 text-center">
+                                  <Calendar className="w-10 h-10 text-primary/40 mb-1" />
+                                  <span className="text-xs font-medium">Campus Connect Event</span>
+                                </div>
+                              )}
+                              <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5 max-w-[70%]">
+                                <Badge className="bg-secondary text-secondary-foreground border border-secondary text-[10px] font-bold shadow-xs">
+                                  Finished
+                                </Badge>
+                              </div>
+                            </div>
+                            <CardContent className="p-4 sm:p-5 space-y-3">
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <Badge variant="outline" className="text-[10px] font-semibold bg-primary/5 text-primary border-primary/20 truncate">
+                                    {clubName || "Club Event"}
+                                  </Badge>
+                                  {evt.eventType && (
+                                    <span className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+                                      {evt.eventType === "ONLINE" ? (<><Globe className="w-3 h-3 text-sky-500" /> Online</>) : (<><MapPin className="w-3 h-3 text-emerald-500" /> Offline</>)}
+                                    </span>
+                                  )}
+                                </div>
+                                <h3 className="text-base font-bold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                                  {evt.title}
+                                </h3>
+                              </div>
+                              <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                                {evt.description || "No description provided."}
+                              </p>
+                              <div className="pt-2 border-t border-border/60 space-y-1.5 text-xs text-muted-foreground">
+                                {evt.endTime && (
+                                  <div className="flex items-center gap-1.5">
+                                    <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
+                                    <span>{new Date(evt.endTime).toLocaleString()}</span>
+                                  </div>
+                                )}
+                                {evt.location && (
+                                  <div className="flex items-center gap-1.5">
+                                    <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
+                                    <span className="truncate">{typeof evt.location === "object" ? evt.location.address : evt.location}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
                           </div>
-                          <CardTitle className="text-sm font-bold text-foreground line-clamp-1">
-                            {evt.title}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4 pt-1 flex-1">
-                          <p className="text-xs text-muted-foreground line-clamp-2">
-                            {evt.description}
-                          </p>
-                        </CardContent>
-                        <div className="p-3 bg-muted/20 border-t border-border/40 flex items-center justify-between">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDownloadRegistrations(evt.id, evt.title)}
-                            className="h-7 text-[11px] text-muted-foreground"
-                          >
-                            <Download className="w-3 h-3 mr-1" />
-                            Export Data
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              navigate(`/campus-connect/club-admin/${clubId}/events/${evt.id}`)
-                            }
-                            className="h-7 text-xs font-semibold"
-                          >
-                            Overview
-                          </Button>
-                        </div>
-                      </Card>
-                    ))}
+                          <div className="p-3 bg-muted/20 border-t border-border/40 mt-auto grid grid-cols-2 gap-2">
+                            <Button variant="ghost" size="sm" onClick={() => handleDownloadRegistrations(evt.id, evt.title)} className="h-9 text-[11px] text-muted-foreground hover:text-foreground w-full">
+                              <Download className="w-3.5 h-3.5 mr-1.5" /> Export
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => navigate(`/campus-connect/club-admin/${clubId}/events/${evt.id}`)} className="h-9 text-[11px] font-semibold w-full">
+                              <Eye className="w-3.5 h-3.5 mr-1.5" /> Details
+                            </Button>
+                            <Button size="sm" variant="secondary" onClick={() => handleOpenOverviewModal(evt)} className="h-9 text-[11px] font-semibold w-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20">
+                              <Edit3 className="w-3.5 h-3.5 mr-1.5" /> Edit Details
+                            </Button>
+                            <Button size="sm" onClick={() => navigate(`/campus-connect/club-admin/${clubId}/events/${evt.id}`)} className="h-9 text-[11px] font-semibold w-full">
+                              Overview
+                            </Button>
+                          </div>
+                        </Card>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -2248,50 +2470,79 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
                   />
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredDraftEvents.map((evt) => (
-                      <Card key={evt.id} className="rounded-2xl border-border/60 shadow-xs flex flex-col justify-between">
-                        <CardHeader className="p-4 pb-2">
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <Badge variant="secondary" className="text-[10px]">
-                              Draft
-                            </Badge>
+                    {filteredDraftEvents.map((evt) => {
+                      const poster = evt.imageUrl || evt.coverImage || evt.image || evt.posterUrl;
+                      return (
+                        <Card key={evt.id} className="flex flex-col justify-between border-border/80 hover:border-primary/40 hover:shadow-md transition-all duration-200 overflow-hidden group">
+                          <div>
+                            {/* Event Cover Banner */}
+                            <div className="h-44 w-full bg-gradient-to-br from-primary/10 via-accent/20 to-muted relative overflow-hidden border-b border-border/60">
+                              {poster ? (
+                                <img src={poster} alt={evt.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={(e) => { e.target.style.display = "none"; }} />
+                              ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/60 p-4 text-center">
+                                  <Calendar className="w-10 h-10 text-primary/40 mb-1" />
+                                  <span className="text-xs font-medium">Campus Connect Event</span>
+                                </div>
+                              )}
+                              <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5 max-w-[70%]">
+                                <Badge className="bg-secondary text-secondary-foreground border border-secondary text-[10px] font-bold shadow-xs">
+                                  Draft
+                                </Badge>
+                              </div>
+                            </div>
+                            <CardContent className="p-4 sm:p-5 space-y-3">
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <Badge variant="outline" className="text-[10px] font-semibold bg-primary/5 text-primary border-primary/20 truncate">
+                                    {clubName || "Club Event"}
+                                  </Badge>
+                                  {evt.eventType && (
+                                    <span className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+                                      {evt.eventType === "ONLINE" ? (<><Globe className="w-3 h-3 text-sky-500" /> Online</>) : (<><MapPin className="w-3 h-3 text-emerald-500" /> Offline</>)}
+                                    </span>
+                                  )}
+                                </div>
+                                <h3 className="text-base font-bold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                                  {evt.title}
+                                </h3>
+                              </div>
+                              <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                                {evt.description || "No description provided."}
+                              </p>
+                              <div className="pt-2 border-t border-border/60 space-y-1.5 text-xs text-muted-foreground">
+                                {evt.startTime && (
+                                  <div className="flex items-center gap-1.5">
+                                    <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
+                                    <span>{new Date(evt.startTime).toLocaleString()}</span>
+                                  </div>
+                                )}
+                                {evt.location && (
+                                  <div className="flex items-center gap-1.5">
+                                    <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
+                                    <span className="truncate">{typeof evt.location === "object" ? evt.location.address : evt.location}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
                           </div>
-                          <CardTitle className="text-sm font-bold text-foreground">
-                            {evt.title}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4 pt-1 flex-1">
-                          <p className="text-xs text-muted-foreground line-clamp-2">
-                            {evt.description}
-                          </p>
-                          {evt.location && (
-                            <p className="text-[11px] text-muted-foreground mt-2 flex items-center gap-1">
-                              <MapPin className="w-3 h-3" />
-                              {evt.location}
-                            </p>
-                          )}
-                        </CardContent>
-                        <div className="p-3 bg-muted/20 border-t border-border/40 flex items-center justify-between">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteEventDraft(evt.id)}
-                            className="h-7 text-xs text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 className="w-3.5 h-3.5 mr-1" />
-                            Discard
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => handlePublishEventDraft(evt.id)}
-                            className="h-7 text-xs font-semibold shadow-xs"
-                          >
-                            <Send className="w-3.5 h-3.5 mr-1" />
-                            Publish Draft
-                          </Button>
-                        </div>
-                      </Card>
-                    ))}
+                          <div className="p-3.5 bg-muted/20 border-t border-border/40 mt-auto grid grid-cols-2 gap-2.5">
+                            <Button variant="outline" size="sm" onClick={() => setPreviewEvent({ ...evt, isDraft: true })} className="h-9 text-[11px] font-semibold w-full px-1" title="Preview Draft">
+                              <Eye className="w-3 h-3 mr-1" /> Preview
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => handleEditDraft(evt)} className="h-9 text-[11px] font-semibold w-full px-1">
+                              <Edit3 className="w-3 h-3 mr-1" /> Edit
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleDeleteEventDraft(evt.id)} className="h-9 text-[11px] text-destructive hover:bg-destructive/10 hover:text-destructive w-full px-1">
+                              <Trash2 className="w-3 h-3 mr-1" /> Discard
+                            </Button>
+                            <Button size="sm" onClick={() => handlePublishEventDraft(evt.id)} className="h-9 text-[11px] font-semibold shadow-xs w-full px-1">
+                              <Send className="w-3 h-3 mr-1" /> Publish
+                            </Button>
+                          </div>
+                        </Card>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -2308,44 +2559,76 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
                   />
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredPendingEvents.map((evt) => (
-                      <Card key={evt.id} className="rounded-2xl border-amber-500/30 bg-amber-500/5 shadow-xs flex flex-col justify-between">
-                        <CardHeader className="p-4 pb-2">
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <Badge variant="outline" className="text-[10px] bg-amber-500/15 text-amber-600 border-amber-500/30">
-                              Awaiting Approval
-                            </Badge>
+                    {filteredPendingEvents.map((evt) => {
+                      const poster = evt.imageUrl || evt.coverImage || evt.image || evt.posterUrl;
+                      return (
+                        <Card key={evt.id} className="flex flex-col justify-between border-border/80 hover:border-amber-500/40 hover:shadow-md transition-all duration-200 overflow-hidden group">
+                          <div>
+                            {/* Event Cover Banner */}
+                            <div className="h-44 w-full bg-gradient-to-br from-amber-500/10 via-accent/20 to-muted relative overflow-hidden border-b border-border/60">
+                              {poster ? (
+                                <img src={poster} alt={evt.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={(e) => { e.target.style.display = "none"; }} />
+                              ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/60 p-4 text-center">
+                                  <Calendar className="w-10 h-10 text-amber-500/40 mb-1" />
+                                  <span className="text-xs font-medium">Campus Connect Event</span>
+                                </div>
+                              )}
+                              <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5 max-w-[70%]">
+                                <Badge className="bg-amber-500 text-white border border-amber-500 text-[10px] font-bold shadow-xs">
+                                  Awaiting Approval
+                                </Badge>
+                              </div>
+                            </div>
+                            <CardContent className="p-4 sm:p-5 space-y-3">
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <Badge variant="outline" className="text-[10px] font-semibold bg-amber-500/10 text-amber-700 border-amber-500/30 truncate">
+                                    {clubName || "Club Event"}
+                                  </Badge>
+                                  {evt.eventType && (
+                                    <span className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+                                      {evt.eventType === "ONLINE" ? (<><Globe className="w-3 h-3 text-sky-500" /> Online</>) : (<><MapPin className="w-3 h-3 text-emerald-500" /> Offline</>)}
+                                    </span>
+                                  )}
+                                </div>
+                                <h3 className="text-base font-bold text-foreground line-clamp-1 group-hover:text-amber-600 transition-colors">
+                                  {evt.title}
+                                </h3>
+                              </div>
+                              <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                                {evt.description || "No description provided."}
+                              </p>
+                              <div className="pt-2 border-t border-border/60 space-y-1.5 text-xs text-muted-foreground">
+                                {evt.startTime && (
+                                  <div className="flex items-center gap-1.5">
+                                    <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                    <span>{new Date(evt.startTime).toLocaleString()}</span>
+                                  </div>
+                                )}
+                                {evt.location && (
+                                  <div className="flex items-center gap-1.5">
+                                    <MapPin className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                    <span className="truncate">{typeof evt.location === "object" ? evt.location.address : evt.location}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
                           </div>
-                          <CardTitle className="text-sm font-bold text-foreground">
-                            {evt.title}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4 pt-1 flex-1">
-                          <p className="text-xs text-muted-foreground line-clamp-2">
-                            {evt.description}
-                          </p>
-                        </CardContent>
-                        <div className="p-3 bg-background/60 border-t border-amber-500/20 flex items-center justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleRejectEvent(evt.id)}
-                            className="h-7 text-xs text-destructive hover:bg-destructive/10 border-destructive/30"
-                          >
-                            <XCircle className="w-3.5 h-3.5 mr-1" />
-                            Reject
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => handleApproveEvent(evt.id)}
-                            className="h-7 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                            Approve
-                          </Button>
-                        </div>
-                      </Card>
-                    ))}
+                          <div className="p-3.5 bg-muted/20 border-t border-border/40 mt-auto flex items-center justify-between gap-2.5">
+                            <Button variant="outline" size="sm" onClick={() => setPreviewEvent(evt)} className="h-9 text-[11px] font-semibold w-full border-amber-500/20 text-amber-700 hover:bg-amber-50 px-1">
+                              <Eye className="w-3 h-3 mr-1" /> Preview
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => handleRejectEvent(evt.id)} className="h-9 text-[11px] text-destructive border-destructive/30 hover:bg-destructive/10 w-full px-1">
+                              <XCircle className="w-3 h-3 mr-1" /> Reject
+                            </Button>
+                            <Button size="sm" onClick={() => handleApproveEvent(evt.id)} className="h-9 text-[11px] font-semibold bg-emerald-600 hover:bg-emerald-700 text-white w-full px-1">
+                              <CheckCircle2 className="w-3 h-3 mr-1" /> Approve
+                            </Button>
+                          </div>
+                        </Card>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -2862,20 +3145,15 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
         {/* DIALOGS SECTION                                           */}
         {/* ========================================================= */}
 
-        {/* 1. Dialog: Create/Edit Announcement */}
-        <Dialog open={createAnnOpen} onOpenChange={(open) => {
-          setCreateAnnOpen(open);
-          if (!open) setEditingDraftId(null);
-        }}>
+        {/* 1. Dialog: Create Announcement */}
+        <Dialog open={createAnnOpen} onOpenChange={setCreateAnnOpen}>
           <DialogContent className="w-[95vw] sm:max-w-lg rounded-2xl p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-base sm:text-lg font-bold">
-                {editingDraftId ? "Edit Announcement Draft" : "Create Announcement"}
+                Create Announcement
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
-                {editingDraftId
-                  ? "Update your saved draft announcement."
-                  : `Publish a club announcement across the campus for ${clubName}.`}
+                Publish a news item or save a draft for {clubName}.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 pt-2">
@@ -2890,11 +3168,12 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-foreground">Content / Body *</Label>
-                <MarkdownEditor
+                <Textarea
                   value={annForm.content}
-                  onChange={(val) => setAnnForm((prev) => ({ ...prev, content: val }))}
-                  placeholder="Provide complete announcements, agenda, and instructions in Markdown..."
-                  rows={6}
+                  onChange={(e) => setAnnForm((prev) => ({ ...prev, content: e.target.value }))}
+                  placeholder="Provide complete announcements, agenda, and instructions..."
+                  rows={5}
+                  className="text-xs sm:text-sm"
                 />
               </div>
               <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-3 border-t border-border/60">
@@ -2902,10 +3181,7 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => {
-                    setEditingDraftId(null);
-                    setCreateAnnOpen(false);
-                  }}
+                  onClick={() => setCreateAnnOpen(false)}
                   className="text-xs h-9"
                 >
                   Cancel
@@ -2918,7 +3194,7 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
                   onClick={() => handleCreateAnnouncement(true)}
                   className="text-xs h-9 font-medium"
                 >
-                  {editingDraftId ? "Update Draft" : "Save as Draft"}
+                  Save as Draft
                 </Button>
                 <Button
                   type="button"
@@ -2928,55 +3204,10 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
                   className="text-xs h-9 font-semibold shadow-xs"
                 >
                   <Send className="w-3.5 h-3.5 mr-1" />
-                  {submittingAnn ? "Submitting..." : (editingDraftId ? "Publish Draft" : "Publish Announcement")}
+                  {submittingAnn ? "Submitting..." : "Publish Announcement"}
                 </Button>
               </DialogFooter>
             </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* 1.1 Dialog: View Full Announcement Details */}
-        <Dialog
-          open={!!viewAnnouncement}
-          onOpenChange={(open) => !open && setViewAnnouncement(null)}
-        >
-          <DialogContent className="max-h-[90vh] max-w-lg w-full overflow-y-auto rounded-2xl p-4 sm:p-6">
-            <DialogHeader>
-              <div className="space-y-1">
-                <Badge
-                  variant="outline"
-                  className="text-xs font-semibold bg-primary/5 text-primary border-primary/20 mb-1"
-                >
-                  {viewAnnouncement?.clubName || clubName || "Campus Club Announcement"}
-                </Badge>
-                <DialogTitle className="text-lg sm:text-xl font-bold text-foreground">
-                  {viewAnnouncement?.title}
-                </DialogTitle>
-                <DialogDescription className="sr-only">Announcement details</DialogDescription>
-              </div>
-            </DialogHeader>
-
-            {viewAnnouncement && (
-              <div className="space-y-4 pt-2 text-sm">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground border-b border-border/60 pb-2">
-                  <Calendar className="w-3.5 h-3.5 text-primary" />
-                  <span>
-                    {viewAnnouncement.createdAt
-                      ? new Date(viewAnnouncement.createdAt).toLocaleString()
-                      : "Recently"}
-                  </span>
-                </div>
-
-                <div>
-                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">
-                    Official Notice & Content
-                  </h4>
-                  <MarkdownViewer
-                    content={viewAnnouncement.content || viewAnnouncement.message || viewAnnouncement.description}
-                  />
-                </div>
-              </div>
-            )}
           </DialogContent>
         </Dialog>
 
@@ -3114,7 +3345,7 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
                   <div className="space-y-1">
                     <Label className="text-[11px] text-muted-foreground">Address / Campus Venue</Label>
                     <Input
-                      placeholder="e.g. Main Auditorium / Seminar Hall"
+                      placeholder="e.g. Hall 401 / Lab 2"
                       value={typeof eventForm.location === "object" ? eventForm.location.address : eventForm.location}
                       onChange={(e) =>
                         setEventForm((prev) => ({
@@ -3129,55 +3360,75 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[11px] text-muted-foreground">City</Label>
-                    <Input
-                      placeholder="City"
-                      value={typeof eventForm.location === "object" ? eventForm.location.city || "" : ""}
-                      onChange={(e) =>
+                    <Label className="text-[11px] text-muted-foreground">Country</Label>
+                    <Select
+                      value={typeof eventForm.location === "object" ? eventForm.location.country || "" : ""}
+                      onValueChange={(val) =>
                         setEventForm((prev) => ({
                           ...prev,
                           location: {
                             ...(typeof prev.location === "object" ? prev.location : {}),
-                            city: e.target.value,
+                            country: val,
+                            state: "", // reset dependent fields
+                            city: "",
                           },
                         }))
                       }
-                      className="h-8 text-xs"
-                    />
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Select Country" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {countries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[11px] text-muted-foreground">State</Label>
-                    <Input
-                      placeholder="State"
+                    <Select
                       value={typeof eventForm.location === "object" ? eventForm.location.state || "" : ""}
-                      onChange={(e) =>
+                      onValueChange={(val) =>
                         setEventForm((prev) => ({
                           ...prev,
                           location: {
                             ...(typeof prev.location === "object" ? prev.location : {}),
-                            state: e.target.value,
+                            state: val,
+                            city: "", // reset dependent field
                           },
                         }))
                       }
-                      className="h-8 text-xs"
-                    />
+                      disabled={!eventForm.location?.country || statesList.length === 0}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Select State" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {statesList.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[11px] text-muted-foreground">Country</Label>
-                    <Input
-                      placeholder="Country"
-                      value={typeof eventForm.location === "object" ? eventForm.location.country || "" : ""}
-                      onChange={(e) =>
+                    <Label className="text-[11px] text-muted-foreground">City</Label>
+                    <Select
+                      value={typeof eventForm.location === "object" ? eventForm.location.city || "" : ""}
+                      onValueChange={(val) =>
                         setEventForm((prev) => ({
                           ...prev,
                           location: {
                             ...(typeof prev.location === "object" ? prev.location : {}),
-                            country: e.target.value,
+                            city: val,
                           },
                         }))
                       }
-                      className="h-8 text-xs"
-                    />
+                      disabled={!eventForm.location?.state || citiesList.length === 0}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Select City" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {citiesList.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </div>
@@ -3213,16 +3464,6 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
                     className="h-9 text-xs"
                   />
                 </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground">Judging Criteria / Rules</Label>
-                <Input
-                  placeholder="e.g. Innovation, Technical Depth, UI/UX, Presentation"
-                  value={eventForm.criteria}
-                  onChange={(e) => setEventForm((prev) => ({ ...prev, criteria: e.target.value }))}
-                  className="h-9 text-xs"
-                />
               </div>
 
               {/* Paid Event: Registration Plans */}
@@ -3303,16 +3544,107 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
                 </div>
               )}
 
+              {/* Event Speakers Section */}
+              <div className="p-3.5 rounded-xl border border-border/60 bg-muted/20 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Mic className="w-4 h-4 text-primary" />
+                    <p className="text-xs font-bold text-foreground">Event Speakers</p>
+                  </div>
+                  <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary">
+                    {eventForm.speakers?.length || 0} Speakers
+                  </Badge>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Add keynote speakers, guest lecturers, or session hosts. (Optional)
+                </p>
+
+                {eventForm.speakers && eventForm.speakers.length > 0 && (
+                  <div className="space-y-2">
+                    {eventForm.speakers.map((spk, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between p-2.5 rounded-lg bg-background border border-border/60 text-xs"
+                      >
+                        <div className="space-y-0.5">
+                          <p className="font-semibold text-foreground">{spk.name}</p>
+                          {(spk.tagline || spk.description || spk.position) && (
+                            <p className="text-[11px] text-muted-foreground">
+                              {spk.tagline || spk.description || spk.position}
+                            </p>
+                          )}
+                          {spk.email && (
+                            <p className="text-[10px] text-primary/80 truncate">{spk.email}</p>
+                          )}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveSpeaker(idx)}
+                          className="h-6 w-6 p-0 text-destructive"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                  <Input
+                    placeholder="Speaker Name *"
+                    value={newSpeaker.name}
+                    onChange={(e) => setNewSpeaker((prev) => ({ ...prev, name: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                  <Input
+                    placeholder="Role / Position / Bio"
+                    value={newSpeaker.tagline}
+                    onChange={(e) => setNewSpeaker((prev) => ({ ...prev, tagline: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                  <Input
+                    placeholder="Email Address (optional)"
+                    type="email"
+                    value={newSpeaker.email}
+                    onChange={(e) => setNewSpeaker((prev) => ({ ...prev, email: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddSpeaker}
+                  disabled={!newSpeaker.name.trim()}
+                  className="h-8 text-xs w-full sm:w-auto"
+                >
+                  <Plus className="w-3.5 h-3.5 mr-1" />
+                  Add Speaker
+                </Button>
+              </div>
+
               {/* Event Banner Image */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-foreground">Event Banner Image *</Label>
                 <div className="flex items-center gap-3">
                   {eventImagePreview && (
-                    <img
-                      src={eventImagePreview}
-                      alt="Banner Preview"
-                      className="w-16 h-12 object-cover rounded-lg border border-border shrink-0"
-                    />
+                    <div className="relative inline-block shrink-0">
+                      <img
+                        src={eventImagePreview}
+                        alt="Banner Preview"
+                        className="w-16 h-12 object-cover rounded-lg border border-border"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemoveEventImage}
+                        className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-full p-0.5 shadow-md transition-colors"
+                        title="Remove image"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   )}
                   <input
                     type="file"
@@ -3504,6 +3836,115 @@ export default function ClubAdminDashboard({ initialTab = "dashboard" }) {
           loading={returnLoading}
           error={returnError}
         />
+        {/* 8. Event Preview Modal */}
+        <EventPreviewModal
+          event={previewEvent}
+          open={!!previewEvent}
+          onClose={() => setPreviewEvent(null)}
+          clubName={clubName}
+        />
+        {/* Post-Event Details Dialog */}
+        <Dialog open={overviewOpen} onOpenChange={setOverviewOpen}>
+          <DialogContent className="sm:max-w-3xl rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold">Post-Event Details</DialogTitle>
+              <DialogDescription>
+                Write an overview and upload photos for {selectedFinishedEvent?.title}.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-6 pt-4">
+              <div className="space-y-2">
+                <Tabs defaultValue="edit" className="w-full">
+                  <div className="flex justify-between items-center mb-2">
+                    <TabsList className="h-9">
+                      <TabsTrigger value="edit" className="text-xs">Edit</TabsTrigger>
+                      <TabsTrigger value="preview" className="text-xs">Preview</TabsTrigger>
+                    </TabsList>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleGenerateOverview} 
+                      disabled={generating}
+                      className="h-8 gap-1.5"
+                    >
+                      {generating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                      AI Generate
+                    </Button>
+                  </div>
+                  <TabsContent value="edit" className="m-0 mt-2">
+                    <Textarea 
+                      value={overviewForm.overview} 
+                      onChange={(e) => setOverviewForm(prev => ({ ...prev, overview: e.target.value }))}
+                      placeholder="Write the event overview, highlights, and outcomes... (Markdown supported)"
+                      rows={10}
+                    />
+                  </TabsContent>
+                  <TabsContent value="preview" className="m-0 mt-2 border rounded-md p-4 min-h-[220px] max-h-[400px] overflow-y-auto prose prose-sm max-w-none text-foreground bg-background">
+                    {overviewForm.overview ? (
+                      <div dangerouslySetInnerHTML={{ __html: marked.parse(overviewForm.overview) }} />
+                    ) : (
+                      <div className="text-muted-foreground text-sm flex items-center justify-center h-full min-h-[160px]">No content to preview</div>
+                    )}
+                  </TabsContent>
+                </Tabs>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">Event Photos</Label>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+                  {selectedFinishedEvent?.images && selectedFinishedEvent.images.length > 0 && selectedFinishedEvent.images.map((img, i) => (
+                    <div key={`old-${i}`} className="relative h-24 rounded-lg overflow-hidden border">
+                      <img src={img} alt="old" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                        <span className="text-xs text-white">Existing</span>
+                      </div>
+                    </div>
+                  ))}
+
+                  {overviewImages.map((img, i) => (
+                    <div key={`new-${i}`} className="relative h-24 rounded-lg overflow-hidden border group">
+                      <img src={URL.createObjectURL(img)} alt="new" className="w-full h-full object-cover" />
+                      <button 
+                        type="button"
+                        onClick={() => removeOverviewImage(i)}
+                        className="absolute top-1 right-1 bg-black/60 p-1 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                  
+                  <Label className="h-24 rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors">
+                    <UploadCloud className="w-6 h-6 text-muted-foreground mb-1" />
+                    <span className="text-[10px] text-muted-foreground font-medium">Add Photos</span>
+                    <Input
+                      type="file"
+                      className="hidden"
+                      multiple
+                      accept="image/*"
+                      onChange={(e) => {
+                        if (e.target.files) {
+                          setOverviewImages(prev => [...prev, ...Array.from(e.target.files)]);
+                        }
+                      }}
+                    />
+                  </Label>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button type="button" variant="outline" onClick={() => setOverviewOpen(false)}>Cancel</Button>
+                <Button type="button" onClick={handleSaveOverview} disabled={savingOverview}>
+                  {savingOverview ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  Save Post-Event Details
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

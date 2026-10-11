@@ -2,6 +2,7 @@ import "./ClubMentorDashboard.css";
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import DashboardLayout from "../../../components/dashboard/DashboardLayout";
+import EventPreviewModal from "../../../components/ui/EventPreviewModal";
 import {
   Card,
   CardContent,
@@ -34,8 +35,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from "../../../components/ui/Dialog";
-import { MarkdownEditor } from "../../../components/ui/MarkdownEditor";
-import { MarkdownViewer } from "../../../components/ui/MarkdownViewer";
 import {
   LayoutDashboard,
   Users,
@@ -63,7 +62,8 @@ import {
   ShieldAlert,
   GraduationCap,
   Eye,
-  Edit2,
+  Globe,
+  Building2,
 } from "lucide-react";
 import { clubMentorNavItems } from "../../../config/Navigation";
 import { useAuth } from "../../../contexts/AuthContext";
@@ -71,7 +71,7 @@ import EmptyState from "../../../components/ui/EmptyState";
 import PageSkeleton from "../../../components/ui/PageSkeleton";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import SubDashboardLoginDialog from "../../../components/dashboard/SubDashboardLoginDialog";
-import { professorApi } from "../../../services/api";
+import { professorApi, locationApi } from "../../../services/api";
 import { toast } from "../../../hooks/use-toast";
 
 export default function ClubMentorDashboard() {
@@ -147,6 +147,11 @@ export default function ClubMentorDashboard() {
   const [publishedEvents, setPublishedEvents] = useState([]);
   const [finishedEvents, setFinishedEvents] = useState([]);
   const [draftEvents, setDraftEvents] = useState([]);
+
+  // Dynamic Location State
+  const [countries, setCountries] = useState([]);
+  const [statesList, setStatesList] = useState([]);
+  const [citiesList, setCitiesList] = useState([]);
   const [pendingEvents, setPendingEvents] = useState([]);
 
   const [membersList, setMembersList] = useState([]);
@@ -155,6 +160,7 @@ export default function ClubMentorDashboard() {
   // Search States
   const [memberSearch, setMemberSearch] = useState("");
   const [teamSearch, setTeamSearch] = useState("");
+  const [eventSearch, setEventSearch] = useState("");
 
   // Governance Settings State
   const [settings, setSettings] = useState({
@@ -166,11 +172,17 @@ export default function ClubMentorDashboard() {
   // Dialog States
   const [createAnnDraftOpen, setCreateAnnDraftOpen] = useState(false);
   const [annDraftForm, setAnnDraftForm] = useState({ title: "", content: "" });
-  const [editingDraftId, setEditingDraftId] = useState(null);
-  const [viewAnnouncement, setViewAnnouncement] = useState(null);
   const [savingAnnDraft, setSavingAnnDraft] = useState(false);
 
   const [createEventDraftOpen, setCreateEventDraftOpen] = useState(false);
+
+  useEffect(() => {
+    if (createEventDraftOpen) {
+      locationApi.getCountries().then(setCountries).catch(console.error);
+    }
+  }, [createEventDraftOpen]);
+
+
   const [eventDraftForm, setEventDraftForm] = useState({
     title: "",
     description: "",
@@ -188,6 +200,22 @@ export default function ClubMentorDashboard() {
     prizeMoney: "",
     registrationPlans: [],
   });
+
+  useEffect(() => {
+    if (eventDraftForm.location?.country) {
+      locationApi.getStates(eventDraftForm.location.country).then(setStatesList).catch(console.error);
+    } else {
+      setStatesList([]);
+    }
+  }, [eventDraftForm.location?.country]);
+
+  useEffect(() => {
+    if (eventDraftForm.location?.state) {
+      locationApi.getCities(eventDraftForm.location.state).then(setCitiesList).catch(console.error);
+    } else {
+      setCitiesList([]);
+    }
+  }, [eventDraftForm.location?.state]);
   const [newDraftPlan, setNewDraftPlan] = useState({
     planName: "",
     planDescription: "",
@@ -195,6 +223,7 @@ export default function ClubMentorDashboard() {
     maxSeats: "",
   });
   const [savingEventDraft, setSavingEventDraft] = useState(false);
+  const [previewEvent, setPreviewEvent] = useState(null);
 
   // Reusable Confirmation Dialog State
   const [confirmDialog, setConfirmDialog] = useState({
@@ -208,13 +237,8 @@ export default function ClubMentorDashboard() {
   });
 
   useEffect(() => {
-    if (!routeProtection(["CLUB_MENTOR", "MENTOR"])) {
-      const currentRole = (localStorage.getItem("role") || "").toUpperCase();
-      if (currentRole === "PROFESSOR") {
-        navigate(`/campus-connect/professor/clubs/${clubId}`, { replace: true });
-      } else {
-        navigate("/auth", { replace: true });
-      }
+    if (!routeProtection(["CLUB_MENTOR", "MENTOR", "PRIMARY_MENTOR", "PROFESSOR"])) {
+      navigate("/auth", { replace: true });
       return;
     }
     loadAllDashboardData();
@@ -304,20 +328,11 @@ export default function ClubMentorDashboard() {
     }
     setSavingAnnDraft(true);
     try {
-      if (editingDraftId) {
-        await professorApi.updateMentorAnnouncement(clubId, editingDraftId, annDraftForm);
-        toast({
-          title: "Draft Updated",
-          description: "Announcement draft updated successfully.",
-        });
-      } else {
-        await professorApi.saveMentorAnnouncementDraft(clubId, annDraftForm);
-        toast({
-          title: "Draft Saved",
-          description: "Announcement draft saved successfully.",
-        });
-      }
-      setEditingDraftId(null);
+      await professorApi.saveMentorAnnouncementDraft(clubId, annDraftForm);
+      toast({
+        title: "Draft Saved",
+        description: "Announcement draft saved successfully.",
+      });
       setAnnDraftForm({ title: "", content: "" });
       setCreateAnnDraftOpen(false);
       const drafts = await professorApi.getMentorDraftAnnouncements(clubId);
@@ -344,13 +359,17 @@ export default function ClubMentorDashboard() {
       confirmText: "Publish Now",
       variant: "success",
       loading: false,
+      loadingText: "Publishing...",
       onConfirm: async () => {
         try {
+          setConfirmDialog((prev) => ({ ...prev, loading: true }));
           await professorApi.publishMentorAnnouncementDraft(clubId, annId);
           toast({
             title: "Announcement Published",
             description: "Draft published to campus community.",
           });
+          setConfirmDialog((prev) => ({ ...prev, open: false }));
+          setLoading(true);
           const [pub, drf] = await Promise.all([
             professorApi.getMentorPublishedAnnouncements(clubId),
             professorApi.getMentorDraftAnnouncements(clubId),
@@ -363,8 +382,9 @@ export default function ClubMentorDashboard() {
             description: err.message,
             variant: "destructive",
           });
-        } finally {
           setConfirmDialog((prev) => ({ ...prev, open: false }));
+        } finally {
+          setLoading(false);
         }
       },
     });
@@ -379,13 +399,17 @@ export default function ClubMentorDashboard() {
       confirmText: "Delete Draft",
       variant: "destructive",
       loading: false,
+      loadingText: "Deleting...",
       onConfirm: async () => {
         try {
+          setConfirmDialog((prev) => ({ ...prev, loading: true }));
           await professorApi.deleteMentorAnnouncementDraft(clubId, annId);
           toast({
             title: "Draft Deleted",
             description: "Announcement draft was removed.",
           });
+          setConfirmDialog((prev) => ({ ...prev, open: false }));
+          setLoading(true);
           const drf = await professorApi.getMentorDraftAnnouncements(clubId);
           setDraftAnnouncements(drf || []);
         } catch (err) {
@@ -394,8 +418,9 @@ export default function ClubMentorDashboard() {
             description: err.message,
             variant: "destructive",
           });
-        } finally {
           setConfirmDialog((prev) => ({ ...prev, open: false }));
+        } finally {
+          setLoading(false);
         }
       },
     });
@@ -410,13 +435,17 @@ export default function ClubMentorDashboard() {
       confirmText: "Approve & Publish",
       variant: "success",
       loading: false,
+      loadingText: "Approving...",
       onConfirm: async () => {
         try {
+          setConfirmDialog((prev) => ({ ...prev, loading: true }));
           await professorApi.approveMentorAnnouncement(clubId, annId);
           toast({
             title: "Announcement Approved",
             description: "The announcement is now published.",
           });
+          setConfirmDialog((prev) => ({ ...prev, open: false }));
+          setLoading(true);
           const [pub, pnd] = await Promise.all([
             professorApi.getMentorPublishedAnnouncements(clubId),
             professorApi.getMentorPendingAnnouncements(clubId),
@@ -429,8 +458,9 @@ export default function ClubMentorDashboard() {
             description: err.message,
             variant: "destructive",
           });
-        } finally {
           setConfirmDialog((prev) => ({ ...prev, open: false }));
+        } finally {
+          setLoading(false);
         }
       },
     });
@@ -445,13 +475,17 @@ export default function ClubMentorDashboard() {
       confirmText: "Reject Announcement",
       variant: "destructive",
       loading: false,
+      loadingText: "Rejecting...",
       onConfirm: async () => {
         try {
+          setConfirmDialog((prev) => ({ ...prev, loading: true }));
           await professorApi.rejectMentorAnnouncement(clubId, annId);
           toast({
             title: "Announcement Rejected",
             description: "The announcement submission was rejected.",
           });
+          setConfirmDialog((prev) => ({ ...prev, open: false }));
+          setLoading(true);
           const pnd = await professorApi.getMentorPendingAnnouncements(clubId);
           setPendingAnnouncements(pnd || []);
         } catch (err) {
@@ -460,8 +494,9 @@ export default function ClubMentorDashboard() {
             description: err.message,
             variant: "destructive",
           });
-        } finally {
           setConfirmDialog((prev) => ({ ...prev, open: false }));
+        } finally {
+          setLoading(false);
         }
       },
     });
@@ -571,13 +606,17 @@ export default function ClubMentorDashboard() {
       confirmText: "Publish Event",
       variant: "success",
       loading: false,
+      loadingText: "Publishing...",
       onConfirm: async () => {
         try {
+          setConfirmDialog((prev) => ({ ...prev, loading: true }));
           await professorApi.publishMentorEventDraft(clubId, eventId);
           toast({
             title: "Event Published",
             description: "Event is now live and published.",
           });
+          setConfirmDialog((prev) => ({ ...prev, open: false }));
+          setLoading(true);
           const [pub, drf] = await Promise.all([
             professorApi.getMentorPublishedEvents(clubId),
             professorApi.getMentorDraftEvents(clubId),
@@ -590,8 +629,9 @@ export default function ClubMentorDashboard() {
             description: err.message,
             variant: "destructive",
           });
-        } finally {
           setConfirmDialog((prev) => ({ ...prev, open: false }));
+        } finally {
+          setLoading(false);
         }
       },
     });
@@ -606,13 +646,17 @@ export default function ClubMentorDashboard() {
       confirmText: "Delete Draft",
       variant: "destructive",
       loading: false,
+      loadingText: "Deleting...",
       onConfirm: async () => {
         try {
+          setConfirmDialog((prev) => ({ ...prev, loading: true }));
           await professorApi.deleteMentorEventDraft(clubId, eventId);
           toast({
             title: "Draft Deleted",
             description: "Event draft was removed.",
           });
+          setConfirmDialog((prev) => ({ ...prev, open: false }));
+          setLoading(true);
           const drf = await professorApi.getMentorDraftEvents(clubId);
           setDraftEvents(drf || []);
         } catch (err) {
@@ -621,8 +665,9 @@ export default function ClubMentorDashboard() {
             description: err.message,
             variant: "destructive",
           });
-        } finally {
           setConfirmDialog((prev) => ({ ...prev, open: false }));
+        } finally {
+          setLoading(false);
         }
       },
     });
@@ -637,13 +682,17 @@ export default function ClubMentorDashboard() {
       confirmText: "Approve & Publish",
       variant: "success",
       loading: false,
+      loadingText: "Approving...",
       onConfirm: async () => {
         try {
+          setConfirmDialog((prev) => ({ ...prev, loading: true }));
           await professorApi.approveMentorEvent(clubId, eventId);
           toast({
             title: "Event Approved",
             description: "The event is now officially published.",
           });
+          setConfirmDialog((prev) => ({ ...prev, open: false }));
+          setLoading(true);
           const [pub, pnd] = await Promise.all([
             professorApi.getMentorPublishedEvents(clubId),
             professorApi.getMentorPendingEvents(clubId),
@@ -656,8 +705,9 @@ export default function ClubMentorDashboard() {
             description: err.message,
             variant: "destructive",
           });
-        } finally {
           setConfirmDialog((prev) => ({ ...prev, open: false }));
+        } finally {
+          setLoading(false);
         }
       },
     });
@@ -672,13 +722,17 @@ export default function ClubMentorDashboard() {
       confirmText: "Reject Event",
       variant: "destructive",
       loading: false,
+      loadingText: "Rejecting...",
       onConfirm: async () => {
         try {
+          setConfirmDialog((prev) => ({ ...prev, loading: true }));
           await professorApi.rejectMentorEvent(clubId, eventId);
           toast({
             title: "Event Rejected",
             description: "The event submission was rejected.",
           });
+          setConfirmDialog((prev) => ({ ...prev, open: false }));
+          setLoading(true);
           const pnd = await professorApi.getMentorPendingEvents(clubId);
           setPendingEvents(pnd || []);
         } catch (err) {
@@ -687,8 +741,9 @@ export default function ClubMentorDashboard() {
             description: err.message,
             variant: "destructive",
           });
-        } finally {
           setConfirmDialog((prev) => ({ ...prev, open: false }));
+        } finally {
+          setLoading(false);
         }
       },
     });
@@ -1042,6 +1097,37 @@ export default function ClubMentorDashboard() {
               </Card>
 
               {/* Recent Announcements (5) */}
+              {/* Pending Announcements Alert */}
+              {pendingAnnouncements.length > 0 && (
+                <Card className="border-amber-500/30 bg-amber-500/5 shadow-sm mb-4">
+                  <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-amber-500/20 text-amber-600 flex items-center justify-center shrink-0">
+                        <Megaphone className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-amber-700 dark:text-amber-500">
+                          Announcements Awaiting Review
+                        </h4>
+                        <p className="text-xs text-amber-600/80 dark:text-amber-500/80 mt-0.5">
+                          You have {pendingAnnouncements.length} pending announcement{pendingAnnouncements.length === 1 ? "" : "s"} waiting for your approval.
+                        </p>
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={() => {
+                        setTab("announcements");
+                        setAnnouncementSubtab("pending");
+                        navigate(`/campus-connect/professor/clubs/${clubId}/mentor-dashboard/announcements`);
+                      }}
+                      className="shrink-0 bg-amber-600 hover:bg-amber-700 text-white border-0"
+                    >
+                      Review Now
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
               <Card className="border-border/80 shadow-xs">
                 <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border/60 flex flex-row items-center justify-between">
                   <div>
@@ -1112,11 +1198,7 @@ export default function ClubMentorDashboard() {
                 </div>
                 <Button
                   size="sm"
-                  onClick={() => {
-                    setEditingDraftId(null);
-                    setAnnDraftForm({ title: "", content: "" });
-                    setCreateAnnDraftOpen(true);
-                  }}
+                  onClick={() => setCreateAnnDraftOpen(true)}
                   className="sm:hidden h-8 text-xs font-semibold shadow-xs gap-1 px-2.5 shrink-0"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -1127,11 +1209,7 @@ export default function ClubMentorDashboard() {
               <div className="hidden sm:flex items-center gap-2 shrink-0">
                 <Button
                   size="sm"
-                  onClick={() => {
-                    setEditingDraftId(null);
-                    setAnnDraftForm({ title: "", content: "" });
-                    setCreateAnnDraftOpen(true);
-                  }}
+                  onClick={() => setCreateAnnDraftOpen(true)}
                   className="h-9 text-xs font-semibold shadow-xs gap-1.5 px-3.5"
                 >
                   <Plus className="w-4 h-4" />
@@ -1206,7 +1284,7 @@ export default function ClubMentorDashboard() {
                                 {ann.title}
                               </h4>
                               <p className="text-[11px] text-muted-foreground mt-0.5">
-                                {ann.clubName || dashboardData?.clubName}
+                                {ann.clubName || dashboardData.clubName}
                               </p>
                             </div>
                           </div>
@@ -1214,19 +1292,11 @@ export default function ClubMentorDashboard() {
                             Published
                           </Badge>
                         </div>
-                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-3 whitespace-pre-line break-words pl-0 sm:pl-10.5">
+                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed whitespace-pre-line break-words pl-0 sm:pl-10.5">
                           {ann.content}
                         </p>
                         <div className="pt-2 text-[11px] text-muted-foreground flex flex-wrap items-center justify-between gap-1 border-t border-border/50">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setViewAnnouncement(ann)}
-                            className="h-7 text-xs gap-1"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            View Full Details
-                          </Button>
+                          <span className="font-medium text-foreground/80">Active Campus Announcement</span>
                           <span>{ann.createdAt ? new Date(ann.createdAt).toLocaleString() : ""}</span>
                         </div>
                       </CardContent>
@@ -1271,54 +1341,28 @@ export default function ClubMentorDashboard() {
                             Mentor Draft
                           </Badge>
                         </div>
-                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-3 whitespace-pre-line break-words pl-0 sm:pl-10.5">
+                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed whitespace-pre-line break-words pl-0 sm:pl-10.5">
                           {ann.content}
                         </p>
-                        <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-border/50">
-                          <div className="flex items-center gap-1.5">
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDeleteAnnouncementDraft(ann.id)}
-                              className="text-xs h-7 font-medium"
-                            >
-                              <Trash2 className="w-3.5 h-3.5 mr-1" />
-                              Delete
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setEditingDraftId(ann.id);
-                                setAnnDraftForm({ title: ann.title || "", content: ann.content || "" });
-                                setCreateAnnDraftOpen(true);
-                              }}
-                              className="text-xs h-7 gap-1"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                              Edit
-                            </Button>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setViewAnnouncement(ann)}
-                              className="text-xs h-7 gap-1"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              View
-                            </Button>
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={() => handlePublishAnnouncementDraft(ann.id)}
-                              className="text-xs h-7 font-medium shadow-xs"
-                            >
-                              <Send className="w-3.5 h-3.5 mr-1" />
-                              Publish Draft
-                            </Button>
-                          </div>
+                        <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-3 border-t border-border/50">
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteAnnouncementDraft(ann.id)}
+                            className="text-xs h-8 font-medium w-full sm:w-auto"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 mr-1" />
+                            Delete Draft
+                          </Button>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => handlePublishAnnouncementDraft(ann.id)}
+                            className="text-xs h-8 font-medium shadow-xs w-full sm:w-auto"
+                          >
+                            <Send className="w-3.5 h-3.5 mr-1" />
+                            Publish Draft
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
@@ -1383,39 +1427,28 @@ export default function ClubMentorDashboard() {
                             Awaiting Review
                           </Badge>
                         </div>
-                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-3 whitespace-pre-line break-words pl-0 sm:pl-10.5">
+                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed whitespace-pre-line break-words pl-0 sm:pl-10.5">
                           {ann.content}
                         </p>
-                        <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-border/50">
+                        <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-3 border-t border-border/50">
                           <Button
-                            variant="outline"
+                            variant="destructive"
                             size="sm"
-                            onClick={() => setViewAnnouncement(ann)}
-                            className="h-7 text-xs gap-1"
+                            onClick={() => handleRejectAnnouncement(ann.id)}
+                            className="text-xs h-8 font-medium w-full sm:w-auto"
                           >
-                            <Eye className="w-3.5 h-3.5" />
-                            View Full Details
+                            <XCircle className="w-3.5 h-3.5 mr-1" />
+                            Reject
                           </Button>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleRejectAnnouncement(ann.id)}
-                              className="text-xs h-7 font-medium"
-                            >
-                              <XCircle className="w-3.5 h-3.5 mr-1" />
-                              Reject
-                            </Button>
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={() => handleApproveAnnouncement(ann.id)}
-                              className="text-xs h-7 font-medium shadow-xs"
-                            >
-                              <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                              Approve & Publish
-                            </Button>
-                          </div>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => handleApproveAnnouncement(ann.id)}
+                            className="text-xs h-8 font-medium shadow-xs w-full sm:w-auto"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                            Approve & Publish
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
@@ -1462,55 +1495,68 @@ export default function ClubMentorDashboard() {
               </div>
             </div>
 
-            {/* Subtab Switcher */}
-            <div className="grid grid-cols-2 sm:flex sm:items-center gap-1.5 sm:gap-1 p-1 bg-muted/60 dark:bg-muted/40 rounded-xl border border-border/60 w-full sm:w-auto shrink-0">
-              <button
-                type="button"
-                onClick={() => setEventSubtab("published")}
-                className={`w-full sm:w-auto px-3 py-2 sm:py-1.5 text-xs sm:text-sm rounded-lg font-semibold transition-all text-center justify-center flex items-center ${
-                  eventSubtab === "published"
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-                }`}
-              >
-                Active
-              </button>
+            {/* Filter Bar: Search and Subtabs */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-0.5">
+              <div className="relative w-full sm:max-w-xs md:max-w-sm">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                <Input
+                  placeholder="Search events by title or venue..."
+                  value={eventSearch}
+                  onChange={(e) => setEventSearch(e.target.value)}
+                  className="pl-9 text-xs sm:text-sm h-9 rounded-xl border-border/70 bg-background w-full"
+                />
+              </div>
 
-              <button
-                type="button"
-                onClick={() => setEventSubtab("finished")}
-                className={`w-full sm:w-auto px-3 py-2 sm:py-1.5 text-xs sm:text-sm rounded-lg font-semibold transition-all text-center justify-center flex items-center ${
-                  eventSubtab === "finished"
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-                }`}
-              >
-                Finished
-              </button>
+              {/* Subtab Switcher */}
+              <div className="grid grid-cols-2 sm:flex sm:items-center gap-1.5 sm:gap-1 p-1 bg-muted/60 dark:bg-muted/40 rounded-xl border border-border/60 w-full sm:w-auto shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setEventSubtab("published")}
+                  className={`w-full sm:w-auto px-3 py-2 sm:py-1.5 text-xs sm:text-sm rounded-lg font-semibold transition-all text-center justify-center flex items-center ${
+                    eventSubtab === "published"
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                  }`}
+                >
+                  Active
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setEventSubtab("drafts")}
-                className={`w-full sm:w-auto px-3 py-2 sm:py-1.5 text-xs sm:text-sm rounded-lg font-semibold transition-all text-center justify-center flex items-center ${
-                  eventSubtab === "drafts"
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-                }`}
-              >
-                Drafts
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setEventSubtab("finished")}
+                  className={`w-full sm:w-auto px-3 py-2 sm:py-1.5 text-xs sm:text-sm rounded-lg font-semibold transition-all text-center justify-center flex items-center ${
+                    eventSubtab === "finished"
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                  }`}
+                >
+                  Finished
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setEventSubtab("pending")}
-                className={`w-full sm:w-auto px-3 py-2 sm:py-1.5 text-xs sm:text-sm rounded-lg font-semibold transition-all text-center justify-center flex items-center ${
-                  eventSubtab === "pending"
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-                }`}
-              >
-                Pending
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setEventSubtab("drafts")}
+                  className={`w-full sm:w-auto px-3 py-2 sm:py-1.5 text-xs sm:text-sm rounded-lg font-semibold transition-all text-center justify-center flex items-center ${
+                    eventSubtab === "drafts"
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                  }`}
+                >
+                  Drafts
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setEventSubtab("pending")}
+                  className={`w-full sm:w-auto px-3 py-2 sm:py-1.5 text-xs sm:text-sm rounded-lg font-semibold transition-all text-center justify-center flex items-center ${
+                    eventSubtab === "pending"
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                  }`}
+                >
+                  Pending
+                </button>
+              </div>
             </div>
 
             {/* Subtab Content: Published */}
@@ -1527,38 +1573,96 @@ export default function ClubMentorDashboard() {
                     </CardContent>
                   </Card>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                    {publishedEvents.map((evt) => (
-                      <Card key={evt.id} className="border-border/80 shadow-xs hover:border-primary/30 transition-colors">
-                        <CardContent className="p-4 sm:p-5 space-y-2.5">
-                          <div className="flex items-start justify-between gap-2">
-                            <h4 className="text-sm sm:text-base font-bold text-foreground break-words leading-snug">
-                              {evt.title}
-                            </h4>
-                            <Badge variant="outline" className="text-[10px] font-semibold shrink-0">
-                              Active
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                            {evt.description || "Club event."}
-                          </p>
-                          <div className="space-y-1.5 pt-2 border-t border-border/50 text-[11px] text-muted-foreground">
-                            {evt.startTime && (
-                              <div className="flex items-center gap-1.5">
-                                <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
-                                <span className="truncate">Start: {new Date(evt.startTime).toLocaleString()}</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                    {publishedEvents.filter((evt) => {
+                      if (!eventSearch) return true;
+                      const q = eventSearch.toLowerCase();
+                      const locStr = typeof evt.location === "object" ? evt.location.address : evt.location;
+                      return (evt.title && evt.title.toLowerCase().includes(q)) || (locStr && locStr.toLowerCase().includes(q));
+                    }).map((evt) => {
+                      const isGlobal = Boolean(evt.isGlobal || evt.global || evt.state >= 5);
+                      const poster = evt.imageUrl || evt.coverImage || evt.image || evt.posterUrl;
+                      const clubName = evt.clubName || dashboardData?.clubName;
+                      return (
+                        <Card key={evt.id} className="flex flex-col justify-between border-border/80 hover:border-primary/40 hover:shadow-md transition-all duration-200 overflow-hidden group">
+                          <div>
+                            {/* Event Cover Banner */}
+                            <div className="h-44 w-full bg-gradient-to-br from-primary/10 via-accent/20 to-muted relative overflow-hidden border-b border-border/60">
+                              {poster ? (
+                                <img src={poster} alt={evt.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={(e) => { e.target.style.display = "none"; }} />
+                              ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/60 p-4 text-center">
+                                  <Calendar className="w-10 h-10 text-primary/40 mb-1" />
+                                  <span className="text-xs font-medium">Campus Connect Event</span>
+                                </div>
+                              )}
+                              {/* Badges on Top */}
+                              <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5 max-w-[70%]">
+                                <Badge className="bg-emerald-500 text-white border border-emerald-500 text-[10px] font-bold shadow-xs">
+                                  Active
+                                </Badge>
                               </div>
-                            )}
-                            {evt.location && (
-                              <div className="flex items-center gap-1.5">
-                                <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
-                                <span className="truncate">{evt.location}</span>
+                              <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
+                                {isGlobal ? (
+                                  <Badge className="bg-indigo-600 text-white text-[10px] font-bold shadow-xs flex items-center gap-1">
+                                    <Globe className="w-3 h-3" /> Global
+                                  </Badge>
+                                ) : (
+                                  <Badge className="bg-secondary text-secondary-foreground text-[10px] font-bold shadow-xs flex items-center gap-1">
+                                    <Building2 className="w-3 h-3" /> Campus
+                                  </Badge>
+                                )}
                               </div>
-                            )}
+                            </div>
+                            <CardContent className="p-4 sm:p-5 space-y-3">
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <Badge variant="outline" className="text-[10px] font-semibold bg-primary/5 text-primary border-primary/20 truncate">
+                                    {clubName || "Club Event"}
+                                  </Badge>
+                                  {evt.eventType && (
+                                    <span className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+                                      {evt.eventType === "ONLINE" ? (<><Globe className="w-3 h-3 text-sky-500" /> Online</>) : (<><MapPin className="w-3 h-3 text-emerald-500" /> Offline</>)}
+                                    </span>
+                                  )}
+                                </div>
+                                <h3 className="text-base font-bold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                                  {evt.title}
+                                </h3>
+                              </div>
+                              <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                                {evt.description || "No description provided."}
+                              </p>
+                              <div className="pt-2 border-t border-border/60 space-y-1.5 text-xs text-muted-foreground">
+                                {evt.startTime && (
+                                  <div className="flex items-center gap-1.5">
+                                    <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
+                                    <span>{new Date(evt.startTime).toLocaleString()}</span>
+                                  </div>
+                                )}
+                                {evt.location && (
+                                  <div className="flex items-center gap-1.5">
+                                    <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
+                                    <span className="truncate">{typeof evt.location === "object" ? evt.location.address : evt.location}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                          <div className="p-3.5 bg-muted/20 border-t border-border/40 mt-auto flex items-center justify-end gap-2.5">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setPreviewEvent(evt)}
+                              className="h-9 text-[11px] font-semibold w-full sm:w-auto px-4 border-primary/20 text-primary hover:bg-primary/5"
+                            >
+                              <Eye className="w-3.5 h-3.5 mr-1.5" />
+                              View Details
+                            </Button>
+                          </div>
+                        </Card>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1578,28 +1682,83 @@ export default function ClubMentorDashboard() {
                     </CardContent>
                   </Card>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                    {finishedEvents.map((evt) => (
-                      <Card key={evt.id} className="border-border/80 shadow-xs opacity-90">
-                        <CardContent className="p-4 sm:p-5 space-y-2.5">
-                          <div className="flex items-start justify-between gap-2">
-                            <h4 className="text-sm sm:text-base font-bold text-foreground break-words leading-snug">
-                              {evt.title}
-                            </h4>
-                            <Badge variant="secondary" className="text-[10px] font-semibold shrink-0">
-                              Finished
-                            </Badge>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                    {finishedEvents.filter((evt) => {
+                      if (!eventSearch) return true;
+                      const q = eventSearch.toLowerCase();
+                      const locStr = typeof evt.location === "object" ? evt.location.address : evt.location;
+                      return (evt.title && evt.title.toLowerCase().includes(q)) || (locStr && locStr.toLowerCase().includes(q));
+                    }).map((evt) => {
+                      const poster = evt.imageUrl || evt.coverImage || evt.image || evt.posterUrl;
+                      const clubName = evt.clubName || dashboardData?.clubName;
+                      return (
+                        <Card key={evt.id} className="flex flex-col justify-between border-border/80 hover:border-primary/40 hover:shadow-md transition-all duration-200 overflow-hidden group">
+                          <div>
+                            {/* Event Cover Banner */}
+                            <div className="h-44 w-full bg-gradient-to-br from-primary/10 via-accent/20 to-muted relative overflow-hidden border-b border-border/60">
+                              {poster ? (
+                                <img src={poster} alt={evt.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={(e) => { e.target.style.display = "none"; }} />
+                              ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/60 p-4 text-center">
+                                  <Calendar className="w-10 h-10 text-primary/40 mb-1" />
+                                  <span className="text-xs font-medium">Campus Connect Event</span>
+                                </div>
+                              )}
+                              <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5 max-w-[70%]">
+                                <Badge className="bg-secondary text-secondary-foreground border border-secondary text-[10px] font-bold shadow-xs">
+                                  Finished
+                                </Badge>
+                              </div>
+                            </div>
+                            <CardContent className="p-4 sm:p-5 space-y-3">
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <Badge variant="outline" className="text-[10px] font-semibold bg-primary/5 text-primary border-primary/20 truncate">
+                                    {clubName || "Club Event"}
+                                  </Badge>
+                                  {evt.eventType && (
+                                    <span className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+                                      {evt.eventType === "ONLINE" ? (<><Globe className="w-3 h-3 text-sky-500" /> Online</>) : (<><MapPin className="w-3 h-3 text-emerald-500" /> Offline</>)}
+                                    </span>
+                                  )}
+                                </div>
+                                <h3 className="text-base font-bold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                                  {evt.title}
+                                </h3>
+                              </div>
+                              <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                                {evt.description || "No description provided."}
+                              </p>
+                              <div className="pt-2 border-t border-border/60 space-y-1.5 text-xs text-muted-foreground">
+                                {evt.endTime && (
+                                  <div className="flex items-center gap-1.5">
+                                    <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
+                                    <span>{new Date(evt.endTime).toLocaleString()}</span>
+                                  </div>
+                                )}
+                                {evt.location && (
+                                  <div className="flex items-center gap-1.5">
+                                    <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
+                                    <span className="truncate">{typeof evt.location === "object" ? evt.location.address : evt.location}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
                           </div>
-                          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                            {evt.description || "Concluded club event."}
-                          </p>
-                          <div className="pt-2 border-t border-border/50 text-[11px] text-muted-foreground flex items-center gap-1.5">
-                            <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                            <span className="truncate">Ended: {evt.endTime ? new Date(evt.endTime).toLocaleString() : "Past"}</span>
+                          <div className="p-3.5 bg-muted/20 border-t border-border/40 mt-auto flex items-center justify-end gap-2.5">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate(`/campus-connect/student/events/${evt.id}`)}
+                              className="h-9 text-[11px] font-semibold w-full sm:w-auto px-4 border-primary/20 text-primary hover:bg-primary/5"
+                            >
+                              <Eye className="w-3.5 h-3.5 mr-1.5" />
+                              Details
+                            </Button>
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                        </Card>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1619,33 +1778,84 @@ export default function ClubMentorDashboard() {
                     </CardContent>
                   </Card>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                    {draftEvents.map((evt) => (
-                      <Card key={evt.id} className="border-border/80 shadow-xs hover:border-primary/30 transition-colors">
-                        <CardContent className="p-4 sm:p-5 space-y-3">
-                          <div className="flex items-start justify-between gap-2">
-                            <h4 className="text-sm sm:text-base font-bold text-foreground break-words leading-snug">
-                              {evt.title}
-                            </h4>
-                            <Badge variant="secondary" className="text-[10px] font-semibold shrink-0">
-                              Mentor Draft
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                            {evt.description || "Draft event description."}
-                          </p>
-                          {evt.startTime && (
-                            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                              <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
-                              <span className="truncate">Proposed: {new Date(evt.startTime).toLocaleString()}</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                    {draftEvents.filter((evt) => {
+                      if (!eventSearch) return true;
+                      const q = eventSearch.toLowerCase();
+                      const locStr = typeof evt.location === "object" ? evt.location.address : evt.location;
+                      return (evt.title && evt.title.toLowerCase().includes(q)) || (locStr && locStr.toLowerCase().includes(q));
+                    }).map((evt) => {
+                      const poster = evt.imageUrl || evt.coverImage || evt.image || evt.posterUrl;
+                      const clubName = evt.clubName || dashboardData?.clubName;
+                      return (
+                        <Card key={evt.id} className="flex flex-col justify-between border-border/80 hover:border-primary/40 hover:shadow-md transition-all duration-200 overflow-hidden group">
+                          <div>
+                            {/* Event Cover Banner */}
+                            <div className="h-44 w-full bg-gradient-to-br from-primary/10 via-accent/20 to-muted relative overflow-hidden border-b border-border/60">
+                              {poster ? (
+                                <img src={poster} alt={evt.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={(e) => { e.target.style.display = "none"; }} />
+                              ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/60 p-4 text-center">
+                                  <Calendar className="w-10 h-10 text-primary/40 mb-1" />
+                                  <span className="text-xs font-medium">Campus Connect Event</span>
+                                </div>
+                              )}
+                              <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5 max-w-[70%]">
+                                <Badge className="bg-secondary text-secondary-foreground border border-secondary text-[10px] font-bold shadow-xs">
+                                  Draft
+                                </Badge>
+                              </div>
                             </div>
-                          )}
-                          <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-3 border-t border-border/50">
+                            <CardContent className="p-4 sm:p-5 space-y-3">
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <Badge variant="outline" className="text-[10px] font-semibold bg-primary/5 text-primary border-primary/20 truncate">
+                                    {clubName || "Club Event"}
+                                  </Badge>
+                                  {evt.eventType && (
+                                    <span className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+                                      {evt.eventType === "ONLINE" ? (<><Globe className="w-3 h-3 text-sky-500" /> Online</>) : (<><MapPin className="w-3 h-3 text-emerald-500" /> Offline</>)}
+                                    </span>
+                                  )}
+                                </div>
+                                <h3 className="text-base font-bold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                                  {evt.title}
+                                </h3>
+                              </div>
+                              <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                                {evt.description || "No description provided."}
+                              </p>
+                              <div className="pt-2 border-t border-border/60 space-y-1.5 text-xs text-muted-foreground">
+                                {evt.startTime && (
+                                  <div className="flex items-center gap-1.5">
+                                    <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
+                                    <span>{new Date(evt.startTime).toLocaleString()}</span>
+                                  </div>
+                                )}
+                                {evt.location && (
+                                  <div className="flex items-center gap-1.5">
+                                    <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
+                                    <span className="truncate">{typeof evt.location === "object" ? evt.location.address : evt.location}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
+                          </div>
+                          <div className="p-3.5 bg-muted/20 border-t border-border/40 mt-auto flex items-center justify-between gap-2.5">
                             <Button
-                              variant="destructive"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setPreviewEvent({ ...evt, isDraft: true })}
+                              className="h-9 text-[11px] font-semibold w-full border-border/50 text-foreground hover:bg-accent px-1"
+                            >
+                              <Eye className="w-3.5 h-3.5 mr-1" />
+                              Preview
+                            </Button>
+                            <Button
+                              variant="outline"
                               size="sm"
                               onClick={() => handleDeleteEventDraft(evt.id)}
-                              className="text-xs h-8 font-medium w-full sm:w-auto"
+                              className="h-9 text-[11px] font-semibold w-full border-destructive/30 text-destructive hover:bg-destructive/10 px-1"
                             >
                               <Trash2 className="w-3.5 h-3.5 mr-1" />
                               Delete
@@ -1654,15 +1864,15 @@ export default function ClubMentorDashboard() {
                               variant="default"
                               size="sm"
                               onClick={() => handlePublishEventDraft(evt.id)}
-                              className="text-xs h-8 font-medium shadow-xs w-full sm:w-auto"
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white h-9 text-[11px] font-semibold shadow-xs w-full px-1"
                             >
                               <Send className="w-3.5 h-3.5 mr-1" />
-                              Publish Event
+                              Publish
                             </Button>
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                        </Card>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1703,41 +1913,84 @@ export default function ClubMentorDashboard() {
                     </CardContent>
                   </Card>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                    {pendingEvents.map((evt) => (
-                      <Card key={evt.id} className="border-border/80 shadow-xs hover:border-primary/30 transition-colors">
-                        <CardContent className="p-4 sm:p-5 space-y-3">
-                          <div className="flex items-start justify-between gap-2">
-                            <h4 className="text-sm sm:text-base font-bold text-foreground break-words leading-snug">
-                              {evt.title}
-                            </h4>
-                            <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 text-[10px] font-semibold shrink-0">
-                              Awaiting Approval
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                            {evt.description || "Submitted event proposal."}
-                          </p>
-                          <div className="space-y-1 text-[11px] text-muted-foreground">
-                            {evt.startTime && (
-                              <div className="flex items-center gap-1.5">
-                                <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
-                                <span className="truncate">Proposed: {new Date(evt.startTime).toLocaleString()}</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                    {pendingEvents.filter((evt) => {
+                      if (!eventSearch) return true;
+                      const q = eventSearch.toLowerCase();
+                      const locStr = typeof evt.location === "object" ? evt.location.address : evt.location;
+                      return (evt.title && evt.title.toLowerCase().includes(q)) || (locStr && locStr.toLowerCase().includes(q));
+                    }).map((evt) => {
+                      const poster = evt.imageUrl || evt.coverImage || evt.image || evt.posterUrl;
+                      const clubName = evt.clubName || dashboardData?.clubName;
+                      return (
+                        <Card key={evt.id} className="flex flex-col justify-between border-border/80 hover:border-amber-500/40 hover:shadow-md transition-all duration-200 overflow-hidden group">
+                          <div>
+                            {/* Event Cover Banner */}
+                            <div className="h-44 w-full bg-gradient-to-br from-amber-500/10 via-accent/20 to-muted relative overflow-hidden border-b border-border/60">
+                              {poster ? (
+                                <img src={poster} alt={evt.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={(e) => { e.target.style.display = "none"; }} />
+                              ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/60 p-4 text-center">
+                                  <Calendar className="w-10 h-10 text-amber-500/40 mb-1" />
+                                  <span className="text-xs font-medium">Campus Connect Event</span>
+                                </div>
+                              )}
+                              <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5 max-w-[70%]">
+                                <Badge className="bg-amber-500 text-white border border-amber-500 text-[10px] font-bold shadow-xs">
+                                  Awaiting Approval
+                                </Badge>
                               </div>
-                            )}
-                            {evt.location && (
-                              <div className="flex items-center gap-1.5">
-                                <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
-                                <span className="truncate">{evt.location}</span>
+                            </div>
+                            <CardContent className="p-4 sm:p-5 space-y-3">
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <Badge variant="outline" className="text-[10px] font-semibold bg-amber-500/10 text-amber-700 border-amber-500/30 truncate">
+                                    {clubName || "Club Event"}
+                                  </Badge>
+                                  {evt.eventType && (
+                                    <span className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+                                      {evt.eventType === "ONLINE" ? (<><Globe className="w-3 h-3 text-sky-500" /> Online</>) : (<><MapPin className="w-3 h-3 text-emerald-500" /> Offline</>)}
+                                    </span>
+                                  )}
+                                </div>
+                                <h3 className="text-base font-bold text-foreground line-clamp-1 group-hover:text-amber-600 transition-colors">
+                                  {evt.title}
+                                </h3>
                               </div>
-                            )}
+                              <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                                {evt.description || "No description provided."}
+                              </p>
+                              <div className="pt-2 border-t border-border/60 space-y-1.5 text-xs text-muted-foreground">
+                                {evt.startTime && (
+                                  <div className="flex items-center gap-1.5">
+                                    <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                    <span>{new Date(evt.startTime).toLocaleString()}</span>
+                                  </div>
+                                )}
+                                {evt.location && (
+                                  <div className="flex items-center gap-1.5">
+                                    <MapPin className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                    <span className="truncate">{typeof evt.location === "object" ? evt.location.address : evt.location}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
                           </div>
-                          <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-3 border-t border-border/50">
+                          <div className="p-3.5 bg-muted/20 border-t border-border/40 mt-auto flex items-center justify-between gap-2.5">
                             <Button
-                              variant="destructive"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setPreviewEvent(evt)}
+                              className="h-9 text-[11px] font-semibold w-full border-amber-500/30 text-amber-700 hover:bg-amber-50 px-1"
+                            >
+                              <Eye className="w-3.5 h-3.5 mr-1" />
+                              Preview
+                            </Button>
+                            <Button
+                              variant="outline"
                               size="sm"
                               onClick={() => handleRejectEvent(evt.id)}
-                              className="text-xs h-8 font-medium w-full sm:w-auto"
+                              className="h-9 text-[11px] font-semibold w-full border-destructive/30 text-destructive hover:bg-destructive/10 px-1"
                             >
                               <XCircle className="w-3.5 h-3.5 mr-1" />
                               Reject
@@ -1746,15 +1999,15 @@ export default function ClubMentorDashboard() {
                               variant="default"
                               size="sm"
                               onClick={() => handleApproveEvent(evt.id)}
-                              className="text-xs h-8 font-medium shadow-xs w-full sm:w-auto"
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white h-9 text-[11px] font-semibold shadow-xs w-full px-1"
                             >
                               <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                              Approve & Publish
+                              Approve
                             </Button>
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                        </Card>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -2356,20 +2609,15 @@ export default function ClubMentorDashboard() {
           </TabsContent>
         </Tabs>
 
-        {/* Dialog: Create/Edit Announcement Draft */}
-        <Dialog open={createAnnDraftOpen} onOpenChange={(open) => {
-          setCreateAnnDraftOpen(open);
-          if (!open) setEditingDraftId(null);
-        }}>
+        {/* Dialog: Create Announcement Draft */}
+        <Dialog open={createAnnDraftOpen} onOpenChange={setCreateAnnDraftOpen}>
           <DialogContent className="w-[95vw] sm:max-w-lg rounded-2xl p-4 sm:p-6">
             <DialogHeader>
               <DialogTitle className="text-base sm:text-lg font-bold">
-                {editingDraftId ? "Edit Announcement Draft" : "Create Announcement Draft"}
+                Create Announcement Draft
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
-                {editingDraftId
-                  ? "Update your saved bulletin draft for " + (dashboardData?.clubName || "this club") + "."
-                  : "Draft a new bulletin for " + (dashboardData?.clubName || "this club") + ". You can edit and publish it anytime."}
+                Draft a new bulletin for {dashboardData.clubName}. You can edit and publish it anytime.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSaveAnnouncementDraft} className="space-y-4 pt-2">
@@ -2387,13 +2635,14 @@ export default function ClubMentorDashboard() {
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-foreground">Content / Body</label>
-                <MarkdownEditor
+                <Textarea
                   value={annDraftForm.content}
-                  onChange={(val) =>
-                    setAnnDraftForm((prev) => ({ ...prev, content: val }))
+                  onChange={(e) =>
+                    setAnnDraftForm((prev) => ({ ...prev, content: e.target.value }))
                   }
-                  placeholder="Provide complete announcement details, instructions, links, or meeting info in Markdown..."
-                  rows={6}
+                  placeholder="Provide complete announcement details, instructions, or meeting links..."
+                  rows={5}
+                  className="text-xs sm:text-sm"
                 />
               </div>
               <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-3 border-t border-border/60">
@@ -2401,10 +2650,7 @@ export default function ClubMentorDashboard() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => {
-                    setEditingDraftId(null);
-                    setCreateAnnDraftOpen(false);
-                  }}
+                  onClick={() => setCreateAnnDraftOpen(false)}
                   className="text-xs h-9"
                 >
                   Cancel
@@ -2415,55 +2661,10 @@ export default function ClubMentorDashboard() {
                   disabled={savingAnnDraft}
                   className="text-xs h-9 font-medium shadow-xs"
                 >
-                  {savingAnnDraft ? "Saving..." : (editingDraftId ? "Update Draft" : "Save Draft")}
+                  {savingAnnDraft ? "Saving..." : "Save Draft"}
                 </Button>
               </DialogFooter>
             </form>
-          </DialogContent>
-        </Dialog>
-
-        {/* Dialog: View Full Announcement Details */}
-        <Dialog
-          open={!!viewAnnouncement}
-          onOpenChange={(open) => !open && setViewAnnouncement(null)}
-        >
-          <DialogContent className="max-h-[90vh] max-w-lg w-full overflow-y-auto rounded-2xl p-4 sm:p-6">
-            <DialogHeader>
-              <div className="space-y-1">
-                <Badge
-                  variant="outline"
-                  className="text-xs font-semibold bg-primary/5 text-primary border-primary/20 mb-1"
-                >
-                  {viewAnnouncement?.clubName || dashboardData?.clubName || "Campus Club Announcement"}
-                </Badge>
-                <DialogTitle className="text-lg sm:text-xl font-bold text-foreground">
-                  {viewAnnouncement?.title}
-                </DialogTitle>
-                <DialogDescription className="sr-only">Announcement details</DialogDescription>
-              </div>
-            </DialogHeader>
-
-            {viewAnnouncement && (
-              <div className="space-y-4 pt-2 text-sm">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground border-b border-border/60 pb-2">
-                  <Calendar className="w-3.5 h-3.5 text-primary" />
-                  <span>
-                    {viewAnnouncement.createdAt
-                      ? new Date(viewAnnouncement.createdAt).toLocaleString()
-                      : "Recently"}
-                  </span>
-                </div>
-
-                <div>
-                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">
-                    Official Notice & Content
-                  </h4>
-                  <MarkdownViewer
-                    content={viewAnnouncement.content || viewAnnouncement.message || viewAnnouncement.description}
-                  />
-                </div>
-              </div>
-            )}
           </DialogContent>
         </Dialog>
 
@@ -2687,39 +2888,58 @@ export default function ClubMentorDashboard() {
                       className="text-xs sm:text-sm h-9"
                     />
                     <div className="grid grid-cols-3 gap-2">
-                      <Input
-                        placeholder="City"
-                        value={eventDraftForm.location?.city || ""}
-                        onChange={(e) =>
-                          setEventDraftForm((prev) => ({
-                            ...prev,
-                            location: { ...prev.location, city: e.target.value },
-                          }))
-                        }
-                        className="text-xs h-8"
-                      />
-                      <Input
-                        placeholder="State"
-                        value={eventDraftForm.location?.state || ""}
-                        onChange={(e) =>
-                          setEventDraftForm((prev) => ({
-                            ...prev,
-                            location: { ...prev.location, state: e.target.value },
-                          }))
-                        }
-                        className="text-xs h-8"
-                      />
-                      <Input
-                        placeholder="Country"
+                      <Select
                         value={eventDraftForm.location?.country || ""}
-                        onChange={(e) =>
+                        onValueChange={(val) =>
                           setEventDraftForm((prev) => ({
                             ...prev,
-                            location: { ...prev.location, country: e.target.value },
+                            location: { ...prev.location, country: val, state: "", city: "" },
                           }))
                         }
-                        className="text-xs h-8"
-                      />
+                      >
+                        <SelectTrigger className="text-xs h-8">
+                          <SelectValue placeholder="Country" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {countries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+
+                      <Select
+                        value={eventDraftForm.location?.state || ""}
+                        onValueChange={(val) =>
+                          setEventDraftForm((prev) => ({
+                            ...prev,
+                            location: { ...prev.location, state: val, city: "" },
+                          }))
+                        }
+                        disabled={!eventDraftForm.location?.country || statesList.length === 0}
+                      >
+                        <SelectTrigger className="text-xs h-8">
+                          <SelectValue placeholder="State" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {statesList.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+
+                      <Select
+                        value={eventDraftForm.location?.city || ""}
+                        onValueChange={(val) =>
+                          setEventDraftForm((prev) => ({
+                            ...prev,
+                            location: { ...prev.location, city: val },
+                          }))
+                        }
+                        disabled={!eventDraftForm.location?.state || citiesList.length === 0}
+                      >
+                        <SelectTrigger className="text-xs h-8">
+                          <SelectValue placeholder="City" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {citiesList.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </div>
@@ -2753,7 +2973,7 @@ export default function ClubMentorDashboard() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-foreground">Eligibility Criteria</label>
                   <Input
@@ -2761,17 +2981,6 @@ export default function ClubMentorDashboard() {
                     value={eventDraftForm.eligibility}
                     onChange={(e) =>
                       setEventDraftForm((prev) => ({ ...prev, eligibility: e.target.value }))
-                    }
-                    className="text-xs h-9"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-foreground">Selection Criteria</label>
-                  <Input
-                    placeholder="e.g. First-come first-served"
-                    value={eventDraftForm.criteria}
-                    onChange={(e) =>
-                      setEventDraftForm((prev) => ({ ...prev, criteria: e.target.value }))
                     }
                     className="text-xs h-9"
                   />
@@ -2826,6 +3035,13 @@ export default function ClubMentorDashboard() {
           onSubmit={handleReturnToProfessor}
           loading={returnLoading}
           error={returnError}
+        />
+        {/* Event Preview Modal */}
+        <EventPreviewModal
+          event={previewEvent}
+          open={!!previewEvent}
+          onClose={() => setPreviewEvent(null)}
+          clubName={dashboardData?.clubName || "Club Event"}
         />
       </div>
     </DashboardLayout>

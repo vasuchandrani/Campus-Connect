@@ -153,6 +153,11 @@ public class StudentController {
         return eventRegistrationService.unRegisterStudent(eventId);
     }
 
+    @GetMapping("/events/my-registrations")
+    public List<Long> getMyRegisteredEventIds() {
+        return eventRegistrationService.getMyRegisteredEventIds();
+    }
+
     // get all global active events
     @GetMapping("/events/global")
     public List<EventResponseDto> getGlobalEvents() {
