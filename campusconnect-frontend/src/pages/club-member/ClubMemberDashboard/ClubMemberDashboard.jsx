@@ -2,6 +2,7 @@ import "./ClubMemberDashboard.css";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import DashboardLayout from "../../../components/dashboard/DashboardLayout";
+import EventPreviewModal from "../../../components/ui/EventPreviewModal";
 import {
   Card,
   CardContent,
@@ -23,8 +24,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from "../../../components/ui/Dialog";
-import { MarkdownEditor } from "../../../components/ui/MarkdownEditor";
-import { MarkdownViewer } from "../../../components/ui/MarkdownViewer";
 import {
   Select,
   SelectContent,
@@ -59,8 +58,10 @@ import {
   UserX,
   Sparkles,
   GraduationCap,
+  Edit,
   Eye,
-  Edit2,
+  X,
+  Mic,
 } from "lucide-react";
 import { clubMemberNavItems } from "../../../config/Navigation";
 import { useAuth } from "../../../contexts/AuthContext";
@@ -68,7 +69,7 @@ import EmptyState from "../../../components/ui/EmptyState";
 import PageSkeleton from "../../../components/ui/PageSkeleton";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import SubDashboardLoginDialog from "../../../components/dashboard/SubDashboardLoginDialog";
-import { clubMemberApi } from "../../../services/api";
+import { clubMemberApi, studentApi, locationApi } from "../../../services/api";
 import { toast } from "../../../hooks/use-toast";
 
 export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
@@ -176,8 +177,6 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
   // Create Announcement Dialog State
   const [createAnnOpen, setCreateAnnOpen] = useState(false);
   const [annForm, setAnnForm] = useState({ title: "", content: "" });
-  const [editingDraftId, setEditingDraftId] = useState(null);
-  const [viewAnnouncement, setViewAnnouncement] = useState(null);
   const [submittingAnn, setSubmittingAnn] = useState(false);
 
   // Events Tab State
@@ -205,10 +204,44 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
     criteria: "",
     eligibility: "",
     prizeMoney: "",
+    speakers: [],
     image: null,
+  });
+  const [newSpeaker, setNewSpeaker] = useState({
+    name: "",
+    tagline: "",
+    email: "",
   });
   const [eventImagePreview, setEventImagePreview] = useState(null);
   const [submittingEvent, setSubmittingEvent] = useState(false);
+  const [previewEvent, setPreviewEvent] = useState(null);
+
+  // Dynamic Location State
+  const [countries, setCountries] = useState([]);
+  const [statesList, setStatesList] = useState([]);
+  const [citiesList, setCitiesList] = useState([]);
+
+  useEffect(() => {
+    if (createEventOpen) {
+      locationApi.getCountries().then(setCountries).catch(console.error);
+    }
+  }, [createEventOpen]);
+
+  useEffect(() => {
+    if (eventForm.location?.country) {
+      locationApi.getStates(eventForm.location.country).then(setStatesList).catch(console.error);
+    } else {
+      setStatesList([]);
+    }
+  }, [eventForm.location?.country]);
+
+  useEffect(() => {
+    if (eventForm.location?.state) {
+      locationApi.getCities(eventForm.location.state).then(setCitiesList).catch(console.error);
+    } else {
+      setCitiesList([]);
+    }
+  }, [eventForm.location?.state]);
 
   // Members Tab State (Read-Only)
   const [membersList, setMembersList] = useState([]);
@@ -226,7 +259,7 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
     confirmText: "Confirm",
     variant: "destructive",
     loading: false,
-    onConfirm: () => {},
+    onConfirm: () => { },
   });
 
   // -------------------------------------------------------------
@@ -237,16 +270,20 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
       const [name, statsData, recAnn, pubEvents] = await Promise.all([
         clubMemberApi.getClubName(clubId).catch(() => "Club Portal"),
         clubMemberApi.getStats(clubId).catch(() => ({})),
-        clubMemberApi.getLatestAnnouncements(clubId).catch(() => []),
+        clubMemberApi.getPublishedAnnouncements(clubId).catch(() => []),
         clubMemberApi.getPublishedEvents(clubId).catch(() => []),
       ]);
 
       if (typeof name === "string") setClubName(name);
+      // Fallback: Read logo from localStorage saved during Student Dashboard login
+      const fallbackLogo = localStorage.getItem(`clubLogo_${clubId}`) || null;
+
       setStats({
         followers: statsData?.followers || 0,
         members: statsData?.members || 0,
         teams: statsData?.teams || 0,
         events: statsData?.events || 0,
+        logoUrl: statsData?.logoUrl || fallbackLogo,
       });
 
       setRecentAnnouncements(Array.isArray(recAnn) ? recAnn.slice(0, 5) : []);
@@ -366,41 +403,21 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
     }
     setSubmittingAnn(true);
     try {
-      if (editingDraftId) {
-        // Updating an existing draft
-        await clubMemberApi.updateAnnouncement(clubId, editingDraftId, annForm);
-        if (isDraft) {
-          toast({
-            title: "Draft Updated",
-            description: "Announcement draft updated successfully.",
-          });
-          setAnnouncementSubtab("draft");
-        } else {
-          await clubMemberApi.publishAnnouncementDraft(clubId, editingDraftId);
-          toast({
-            title: "Announcement Submitted",
-            description: "Submitted for Club Admin approval.",
-          });
-          setAnnouncementSubtab("pending");
-        }
+      if (isDraft) {
+        await clubMemberApi.saveAnnouncementDraft(clubId, annForm);
+        toast({
+          title: "Draft Saved",
+          description: "Announcement saved to your personal drafts.",
+        });
+        setAnnouncementSubtab("draft");
       } else {
-        if (isDraft) {
-          await clubMemberApi.saveAnnouncementDraft(clubId, annForm);
-          toast({
-            title: "Draft Saved",
-            description: "Announcement saved to your personal drafts.",
-          });
-          setAnnouncementSubtab("draft");
-        } else {
-          await clubMemberApi.createAnnouncement(clubId, annForm);
-          toast({
-            title: "Announcement Submitted",
-            description: "Submitted for Club Admin approval.",
-          });
-          setAnnouncementSubtab("pending");
-        }
+        await clubMemberApi.createAnnouncement(clubId, annForm);
+        toast({
+          title: "Announcement Submitted",
+          description: "Submitted for Club Admin approval.",
+        });
+        setAnnouncementSubtab("pending");
       }
-      setEditingDraftId(null);
       setAnnForm({ title: "", content: "" });
       setCreateAnnOpen(false);
       await Promise.all([fetchAnnouncementsData(), fetchDashboardStatsAndFeeds()]);
@@ -485,6 +502,34 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
     }
   };
 
+  const handleRemoveEventImage = () => {
+    setEventForm((prev) => ({ ...prev, image: null, coverImage: null }));
+    setEventImagePreview(null);
+  };
+
+  const handleAddSpeaker = () => {
+    if (!newSpeaker.name.trim()) return;
+    setEventForm((prev) => ({
+      ...prev,
+      speakers: [
+        ...(prev.speakers || []),
+        {
+          name: newSpeaker.name.trim(),
+          tagline: (newSpeaker.tagline || "").trim(),
+          email: (newSpeaker.email || "").trim(),
+        },
+      ],
+    }));
+    setNewSpeaker({ name: "", tagline: "", email: "" });
+  };
+
+  const handleRemoveSpeaker = (index) => {
+    setEventForm((prev) => ({
+      ...prev,
+      speakers: (prev.speakers || []).filter((_, i) => i !== index),
+    }));
+  };
+
   const handleCreateEvent = async (isDraft = false) => {
     if (!eventForm.title.trim()) {
       toast({
@@ -513,30 +558,56 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
         endTime: eventForm.endTime ? `${eventForm.endTime}:00` : null,
         location:
           typeof eventForm.location === "object"
-            ? eventForm.location
+            ? {
+                address: eventForm.location.address || "",
+                city: eventForm.location.city || "",
+                state: eventForm.location.state || "",
+                country: eventForm.location.country || ""
+              }
             : { address: eventForm.location || "", city: "", state: "", country: "" },
         batchYear: eventForm.batchYear ? parseInt(eventForm.batchYear, 10) : null,
         criteria: eventForm.criteria ? eventForm.criteria.trim() : null,
         eligibility: eventForm.eligibility ? eventForm.eligibility.trim() : null,
         prizeMoney: eventForm.prizeMoney ? parseFloat(eventForm.prizeMoney) : null,
+        speakers: (eventForm.speakers || [])
+          .map((s) => ({
+            name: s.name ? s.name.trim() : "",
+            tagline: (s.tagline || s.description || s.position || "").trim(),
+            email: s.email && s.email.trim() ? s.email.trim() : null,
+          }))
+          .filter((s) => s.name),
+        coverImage: eventForm.image
+          ? null
+          : eventForm.coverImage !== undefined
+            ? eventForm.coverImage
+            : (eventImagePreview || null),
       };
 
+      const formData = new FormData();
+      formData.append(
+        "event",
+        new Blob([JSON.stringify(payload)], { type: "application/json" })
+      );
+      if (eventForm.image) {
+        formData.append("image", eventForm.image);
+      }
+
       if (isDraft) {
-        await clubMemberApi.saveEventDraft(clubId, payload);
+        if (eventForm.id) {
+          try {
+            await clubMemberApi.deleteEventDraft(clubId, eventForm.id);
+          } catch (e) {
+            console.error("Failed to delete old draft before saving new one", e);
+          }
+        }
+        await clubMemberApi.saveEventDraft(clubId, formData);
         toast({
           title: "Draft Saved",
           description: "Event proposal draft saved successfully.",
         });
         setEventSubtab("draft");
       } else {
-        const formData = new FormData();
-        formData.append(
-          "eventDto",
-          new Blob([JSON.stringify(payload)], { type: "application/json" })
-        );
-        if (eventForm.image) {
-          formData.append("image", eventForm.image);
-        } else {
+        if (!eventForm.image && !eventForm.coverImage && !eventImagePreview) {
           toast({
             title: "Image Required",
             description: "Please attach a banner image for the event proposal.",
@@ -546,6 +617,13 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
           return;
         }
 
+        if (eventForm.id) {
+          try {
+            await clubMemberApi.deleteEventDraft(clubId, eventForm.id);
+          } catch (e) {
+            console.error("Failed to delete draft after submitting", e);
+          }
+        }
         await clubMemberApi.createEvent(clubId, formData);
         toast({
           title: "Proposal Submitted",
@@ -569,8 +647,10 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
         criteria: "",
         eligibility: "",
         prizeMoney: "",
+        speakers: [],
         image: null,
       });
+      setNewSpeaker({ name: "", tagline: "", email: "" });
       setEventImagePreview(null);
       setCreateEventOpen(false);
       await Promise.all([fetchEventsData(), fetchDashboardStatsAndFeeds()]);
@@ -642,6 +722,64 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
         }
       },
     });
+  };
+
+  const formatForInput = (dateStr) => {
+    if (!dateStr) return "";
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return String(dateStr).slice(0, 16);
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    } catch {
+      return String(dateStr).slice(0, 16);
+    }
+  };
+
+  const handleEditDraft = (evt) => {
+    const loc =
+      evt.locationDetails && typeof evt.locationDetails === "object"
+        ? {
+          address: evt.locationDetails.address || "",
+          city: evt.locationDetails.city || "",
+          state: evt.locationDetails.state || "",
+          country: evt.locationDetails.country || "",
+        }
+        : evt.location && typeof evt.location === "object"
+          ? evt.location
+          : { address: evt.location || "", city: "", state: "", country: "" };
+
+    const existingImage = evt.coverImage || evt.image || evt.imageUrl || null;
+    setEventForm({
+      id: evt.id,
+      title: evt.title || "",
+      description: evt.description || "",
+      eventType: evt.eventType || "OFFLINE",
+      isPublic: Boolean(evt.isPublic || evt.public || evt.global),
+      registrationPayment: evt.registrationPayment || "FREE",
+      registrationStart: formatForInput(evt.registrationStart),
+      registrationEnd: formatForInput(evt.registrationEnd),
+      startTime: formatForInput(evt.startTime),
+      endTime: formatForInput(evt.endTime),
+      location: loc,
+      batchYear: evt.batchYear !== null && evt.batchYear !== undefined ? String(evt.batchYear) : "",
+      criteria: evt.criteria || "",
+      eligibility: evt.eligibility || "",
+      prizeMoney: evt.prizeMoney !== null && evt.prizeMoney !== undefined ? String(evt.prizeMoney) : "",
+      registrationPlans: evt.registrationPlans || [],
+      speakers: Array.isArray(evt.speakers)
+        ? evt.speakers.map((s) => ({
+            name: s.name || "",
+            tagline: s.tagline || s.description || s.position || "",
+            email: s.email || "",
+          }))
+        : [],
+      coverImage: existingImage,
+      image: null,
+    });
+    setNewSpeaker({ name: "", tagline: "", email: "" });
+    setEventImagePreview(existingImage);
+    setCreateEventOpen(true);
   };
 
   // -------------------------------------------------------------
@@ -779,23 +917,30 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
           <div className="space-y-6">
             {/* Hero Header Banner - Ultra-Responsive (Only displayed on Dashboard tab) */}
             <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br from-card via-card/90 to-primary/5 p-4 sm:p-6 shadow-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
-                  <Avatar className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl border-2 border-primary/30 shadow-xs shrink-0">
-                    <AvatarFallback className="rounded-2xl bg-primary/20 text-primary font-bold text-xl">
-                      {clubName.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-foreground truncate">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-start gap-3.5 sm:gap-4 min-w-0">
+                  <div className="w-14 h-14 sm:w-18 sm:h-18 rounded-2xl bg-background/90 border border-border/80 flex items-center justify-center shrink-0 overflow-hidden shadow-xs">
+                    {stats.logoUrl ? (
+                      <img
+                        src={stats.logoUrl}
+                        alt={clubName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Users className="w-7 h-7 sm:w-9 sm:h-9 text-primary" />
+                    )}
+                  </div>
+                  <div className="space-y-1.5 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h1 className="text-lg sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-foreground truncate">
                         {clubName}
                       </h1>
-                      <Badge variant="secondary" className="text-[10px] sm:text-[11px] font-semibold tracking-wide uppercase px-2 py-0.5">
-                        Enrolled Member
+                      <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[11px] font-semibold py-0.5">
+                        <ShieldCheck className="w-3.5 h-3.5 mr-1" />
+                        ENROLLED MEMBER
                       </Badge>
                     </div>
-                    <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
+                    <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 leading-relaxed">
                       Active member portal: browse announcements, propose events, and view team rosters.
                     </p>
                   </div>
@@ -1025,7 +1170,6 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
                 <Button
                   size="sm"
                   onClick={() => {
-                    setEditingDraftId(null);
                     setAnnForm({ title: "", content: "" });
                     setCreateAnnOpen(true);
                   }}
@@ -1040,7 +1184,6 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
                 <Button
                   size="sm"
                   onClick={() => {
-                    setEditingDraftId(null);
                     setAnnForm({ title: "", content: "" });
                     setCreateAnnOpen(true);
                   }}
@@ -1069,11 +1212,10 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
                 <button
                   type="button"
                   onClick={() => setAnnouncementSubtab("published")}
-                  className={`w-full sm:w-auto px-3 py-2 sm:py-1.5 text-xs sm:text-sm rounded-lg font-semibold transition-all text-center justify-center flex items-center ${
-                    announcementSubtab === "published"
-                      ? "bg-primary text-primary-foreground shadow-xs"
-                      : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-                  }`}
+                  className={`w-full sm:w-auto px-3 py-2 sm:py-1.5 text-xs sm:text-sm rounded-lg font-semibold transition-all text-center justify-center flex items-center ${announcementSubtab === "published"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                    }`}
                 >
                   Published
                 </button>
@@ -1081,11 +1223,10 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
                 <button
                   type="button"
                   onClick={() => setAnnouncementSubtab("pending")}
-                  className={`w-full sm:w-auto px-3 py-2 sm:py-1.5 text-xs sm:text-sm rounded-lg font-semibold transition-all text-center justify-center flex items-center ${
-                    announcementSubtab === "pending"
-                      ? "bg-primary text-primary-foreground shadow-xs"
-                      : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-                  }`}
+                  className={`w-full sm:w-auto px-3 py-2 sm:py-1.5 text-xs sm:text-sm rounded-lg font-semibold transition-all text-center justify-center flex items-center ${announcementSubtab === "pending"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                    }`}
                 >
                   Pending Approval
                 </button>
@@ -1093,11 +1234,10 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
                 <button
                   type="button"
                   onClick={() => setAnnouncementSubtab("draft")}
-                  className={`col-span-2 sm:col-span-1 w-full sm:w-auto px-3 py-2 sm:py-1.5 text-xs sm:text-sm rounded-lg font-semibold transition-all text-center justify-center flex items-center ${
-                    announcementSubtab === "draft"
-                      ? "bg-primary text-primary-foreground shadow-xs"
-                      : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-                  }`}
+                  className={`col-span-2 sm:col-span-1 w-full sm:w-auto px-3 py-2 sm:py-1.5 text-xs sm:text-sm rounded-lg font-semibold transition-all text-center justify-center flex items-center ${announcementSubtab === "draft"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                    }`}
                 >
                   My Drafts
                 </button>
@@ -1106,55 +1246,37 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
 
             {/* Subtab 1: Published Announcements */}
             {announcementSubtab === "published" && (
-              <div className="space-y-3">
+              <div>
                 {filteredPublishedAnnouncements.length === 0 ? (
-                  <Card className="border-dashed border-border/80">
-                    <CardContent className="py-12">
-                      <EmptyState
-                        title="No Published Announcements"
-                        desc="There are currently no active announcements published for this club."
-                        icon={<BellOff className="w-8 h-8 text-muted-foreground/60" />}
-                      />
-                    </CardContent>
-                  </Card>
+                  <EmptyState
+                    title="No Published Announcements"
+                    desc="There are currently no active announcements published for this club."
+                    icon={<BellOff className="w-8 h-8 text-muted-foreground/60" />}
+                  />
                 ) : (
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                     {filteredPublishedAnnouncements.map((ann) => (
-                      <Card key={ann.id} className="border-border/80 shadow-xs hover:border-primary/30 transition-colors">
-                        <CardContent className="p-4 sm:p-5 space-y-3">
+                      <Card key={ann.id} className="rounded-2xl border-border/60 hover:border-border transition-all shadow-xs flex flex-col justify-between">
+                        <CardHeader className="p-4 pb-2">
                           <div className="flex items-start justify-between gap-2">
-                            <div className="flex items-start gap-2.5 min-w-0">
-                              <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 mt-0.5">
-                                <Megaphone className="w-4 h-4" />
-                              </div>
-                              <div className="min-w-0">
-                                <h4 className="text-sm sm:text-base font-bold text-foreground leading-snug break-words">
-                                  {ann.title}
-                                </h4>
-                                <p className="text-[11px] text-muted-foreground mt-0.5">
-                                  {ann.clubName || clubName || "Campus Club"}
-                                </p>
-                              </div>
-                            </div>
-                            <Badge variant="outline" className="text-[10px] font-semibold shrink-0">
-                              Published
+                            <CardTitle className="text-sm font-bold text-foreground">
+                              {ann.title}
+                            </CardTitle>
+                            <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/20 shrink-0">
+                              Live
                             </Badge>
                           </div>
-                          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-3 whitespace-pre-line break-words pl-0 sm:pl-10.5">
+                          {ann.createdAt && (
+                            <CardDescription className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
+                              <Clock className="w-3 h-3" />
+                              {new Date(ann.createdAt).toLocaleString()}
+                            </CardDescription>
+                          )}
+                        </CardHeader>
+                        <CardContent className="p-4 pt-1 flex-1">
+                          <p className="text-xs text-muted-foreground leading-relaxed">
                             {ann.content}
                           </p>
-                          <div className="pt-2 text-[11px] text-muted-foreground flex flex-wrap items-center justify-between gap-1 border-t border-border/50">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setViewAnnouncement(ann)}
-                              className="h-8 text-xs gap-1.5"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              View Full Details
-                            </Button>
-                            <span>{ann.createdAt ? new Date(ann.createdAt).toLocaleString() : ""}</span>
-                          </div>
                         </CardContent>
                       </Card>
                     ))}
@@ -1165,56 +1287,39 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
 
             {/* Subtab 2: Pending Approval */}
             {announcementSubtab === "pending" && (
-              <div className="space-y-3">
+              <div>
                 {filteredPendingAnnouncements.length === 0 ? (
-                  <Card className="border-dashed border-border/80">
-                    <CardContent className="py-12">
-                      <EmptyState
-                        title="No Pending Announcements"
-                        desc="You don't have any announcements waiting for approval."
-                        icon={<ShieldCheck className="w-8 h-8 text-muted-foreground/60" />}
-                      />
-                    </CardContent>
-                  </Card>
+                  <EmptyState
+                    title="No Pending Announcements"
+                    desc="You don't have any announcements waiting for approval."
+                    icon={<ShieldCheck className="w-8 h-8 text-muted-foreground/60" />}
+                  />
                 ) : (
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                     {filteredPendingAnnouncements.map((ann) => (
-                      <Card key={ann.id} className="border-border/80 shadow-xs hover:border-primary/30 transition-colors">
-                        <CardContent className="p-4 sm:p-5 space-y-3">
+                      <Card key={ann.id} className="rounded-2xl border-amber-500/30 bg-amber-500/5 shadow-xs flex flex-col justify-between">
+                        <CardHeader className="p-4 pb-2">
                           <div className="flex items-start justify-between gap-2">
-                            <div className="flex items-start gap-2.5 min-w-0">
-                              <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 mt-0.5">
-                                <Megaphone className="w-4 h-4" />
-                              </div>
-                              <div className="min-w-0">
-                                <h4 className="text-sm sm:text-base font-bold text-foreground leading-snug break-words">
-                                  {ann.title}
-                                </h4>
-                                <span className="text-[11px] text-muted-foreground block">
-                                  Submitted on {ann.createdAt ? new Date(ann.createdAt).toLocaleString() : "Recently"}
-                                </span>
-                              </div>
-                            </div>
-                            <Badge variant="outline" className="text-[10px] font-semibold text-amber-600 bg-amber-500/10 border-amber-500/20 shrink-0">
+                            <CardTitle className="text-sm font-bold text-foreground">
+                              {ann.title}
+                            </CardTitle>
+                            <Badge variant="outline" className="text-[10px] bg-amber-500/15 text-amber-600 border-amber-500/30 shrink-0">
                               Awaiting Approval
                             </Badge>
                           </div>
-                          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-3 whitespace-pre-line break-words pl-0 sm:pl-10.5">
+                          {ann.createdAt && (
+                            <CardDescription className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
+                              <Clock className="w-3 h-3" />
+                              Submitted {new Date(ann.createdAt).toLocaleString()}
+                            </CardDescription>
+                          )}
+                        </CardHeader>
+                        <CardContent className="p-4 pt-1 flex-1">
+                          <p className="text-xs text-muted-foreground leading-relaxed">
                             {ann.content}
                           </p>
-                          <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-border/50">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setViewAnnouncement(ann)}
-                              className="h-8 text-xs gap-1.5"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              View Full Details
-                            </Button>
-                            <span className="text-[11px] text-amber-600 dark:text-amber-400">
-                              Sent to Club Admin & Mentor for verification
-                            </span>
+                          <div className="mt-3 p-2 rounded-lg bg-background/60 border border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-400">
+                            Sent to Club Admin & Mentor for verification and publication.
                           </div>
                         </CardContent>
                       </Card>
@@ -1226,89 +1331,57 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
 
             {/* Subtab 3: My Drafts */}
             {announcementSubtab === "draft" && (
-              <div className="space-y-3">
+              <div>
                 {filteredDraftAnnouncements.length === 0 ? (
-                  <Card className="border-dashed border-border/80">
-                    <CardContent className="py-12">
-                      <EmptyState
-                        title="No Saved Drafts"
-                        desc="You have not saved any announcement drafts."
-                        icon={<FileText className="w-8 h-8 text-muted-foreground/60" />}
-                      />
-                    </CardContent>
-                  </Card>
+                  <EmptyState
+                    title="No Saved Drafts"
+                    desc="You have not saved any announcement drafts."
+                    icon={<FileText className="w-8 h-8 text-muted-foreground/60" />}
+                  />
                 ) : (
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                     {filteredDraftAnnouncements.map((ann) => (
-                      <Card key={ann.id} className="border-border/80 shadow-xs hover:border-primary/30 transition-colors">
-                        <CardContent className="p-4 sm:p-5 space-y-3">
+                      <Card key={ann.id} className="rounded-2xl border-border/60 hover:border-border transition-all shadow-xs flex flex-col justify-between">
+                        <CardHeader className="p-4 pb-2">
                           <div className="flex items-start justify-between gap-2">
-                            <div className="flex items-start gap-2.5 min-w-0">
-                              <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
-                                <FileText className="w-4 h-4" />
-                              </div>
-                              <div className="space-y-0.5 min-w-0">
-                                <h4 className="text-sm sm:text-base font-bold text-foreground break-words leading-snug">
-                                  {ann.title}
-                                </h4>
-                                <span className="text-[11px] text-muted-foreground block">
-                                  Draft saved on {ann.createdAt ? new Date(ann.createdAt).toLocaleDateString() : "Recently"}
-                                </span>
-                              </div>
-                            </div>
-                            <Badge variant="secondary" className="text-[10px] font-semibold shrink-0">
-                              Member Draft
+                            <CardTitle className="text-sm font-bold text-foreground">
+                              {ann.title}
+                            </CardTitle>
+                            <Badge variant="secondary" className="text-[10px] shrink-0">
+                              Draft
                             </Badge>
                           </div>
-                          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-3 whitespace-pre-line break-words pl-0 sm:pl-10.5">
+                          {ann.createdAt && (
+                            <CardDescription className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
+                              <Clock className="w-3 h-3" />
+                              Saved {new Date(ann.createdAt).toLocaleString()}
+                            </CardDescription>
+                          )}
+                        </CardHeader>
+                        <CardContent className="p-4 pt-1 flex-1">
+                          <p className="text-xs text-muted-foreground leading-relaxed">
                             {ann.content}
                           </p>
-                          <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-border/50">
-                            <div className="flex items-center gap-1.5">
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => handleDeleteAnnDraft(ann.id)}
-                                className="text-xs h-8 font-medium"
-                              >
-                                <Trash2 className="w-3.5 h-3.5 mr-1" />
-                                Discard
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setEditingDraftId(ann.id);
-                                  setAnnForm({ title: ann.title || "", content: ann.content || "" });
-                                  setCreateAnnOpen(true);
-                                }}
-                                className="text-xs h-8 gap-1.5"
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                                Edit Draft
-                              </Button>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setViewAnnouncement(ann)}
-                                className="text-xs h-8 gap-1.5"
-                              >
-                                <Eye className="w-3.5 h-3.5" />
-                                View Full Details
-                              </Button>
-                              <Button
-                                size="sm"
-                                onClick={() => handlePublishAnnDraft(ann.id)}
-                                className="text-xs h-8 font-semibold shadow-xs"
-                              >
-                                <Send className="w-3.5 h-3.5 mr-1" />
-                                Submit for Approval
-                              </Button>
-                            </div>
-                          </div>
                         </CardContent>
+                        <div className="px-4 py-2.5 bg-muted/20 border-t border-border/40 flex items-center justify-between rounded-b-2xl">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteAnnDraft(ann.id)}
+                            className="h-7 text-xs text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 mr-1" />
+                            Discard
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => handlePublishAnnDraft(ann.id)}
+                            className="h-7 text-xs font-semibold shadow-xs"
+                          >
+                            <Send className="w-3.5 h-3.5 mr-1" />
+                            Submit for Approval
+                          </Button>
+                        </div>
                       </Card>
                     ))}
                   </div>
@@ -1413,11 +1486,10 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
                 <button
                   type="button"
                   onClick={() => setEventSubtab("published")}
-                  className={`w-full sm:w-auto px-3 py-2 sm:py-1.5 text-xs sm:text-sm rounded-lg font-semibold transition-all text-center justify-center flex items-center ${
-                    eventSubtab === "published"
-                      ? "bg-primary text-primary-foreground shadow-xs"
-                      : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-                  }`}
+                  className={`w-full sm:w-auto px-3 py-2 sm:py-1.5 text-xs sm:text-sm rounded-lg font-semibold transition-all text-center justify-center flex items-center ${eventSubtab === "published"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                    }`}
                 >
                   Published
                 </button>
@@ -1425,11 +1497,10 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
                 <button
                   type="button"
                   onClick={() => setEventSubtab("finished")}
-                  className={`w-full sm:w-auto px-3 py-2 sm:py-1.5 text-xs sm:text-sm rounded-lg font-semibold transition-all text-center justify-center flex items-center ${
-                    eventSubtab === "finished"
-                      ? "bg-primary text-primary-foreground shadow-xs"
-                      : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-                  }`}
+                  className={`w-full sm:w-auto px-3 py-2 sm:py-1.5 text-xs sm:text-sm rounded-lg font-semibold transition-all text-center justify-center flex items-center ${eventSubtab === "finished"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                    }`}
                 >
                   Finished
                 </button>
@@ -1437,11 +1508,10 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
                 <button
                   type="button"
                   onClick={() => setEventSubtab("pending")}
-                  className={`w-full sm:w-auto px-3 py-2 sm:py-1.5 text-xs sm:text-sm rounded-lg font-semibold transition-all text-center justify-center flex items-center ${
-                    eventSubtab === "pending"
-                      ? "bg-primary text-primary-foreground shadow-xs"
-                      : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-                  }`}
+                  className={`w-full sm:w-auto px-3 py-2 sm:py-1.5 text-xs sm:text-sm rounded-lg font-semibold transition-all text-center justify-center flex items-center ${eventSubtab === "pending"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                    }`}
                 >
                   Pending Approval
                 </button>
@@ -1449,18 +1519,17 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
                 <button
                   type="button"
                   onClick={() => setEventSubtab("draft")}
-                  className={`w-full sm:w-auto px-3 py-2 sm:py-1.5 text-xs sm:text-sm rounded-lg font-semibold transition-all text-center justify-center flex items-center ${
-                    eventSubtab === "draft"
-                      ? "bg-primary text-primary-foreground shadow-xs"
-                      : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-                  }`}
+                  className={`w-full sm:w-auto px-3 py-2 sm:py-1.5 text-xs sm:text-sm rounded-lg font-semibold transition-all text-center justify-center flex items-center ${eventSubtab === "draft"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                    }`}
                 >
                   My Drafts
                 </button>
               </div>
             </div>
 
-          {/* Subtab 1: Published Events */}
+            {/* Subtab 1: Published Events */}
             {eventSubtab === "published" && (
               <div>
                 {filteredPublishedEvents.length === 0 ? (
@@ -1474,57 +1543,111 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
                     {filteredPublishedEvents.map((evt) => {
                       const isGlobal = Boolean(evt.isGlobal || evt.global || evt.state >= 5);
                       return (
-                        <Card key={evt.id} className="rounded-2xl border-border/60 hover:border-border transition-all shadow-xs overflow-hidden flex flex-col justify-between">
-                          {evt.imageUrl && (
-                            <div className="h-36 w-full overflow-hidden bg-muted/40">
-                              <img
-                                src={evt.imageUrl}
-                                alt={evt.title}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          )}
-                          <CardHeader className="p-4 pb-2">
-                            <div className="flex items-center justify-between gap-2 mb-1.5">
-                              {isGlobal ? (
-                                <Badge variant="default" className="text-[10px] font-semibold bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1">
-                                  <Globe className="w-3 h-3" />
-                                  Global Event
-                                </Badge>
+                        <Card key={evt.id} className="flex flex-col justify-between border-border/80 hover:border-primary/40 hover:shadow-md transition-all duration-200 overflow-hidden group rounded-2xl">
+                          <div>
+                            {/* Event Cover Banner */}
+                            <div className="h-44 w-full bg-gradient-to-br from-primary/10 via-accent/20 to-muted relative overflow-hidden border-b border-border/60">
+                              {evt.imageUrl || evt.coverImage || evt.image || evt.posterUrl ? (
+                                <img
+                                  src={evt.imageUrl || evt.coverImage || evt.image || evt.posterUrl}
+                                  alt={evt.title}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  onError={(e) => {
+                                    e.target.style.display = "none";
+                                  }}
+                                />
                               ) : (
-                                <Badge variant="secondary" className="text-[10px] font-semibold flex items-center gap-1">
-                                  <Building2 className="w-3 h-3" />
-                                  Campus Event
+                                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/60 p-4 text-center">
+                                  <Calendar className="w-10 h-10 text-primary/40 mb-1" />
+                                  <span className="text-xs font-medium">Campus Connect Event</span>
+                                </div>
+                              )}
+
+                              {/* Badges on Top */}
+                              <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5 max-w-[70%]">
+                                {isGlobal ? (
+                                  <Badge className="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold flex items-center gap-1 shadow-xs border-none">
+                                    <Globe className="w-3 h-3" />
+                                    Global
+                                  </Badge>
+                                ) : (
+                                  <Badge className="bg-secondary text-secondary-foreground border border-secondary text-[10px] font-bold flex items-center gap-1 shadow-xs">
+                                    <Building2 className="w-3 h-3" />
+                                    Campus
+                                  </Badge>
+                                )}
+                              </div>
+
+                              <div className="absolute top-2.5 right-2.5 flex flex-col items-end gap-1.5">
+                                <Badge className="bg-emerald-500 text-white text-[10px] font-bold shadow-xs border-none">
+                                  Live
                                 </Badge>
-                              )}
-                              <Badge variant="outline" className="text-[10px] text-emerald-600 bg-emerald-500/10 border-emerald-500/20">
-                                Live
-                              </Badge>
+                              </div>
                             </div>
-                            <CardTitle className="text-sm font-bold text-foreground line-clamp-1">
-                              {evt.title}
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent className="p-4 pt-1 space-y-2 flex-1">
-                            <p className="text-xs text-muted-foreground line-clamp-2">
-                              {evt.description}
-                            </p>
-                            <div className="space-y-1 text-[11px] text-muted-foreground pt-1">
-                              {evt.startTime && (
-                                <div className="flex items-center gap-1.5">
-                                  <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
-                                  <span>{new Date(evt.startTime).toLocaleString()}</span>
+
+                            <CardContent className="p-4 sm:p-5 space-y-3">
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[10px] font-semibold bg-primary/5 text-primary border-primary/20 truncate"
+                                  >
+                                    {clubName || "Club Event"}
+                                  </Badge>
+                                  <span className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+                                    {evt.eventType === "ONLINE" ? (
+                                      <>
+                                        <Globe className="w-3 h-3 text-sky-500" /> Online
+                                      </>
+                                    ) : (
+                                      <>
+                                        <MapPin className="w-3 h-3 text-emerald-500" /> Offline
+                                      </>
+                                    )}
+                                  </span>
                                 </div>
-                              )}
-                              {evt.location && (
-                                <div className="flex items-center gap-1.5">
-                                  <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                                  <span className="truncate">{evt.location}</span>
-                                </div>
-                              )}
-                            </div>
-                          </CardContent>
-                          <div className="p-3 bg-muted/20 border-t border-border/40 flex items-center justify-end">
+                                <h3 className="text-base font-bold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                                  {evt.title}
+                                </h3>
+                              </div>
+
+                              <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                                {evt.description || "No description provided."}
+                              </p>
+
+                              <div className="pt-2 border-t border-border/60 space-y-1.5 text-xs text-muted-foreground">
+                                {evt.startTime && (
+                                  <div className="flex items-center gap-1.5">
+                                    <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
+                                    <span>
+                                      {new Date(evt.startTime).toLocaleDateString(undefined, {
+                                        weekday: "short",
+                                        month: "short",
+                                        day: "numeric",
+                                        year: "numeric",
+                                      })}
+                                    </span>
+                                  </div>
+                                )}
+                                {evt.location && (
+                                  <div className="flex items-center gap-1.5">
+                                    <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
+                                    <span className="truncate">{evt.location}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
+                          </div>
+                          <div className="p-3.5 bg-muted/20 border-t border-border/40 mt-auto flex items-center justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setPreviewEvent(evt)}
+                              className="h-7 text-xs font-semibold px-2.5"
+                            >
+                              <Eye className="w-3.5 h-3.5 mr-1" />
+                              Details
+                            </Button>
                             <Button
                               size="sm"
                               onClick={() =>
@@ -1532,7 +1655,7 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
                               }
                               className="h-7 text-xs font-semibold px-3"
                             >
-                              Event Details
+                              Manage
                               <ChevronRight className="w-3.5 h-3.5 ml-1" />
                             </Button>
                           </div>
@@ -1577,16 +1700,17 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
                             {evt.description}
                           </p>
                         </CardContent>
-                        <div className="p-3 bg-muted/20 border-t border-border/40 flex items-center justify-end">
+                        <div className="p-3 bg-muted/20 border-t border-border/40 flex items-center justify-end gap-2">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() =>
                               navigate(`/campus-connect/club-member/${clubId}/events/${evt.id}`)
                             }
-                            className="h-7 text-xs font-semibold"
+                            className="h-7 text-xs font-semibold px-2.5"
                           >
-                            View Summary
+                            <Eye className="w-3.5 h-3.5 mr-1" />
+                            Details
                           </Button>
                         </div>
                       </Card>
@@ -1607,28 +1731,115 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
                   />
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredPendingEvents.map((evt) => (
-                      <Card key={evt.id} className="rounded-2xl border-amber-500/30 bg-amber-500/5 shadow-xs flex flex-col justify-between">
-                        <CardHeader className="p-4 pb-2">
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <Badge variant="outline" className="text-[10px] bg-amber-500/15 text-amber-600 border-amber-500/30">
-                              Under Review
-                            </Badge>
+                    {filteredPendingEvents.map((evt) => {
+                      const poster = evt.imageUrl || evt.coverImage || evt.image || evt.posterUrl;
+                      return (
+                        <Card key={evt.id} className="flex flex-col justify-between border-border/80 hover:border-amber-500/40 hover:shadow-md transition-all duration-200 overflow-hidden group">
+                          <div>
+                            {/* Event Cover Banner */}
+                            <div className="h-44 w-full bg-gradient-to-br from-amber-500/10 via-accent/20 to-muted relative overflow-hidden border-b border-border/60">
+                              {poster ? (
+                                <img
+                                  src={poster}
+                                  alt={evt.title}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  onError={(e) => {
+                                    e.target.style.display = "none";
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/60 p-4 text-center">
+                                  <Calendar className="w-10 h-10 text-amber-500/40 mb-1" />
+                                  <span className="text-xs font-medium">Campus Connect Event</span>
+                                </div>
+                              )}
+
+                              {/* Badges on Top */}
+                              <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5 max-w-[70%]">
+                                <Badge className="bg-amber-500 text-white border border-amber-500 text-[10px] font-bold shadow-xs">
+                                  Under Review
+                                </Badge>
+                              </div>
+
+                              <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
+                                <Badge className="bg-primary text-primary-foreground text-[10px] font-bold shadow-xs">
+                                  {evt.eventType === "ONLINE" ? "Online" : "Offline"}
+                                </Badge>
+                              </div>
+                            </div>
+
+                            <CardContent className="p-4 sm:p-5 space-y-3">
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[10px] font-semibold bg-primary/5 text-primary border-primary/20 truncate"
+                                  >
+                                    {clubName || "Club Event"}
+                                  </Badge>
+                                  {evt.eventType && (
+                                    <span className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+                                      {evt.eventType === "ONLINE" ? (
+                                        <>
+                                          <Globe className="w-3 h-3 text-sky-500" /> Online
+                                        </>
+                                      ) : (
+                                        <>
+                                          <MapPin className="w-3 h-3 text-emerald-500" /> Offline
+                                        </>
+                                      )}
+                                    </span>
+                                  )}
+                                </div>
+                                <h3 className="text-base font-bold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                                  {evt.title}
+                                </h3>
+                              </div>
+
+                              <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                                {evt.description || "No description provided."}
+                              </p>
+
+                              <div className="pt-2 border-t border-border/60 space-y-1.5 text-xs text-muted-foreground">
+                                {evt.startTime && (
+                                  <div className="flex items-center gap-1.5">
+                                    <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
+                                    <span>
+                                      {new Date(evt.startTime).toLocaleDateString(undefined, {
+                                        weekday: "short",
+                                        month: "short",
+                                        day: "numeric",
+                                        year: "numeric",
+                                      })}
+                                    </span>
+                                  </div>
+                                )}
+                                {evt.location && (
+                                  <div className="flex items-center gap-1.5">
+                                    <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
+                                    <span className="truncate">{evt.location}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
                           </div>
-                          <CardTitle className="text-sm font-bold text-foreground">
-                            {evt.title}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4 pt-1 flex-1 space-y-2">
-                          <p className="text-xs text-muted-foreground line-clamp-2">
-                            {evt.description}
-                          </p>
-                          <div className="p-2 rounded-lg bg-background/60 border border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-400">
-                            Sent to Club Admin & Mentor for institutional review.
+
+                          {/* Action Buttons Footer */}
+                          <div className="p-3.5 bg-muted/20 border-t border-border/40 mt-auto grid grid-cols-1 gap-2.5">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setPreviewEvent(evt)}
+                              className="h-9 text-xs font-medium text-primary border-primary/20 hover:bg-primary/5 transition-colors w-full"
+                              title="View Event Preview"
+                            >
+                              <Eye className="w-3.5 h-3.5 mr-1.5" />
+                              Preview
+                            </Button>
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                        </Card>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1645,50 +1856,142 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
                   />
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredDraftEvents.map((evt) => (
-                      <Card key={evt.id} className="rounded-2xl border-border/60 shadow-xs flex flex-col justify-between">
-                        <CardHeader className="p-4 pb-2">
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <Badge variant="secondary" className="text-[10px]">
-                              Draft
-                            </Badge>
+                    {filteredDraftEvents.map((evt) => {
+                      console.log("Draft Event Data:", evt);
+                      const poster = evt.imageUrl || evt.coverImage || evt.image || evt.posterUrl;
+                      return (
+                        <Card key={evt.id} className="flex flex-col justify-between border-border/80 hover:border-primary/40 hover:shadow-md transition-all duration-200 overflow-hidden group">
+                          <div>
+                            {/* Event Cover Banner */}
+                            <div className="h-44 w-full bg-gradient-to-br from-primary/10 via-accent/20 to-muted relative overflow-hidden border-b border-border/60">
+                              {poster ? (
+                                <img
+                                  src={poster}
+                                  alt={evt.title}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  onError={(e) => {
+                                    e.target.style.display = "none";
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/60 p-4 text-center">
+                                  <Calendar className="w-10 h-10 text-primary/40 mb-1" />
+                                  <span className="text-xs font-medium">Campus Connect Event</span>
+                                </div>
+                              )}
+
+                              {/* Badges on Top */}
+                              <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5 max-w-[70%]">
+                                <Badge className="bg-secondary text-secondary-foreground border border-secondary text-[10px] font-bold">
+                                  Draft
+                                </Badge>
+                              </div>
+
+                              <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
+                                <Badge className="bg-primary text-primary-foreground text-[10px] font-bold shadow-xs">
+                                  {evt.eventType === "ONLINE" ? "Online" : "Offline"}
+                                </Badge>
+                              </div>
+                            </div>
+
+                            <CardContent className="p-4 sm:p-5 space-y-3">
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[10px] font-semibold bg-primary/5 text-primary border-primary/20 truncate"
+                                  >
+                                    {clubName || "Club Event"}
+                                  </Badge>
+                                  {evt.eventType && (
+                                    <span className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+                                      {evt.eventType === "ONLINE" ? (
+                                        <>
+                                          <Globe className="w-3 h-3 text-sky-500" /> Online
+                                        </>
+                                      ) : (
+                                        <>
+                                          <MapPin className="w-3 h-3 text-emerald-500" /> Offline
+                                        </>
+                                      )}
+                                    </span>
+                                  )}
+                                </div>
+                                <h3 className="text-base font-bold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                                  {evt.title}
+                                </h3>
+                              </div>
+
+                              <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                                {evt.description || "No description provided."}
+                              </p>
+
+                              <div className="pt-2 border-t border-border/60 space-y-1.5 text-xs text-muted-foreground">
+                                {evt.startTime && (
+                                  <div className="flex items-center gap-1.5">
+                                    <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
+                                    <span>
+                                      {new Date(evt.startTime).toLocaleDateString(undefined, {
+                                        weekday: "short",
+                                        month: "short",
+                                        day: "numeric",
+                                        year: "numeric",
+                                      })}
+                                    </span>
+                                  </div>
+                                )}
+                                {evt.location && (
+                                  <div className="flex items-center gap-1.5">
+                                    <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
+                                    <span className="truncate">{evt.location}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
                           </div>
-                          <CardTitle className="text-sm font-bold text-foreground">
-                            {evt.title}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4 pt-1 flex-1">
-                          <p className="text-xs text-muted-foreground line-clamp-2">
-                            {evt.description}
-                          </p>
-                          {evt.location && (
-                            <p className="text-[11px] text-muted-foreground mt-2 flex items-center gap-1">
-                              <MapPin className="w-3 h-3" />
-                              {evt.location}
-                            </p>
-                          )}
-                        </CardContent>
-                        <div className="p-3 bg-muted/20 border-t border-border/40 flex items-center justify-between">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteEventDraft(evt.id)}
-                            className="h-7 text-xs text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 className="w-3.5 h-3.5 mr-1" />
-                            Discard
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => handlePublishEventDraft(evt.id)}
-                            className="h-7 text-xs font-semibold shadow-xs"
-                          >
-                            <Send className="w-3.5 h-3.5 mr-1" />
-                            Submit Proposal
-                          </Button>
-                        </div>
-                      </Card>
-                    ))}
+
+                          {/* Action Buttons Footer */}
+                          <div className="p-3.5 bg-muted/20 border-t border-border/40 mt-auto grid grid-cols-2 gap-2.5">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setPreviewEvent({ ...evt, isDraft: true })}
+                              className="h-9 text-xs font-medium text-primary border-primary/20 hover:bg-primary/5 transition-colors w-full"
+                              title="View Draft Preview"
+                            >
+                              <Eye className="w-3.5 h-3.5 mr-1.5" />
+                              Preview
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditDraft(evt)}
+                              className="h-9 text-xs font-medium text-primary border-primary/20 hover:bg-primary/5 transition-colors w-full"
+                            >
+                              <Edit className="w-3.5 h-3.5 mr-1.5" />
+                              Edit
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteEventDraft(evt.id)}
+                              className="h-9 text-xs font-medium shadow-xs transition-transform active:scale-95 w-full"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                              Discard
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => handlePublishEventDraft(evt.id)}
+                              className="h-9 text-xs font-medium shadow-xs transition-transform active:scale-95 w-full"
+                            >
+                              <Send className="w-3.5 h-3.5 mr-1.5" />
+                              Submit
+                            </Button>
+                          </div>
+                        </Card>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1887,20 +2190,15 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
         {/* DIALOGS SECTION                                           */}
         {/* ========================================================= */}
 
-        {/* 1. Dialog: Create/Edit Announcement */}
-        <Dialog open={createAnnOpen} onOpenChange={(open) => {
-          setCreateAnnOpen(open);
-          if (!open) setEditingDraftId(null);
-        }}>
+        {/* 1. Dialog: Create Announcement */}
+        <Dialog open={createAnnOpen} onOpenChange={setCreateAnnOpen}>
           <DialogContent className="w-[95vw] sm:max-w-lg rounded-2xl p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-base sm:text-lg font-bold">
-                {editingDraftId ? "Edit Announcement Draft" : "Draft Club Announcement"}
+                Draft Club Announcement
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
-                {editingDraftId
-                  ? "Update your saved draft announcement."
-                  : `Prepare an announcement for review by ${clubName} admins.`}
+                Prepare an announcement for review by {clubName} admins.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 pt-2">
@@ -1915,11 +2213,12 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-foreground">Content / Body *</Label>
-                <MarkdownEditor
+                <Textarea
                   value={annForm.content}
-                  onChange={(val) => setAnnForm((prev) => ({ ...prev, content: val }))}
-                  placeholder="Describe the update, timeline, links, instructions in Markdown..."
-                  rows={6}
+                  onChange={(e) => setAnnForm((prev) => ({ ...prev, content: e.target.value }))}
+                  placeholder="Describe the update, timeline, links, instructions..."
+                  rows={5}
+                  className="text-xs sm:text-sm"
                 />
               </div>
               <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-3 border-t border-border/60">
@@ -1927,10 +2226,7 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => {
-                    setEditingDraftId(null);
-                    setCreateAnnOpen(false);
-                  }}
+                  onClick={() => setCreateAnnOpen(false)}
                   className="text-xs h-9"
                 >
                   Cancel
@@ -1943,7 +2239,7 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
                   onClick={() => handleCreateAnnouncement(true)}
                   className="text-xs h-9 font-medium"
                 >
-                  {editingDraftId ? "Update Draft" : "Save as Draft"}
+                  Save as Draft
                 </Button>
                 <Button
                   type="button"
@@ -1957,51 +2253,6 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
                 </Button>
               </DialogFooter>
             </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* 1.1 Dialog: View Full Announcement Details */}
-        <Dialog
-          open={!!viewAnnouncement}
-          onOpenChange={(open) => !open && setViewAnnouncement(null)}
-        >
-          <DialogContent className="max-h-[90vh] max-w-lg w-full overflow-y-auto rounded-2xl p-4 sm:p-6">
-            <DialogHeader>
-              <div className="space-y-1">
-                <Badge
-                  variant="outline"
-                  className="text-xs font-semibold bg-primary/5 text-primary border-primary/20 mb-1"
-                >
-                  {viewAnnouncement?.clubName || clubName || "Campus Club Announcement"}
-                </Badge>
-                <DialogTitle className="text-lg sm:text-xl font-bold text-foreground">
-                  {viewAnnouncement?.title}
-                </DialogTitle>
-                <DialogDescription className="sr-only">Announcement details</DialogDescription>
-              </div>
-            </DialogHeader>
-
-            {viewAnnouncement && (
-              <div className="space-y-4 pt-2 text-sm">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground border-b border-border/60 pb-2">
-                  <Calendar className="w-3.5 h-3.5 text-primary" />
-                  <span>
-                    {viewAnnouncement.createdAt
-                      ? new Date(viewAnnouncement.createdAt).toLocaleString()
-                      : "Recently"}
-                  </span>
-                </div>
-
-                <div>
-                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">
-                    Official Notice & Content
-                  </h4>
-                  <MarkdownViewer
-                    content={viewAnnouncement.content || viewAnnouncement.message || viewAnnouncement.description}
-                  />
-                </div>
-              </div>
-            )}
           </DialogContent>
         </Dialog>
 
@@ -2154,55 +2405,75 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[11px] text-muted-foreground">City</Label>
-                    <Input
-                      placeholder="City"
-                      value={typeof eventForm.location === "object" ? eventForm.location.city || "" : ""}
-                      onChange={(e) =>
+                    <Label className="text-[11px] text-muted-foreground">Country</Label>
+                    <Select
+                      value={typeof eventForm.location === "object" ? eventForm.location.country || "" : ""}
+                      onValueChange={(val) =>
                         setEventForm((prev) => ({
                           ...prev,
                           location: {
                             ...(typeof prev.location === "object" ? prev.location : {}),
-                            city: e.target.value,
+                            country: val,
+                            state: "", // reset dependent fields
+                            city: "",
                           },
                         }))
                       }
-                      className="h-8 text-xs"
-                    />
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Select Country" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {countries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[11px] text-muted-foreground">State</Label>
-                    <Input
-                      placeholder="State"
+                    <Select
                       value={typeof eventForm.location === "object" ? eventForm.location.state || "" : ""}
-                      onChange={(e) =>
+                      onValueChange={(val) =>
                         setEventForm((prev) => ({
                           ...prev,
                           location: {
                             ...(typeof prev.location === "object" ? prev.location : {}),
-                            state: e.target.value,
+                            state: val,
+                            city: "", // reset dependent field
                           },
                         }))
                       }
-                      className="h-8 text-xs"
-                    />
+                      disabled={!eventForm.location?.country || statesList.length === 0}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Select State" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {statesList.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[11px] text-muted-foreground">Country</Label>
-                    <Input
-                      placeholder="Country"
-                      value={typeof eventForm.location === "object" ? eventForm.location.country || "" : ""}
-                      onChange={(e) =>
+                    <Label className="text-[11px] text-muted-foreground">City</Label>
+                    <Select
+                      value={typeof eventForm.location === "object" ? eventForm.location.city || "" : ""}
+                      onValueChange={(val) =>
                         setEventForm((prev) => ({
                           ...prev,
                           location: {
                             ...(typeof prev.location === "object" ? prev.location : {}),
-                            country: e.target.value,
+                            city: val,
                           },
                         }))
                       }
-                      className="h-8 text-xs"
-                    />
+                      disabled={!eventForm.location?.state || citiesList.length === 0}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Select City" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {citiesList.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </div>
@@ -2240,16 +2511,107 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
                 </div>
               </div>
 
+              {/* Event Speakers Section */}
+              <div className="p-3.5 rounded-xl border border-border/60 bg-muted/20 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Mic className="w-4 h-4 text-primary" />
+                    <p className="text-xs font-bold text-foreground">Event Speakers</p>
+                  </div>
+                  <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary">
+                    {eventForm.speakers?.length || 0} Speakers
+                  </Badge>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Add keynote speakers, guest lecturers, or session leads. (Optional)
+                </p>
+
+                {eventForm.speakers && eventForm.speakers.length > 0 && (
+                  <div className="space-y-2">
+                    {eventForm.speakers.map((spk, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between p-2.5 rounded-lg bg-background border border-border/60 text-xs"
+                      >
+                        <div className="space-y-0.5">
+                          <p className="font-semibold text-foreground">{spk.name}</p>
+                          {(spk.tagline || spk.description || spk.position) && (
+                            <p className="text-[11px] text-muted-foreground">
+                              {spk.tagline || spk.description || spk.position}
+                            </p>
+                          )}
+                          {spk.email && (
+                            <p className="text-[10px] text-primary/80 truncate">{spk.email}</p>
+                          )}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveSpeaker(idx)}
+                          className="h-6 w-6 p-0 text-destructive"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                  <Input
+                    placeholder="Speaker Name *"
+                    value={newSpeaker.name}
+                    onChange={(e) => setNewSpeaker((prev) => ({ ...prev, name: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                  <Input
+                    placeholder="Role / Position / Bio"
+                    value={newSpeaker.tagline}
+                    onChange={(e) => setNewSpeaker((prev) => ({ ...prev, tagline: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                  <Input
+                    placeholder="Email Address (optional)"
+                    type="email"
+                    value={newSpeaker.email}
+                    onChange={(e) => setNewSpeaker((prev) => ({ ...prev, email: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddSpeaker}
+                  disabled={!newSpeaker.name.trim()}
+                  className="h-8 text-xs w-full sm:w-auto"
+                >
+                  <Plus className="w-3.5 h-3.5 mr-1" />
+                  Add Speaker
+                </Button>
+              </div>
+
               {/* Banner Image */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-foreground">Event Banner Image *</Label>
                 <div className="flex items-center gap-3">
                   {eventImagePreview && (
-                    <img
-                      src={eventImagePreview}
-                      alt="Banner Preview"
-                      className="w-16 h-12 object-cover rounded-lg border border-border shrink-0"
-                    />
+                    <div className="relative inline-block shrink-0">
+                      <img
+                        src={eventImagePreview}
+                        alt="Banner Preview"
+                        className="w-16 h-12 object-cover rounded-lg border border-border"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemoveEventImage}
+                        className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-full p-0.5 shadow-md transition-colors"
+                        title="Remove image"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   )}
                   <input
                     type="file"
@@ -2317,6 +2679,13 @@ export default function ClubMemberDashboard({ initialTab = "dashboard" }) {
           onSubmit={handleReturnToStudent}
           loading={returnLoading}
           error={returnError}
+        />
+        {/* 5. Event Preview Modal */}
+        <EventPreviewModal
+          event={previewEvent}
+          open={!!previewEvent}
+          onClose={() => setPreviewEvent(null)}
+          clubName={clubName}
         />
       </div>
     </DashboardLayout>

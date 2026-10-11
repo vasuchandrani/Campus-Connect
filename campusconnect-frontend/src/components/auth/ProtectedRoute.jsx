@@ -56,7 +56,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
       if (cid) {
         if (currentRole === "CLUB_ADMIN") return <Navigate to={`/campus-connect/club-admin/${cid}/dashboard`} replace />;
         if (currentRole === "CLUB_MEMBER") return <Navigate to={`/campus-connect/club-member/${cid}/dashboard`} replace />;
-        if (currentRole === "CLUB_MENTOR") return <Navigate to={`/campus-connect/professor/clubs/${cid}/mentor-dashboard`} replace />;
+        if (currentRole === "CLUB_MENTOR" || currentRole === "PRIMARY_MENTOR" || currentRole === "MENTOR") return <Navigate to={`/campus-connect/professor/clubs/${cid}/mentor-dashboard`} replace />;
       }
       return <Navigate to="/auth" replace />;
     }

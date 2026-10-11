@@ -29,6 +29,7 @@ import com.campusconnect.campusconnectbackend.cc_event.repository.CCEventRegistr
 import com.campusconnect.campusconnectbackend.cc_event.repository.CCEventRepository;
 import com.campusconnect.campusconnectbackend.user.entity.User;
 import com.campusconnect.campusconnectbackend.user.repository.UserRepository;
+import java.util.Comparator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -273,10 +274,12 @@ public class EventServiceImpl implements EventService {
     private boolean saveSpeakers(List<EventSpeakerRequestDto> speakers, Event event) {
         if (speakers == null) return true;
         for (EventSpeakerRequestDto s : speakers) {
+            if (s.getName() == null || s.getName().trim().isEmpty()) continue;
             EventSpeaker speaker = new EventSpeaker();
-            speaker.setName(s.getName());
-            speaker.setDescription(s.getTagline());
-            speaker.setEmail(s.getEmail());
+            speaker.setName(s.getName().trim());
+            speaker.setDescription(s.getEffectiveTagline());
+            String email = (s.getEmail() != null && !s.getEmail().trim().isEmpty()) ? s.getEmail().trim() : null;
+            speaker.setEmail(email);
             speaker.setEvent(event);
             eventSpeakerRepository.save(speaker);
         }
@@ -426,7 +429,10 @@ public class EventServiceImpl implements EventService {
             @CacheEvict(value = "active_events", key = "'college_' + @authService.getCurrentCollegeId()"),
             @CacheEvict(value = "active_clubEvents", key = "#clubId"),
             @CacheEvict(value = "topActive_events", key = "'college_' + @authService.getCurrentCollegeId()"),
-            @CacheEvict(value = "topActive_clubEvents", key = "#clubId")
+            @CacheEvict(value = "topActive_clubEvents", key = "#clubId"),
+            @CacheEvict(value = "finished_clubEvents", key = "#clubId"),
+            @CacheEvict(value = "club_details", key = "#clubId"),
+            @CacheEvict(value = "club_dashboard_stats", key = "#clubId")
     })
     public MessageResponseDto createEvent(EventRequestDto request, Long clubId, MultipartFile image) {
         Club club = clubService.getClubById(clubId);
@@ -576,7 +582,10 @@ public class EventServiceImpl implements EventService {
             @CacheEvict(value = "finished_events", key = "'college_' + @authService.getCurrentCollegeId()"),
             @CacheEvict(value = "topActive_events", key = "'college_' + @authService.getCurrentCollegeId()"),
             @CacheEvict(value = "topActive_clubEvents", key = "#clubId"),
-            @CacheEvict(value = "active_clubEvents", key = "#clubId")
+            @CacheEvict(value = "active_clubEvents", key = "#clubId"),
+            @CacheEvict(value = "finished_clubEvents", key = "#clubId"),
+            @CacheEvict(value = "club_details", key = "#clubId"),
+            @CacheEvict(value = "club_dashboard_stats", key = "#clubId")
     })
     public MessageResponseDto deleteEvent(Long eventId, Long clubId) {
         if (!eventRepository.existsById(eventId)) {
@@ -628,6 +637,18 @@ public class EventServiceImpl implements EventService {
             }
             dtoList.add(dto);
         }
+
+        // Also fetch active public events from the regular event table
+        List<Event> publicEvents = eventRepository.findActivePublicEvents(LocalDateTime.now());
+        List<EventResponseDto> publicDtoList = getDtoList(publicEvents);
+        for (EventResponseDto dto : publicDtoList) {
+            dto.setGlobal(true); // they are effectively global
+        }
+        dtoList.addAll(publicDtoList);
+
+        // Sort both lists by start time
+        dtoList.sort(Comparator.comparing(EventResponseDto::getStartTime));
+
         return dtoList;
     }
 
@@ -639,6 +660,15 @@ public class EventServiceImpl implements EventService {
         }
         CCEvent event = ccEventRepository.findById(eventId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Global event not found"));
+        
+        if (event.getRegistrationStart() != null && event.getRegistrationStart().isAfter(LocalDateTime.now())) {
+            return new MessageResponseDto("Registration has not started yet for this event");
+        }
+
+        if (event.getRegistrationEnd() != null && event.getRegistrationEnd().isBefore(LocalDateTime.now())) {
+            return new MessageResponseDto("Registration has been closed for this event");
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 

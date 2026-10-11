@@ -94,6 +94,21 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     int countActiveEventsByCollege(@Param("clubs") List<Club> clubs,
                                    @Param("now") LocalDateTime now);
 
+    @Query("""
+        SELECT e
+        FROM Event e
+        WHERE e.isPublic = true
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DRAFT
+          AND e.status <> com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.DELETED
+          AND (e.status = com.campusconnect.campusconnectbackend.event.entity.enums.EventStatus.PUBLISHED OR e.state >= 2 OR e.status IS NULL)
+          AND (
+                (e.startTime <= :now AND e.endTime >= :now)
+             OR (e.startTime > :now)
+          )
+        ORDER BY e.startTime ASC
+    """)
+    List<Event> findActivePublicEvents(@Param("now") LocalDateTime now);
+
 
     /* By Club */
 

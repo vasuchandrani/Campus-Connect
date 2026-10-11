@@ -114,9 +114,13 @@ public class ClubMemberController {
         return clubMemberService.getMyDraftEvents(clubId, authService.getCurrentUserId());
     }
 
-    @PostMapping("/events/draft")
-    public MessageResponseDto saveEventDraft(@PathVariable Long clubId, @RequestBody EventRequestDto request) {
-        return clubMemberService.saveEventDraft(clubId, request, authService.getCurrentUserId());
+    @PostMapping(value = "/events/draft", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public MessageResponseDto saveEventDraft(
+            @PathVariable Long clubId,
+            @RequestPart("event") EventRequestDto request,
+            @RequestPart(value = "image", required = false) org.springframework.web.multipart.MultipartFile image
+    ) {
+        return clubMemberService.saveEventDraft(clubId, request, authService.getCurrentUserId(), image);
     }
 
     @PostMapping("/events/drafts/{id}/publish")

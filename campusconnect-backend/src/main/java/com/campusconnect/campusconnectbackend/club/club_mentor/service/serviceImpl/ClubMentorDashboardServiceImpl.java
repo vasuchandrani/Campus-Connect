@@ -398,6 +398,16 @@ public class ClubMentorDashboardServiceImpl implements ClubMentorDashboardServic
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "active_events", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "finished_events", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "topActive_events", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "active_clubEvents", key = "#clubId"),
+            @CacheEvict(value = "topActive_clubEvents", key = "#clubId"),
+            @CacheEvict(value = "finished_clubEvents", key = "#clubId"),
+            @CacheEvict(value = "club_details", key = "#clubId"),
+            @CacheEvict(value = "club_dashboard_stats", key = "#clubId")
+    })
     public MessageResponseDto publishEventDraft(Long clubId, Long eventId, Long profId) {
         getMentoredClubOrThrow(clubId, profId);
         Event event = eventRepository.findById(eventId)
@@ -421,6 +431,16 @@ public class ClubMentorDashboardServiceImpl implements ClubMentorDashboardServic
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "active_events", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "finished_events", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "topActive_events", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "active_clubEvents", key = "#clubId"),
+            @CacheEvict(value = "topActive_clubEvents", key = "#clubId"),
+            @CacheEvict(value = "finished_clubEvents", key = "#clubId"),
+            @CacheEvict(value = "club_details", key = "#clubId"),
+            @CacheEvict(value = "club_dashboard_stats", key = "#clubId")
+    })
     public MessageResponseDto approveEvent(Long clubId, Long eventId, Long profId) {
         getMentoredClubOrThrow(clubId, profId);
         Event event = eventRepository.findById(eventId)
@@ -436,6 +456,16 @@ public class ClubMentorDashboardServiceImpl implements ClubMentorDashboardServic
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "active_events", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "finished_events", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "topActive_events", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "active_clubEvents", key = "#clubId"),
+            @CacheEvict(value = "topActive_clubEvents", key = "#clubId"),
+            @CacheEvict(value = "finished_clubEvents", key = "#clubId"),
+            @CacheEvict(value = "club_details", key = "#clubId"),
+            @CacheEvict(value = "club_dashboard_stats", key = "#clubId")
+    })
     public MessageResponseDto rejectEvent(Long clubId, Long eventId, Long profId) {
         getMentoredClubOrThrow(clubId, profId);
         Event event = eventRepository.findById(eventId)

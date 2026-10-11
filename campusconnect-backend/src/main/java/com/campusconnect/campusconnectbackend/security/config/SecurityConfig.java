@@ -19,107 +19,118 @@ import org.springframework.security.config.Customizer;
 @Configuration
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final RateLimitFilter rateLimitFilter;
+        private final JwtAuthenticationFilter jwtAuthenticationFilter;
+        private final RateLimitFilter rateLimitFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, RateLimitFilter rateLimitFilter) {
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-        this.rateLimitFilter = rateLimitFilter;
-    }
+        public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, RateLimitFilter rateLimitFilter) {
+                this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+                this.rateLimitFilter = rateLimitFilter;
+        }
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        @Bean
+        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
-        http
-                .cors(Customizer.withDefaults())
-                .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
-                .authorizeHttpRequests(auth -> auth
+                http
+                                .cors(Customizer.withDefaults())
+                                .csrf(AbstractHttpConfigurer::disable)
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                .authorizeHttpRequests(auth -> auth
 
-                        // allow CORS preflight requests
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                                                // allow CORS preflight requests
+                                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // public routes
-                        .requestMatchers(
-                                "/campus-connect/college-admin/signup",
-                                "/campus-connect/college-admin/login",
-                                "/campus-connect/college-admin/create-order",
-                                "/campus-connect/college-admin/verify",
+                                                // public routes
+                                                .requestMatchers(
+                                                                "/campus-connect/college-admin/signup",
+                                                                "/campus-connect/college-admin/login",
+                                                                "/campus-connect/college-admin/create-order",
+                                                                "/campus-connect/college-admin/verify",
 
-                                "/campus-connect/student/signup",
-                                "/campus-connect/student/login",
+                                                                "/campus-connect/student/signup",
+                                                                "/campus-connect/student/login",
 
-                                "/campus-connect/journalist/login",
-                                "/campus-connect/professor/login",
-                                "/campus-connect/professor/signup",
+                                                                "/campus-connect/journalist/login",
+                                                                "/campus-connect/professor/login",
+                                                                "/campus-connect/professor/signup",
 
-                                "/campus-connect/colleges",
-                                "/campus-connect/colleges/*/departments",
+                                                                "/campus-connect/colleges",
+                                                                "/campus-connect/colleges/*/departments",
 
-                                "/campus-connect/email/**",
+                                                                "/campus-connect/email/**",
+                                                                "/flush-cache",
 
-                                "/campus-connect/security/reset-pwd",
-                                "/campus-connect/security/send-code",
-                                "/campus-connect/security/verify-code"
-                        ).permitAll()
+                                                                "/campus-connect/security/reset-pwd",
+                                                                "/campus-connect/security/send-code",
+                                                                "/campus-connect/security/verify-code")
+                                                .permitAll()
 
-                        // Department management for College Admin
-                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/campus-connect/departments/**", "/campus-connect/admin/departments/**").hasRole("COLLEGE_ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/campus-connect/departments/**", "/campus-connect/admin/departments/**").hasRole("COLLEGE_ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/campus-connect/departments/**", "/campus-connect/admin/departments/**").hasRole("COLLEGE_ADMIN")
+                                                // Department management for College Admin
+                                                .requestMatchers(org.springframework.http.HttpMethod.POST,
+                                                                "/campus-connect/departments/**",
+                                                                "/campus-connect/admin/departments/**")
+                                                .hasRole("COLLEGE_ADMIN")
+                                                .requestMatchers(org.springframework.http.HttpMethod.PUT,
+                                                                "/campus-connect/departments/**",
+                                                                "/campus-connect/admin/departments/**")
+                                                .hasRole("COLLEGE_ADMIN")
+                                                .requestMatchers(org.springframework.http.HttpMethod.DELETE,
+                                                                "/campus-connect/departments/**",
+                                                                "/campus-connect/admin/departments/**")
+                                                .hasRole("COLLEGE_ADMIN")
 
-                        // Role-based routes
-                        .requestMatchers("/campus-connect/college-admin/**")
-                        .hasRole("COLLEGE_ADMIN")
+                                                // Role-based routes
+                                                .requestMatchers("/campus-connect/college-admin/**")
+                                                .hasRole("COLLEGE_ADMIN")
 
-                        .requestMatchers("/campus-connect/student/**")
-                        .hasRole("STUDENT")
+                                                .requestMatchers("/campus-connect/student/events/**")
+                                                .hasAnyRole("STUDENT", "CLUB_ADMIN", "CLUB_MEMBER")
 
-                        .requestMatchers("/campus-connect/journalist/**")
-                        .hasRole("JOURNALIST")
+                                                .requestMatchers("/campus-connect/student/**")
+                                                .hasRole("STUDENT")
 
-                        .requestMatchers(
-                                "/campus-connect/professor/clubs/*/mentor-dashboard",
-                                "/campus-connect/professor/clubs/*/mentor-dashboard/**",
-                                "/campus-connect/professor/clubs/*/sub-login/mentor",
-                                "/campus-connect/professor/clubs/*/mentor/return-to-professor",
-                                "/campus-connect/professor/return-to-professor"
-                        ).hasAnyRole("CLUB_MENTOR", "PROFESSOR")
+                                                .requestMatchers("/campus-connect/journalist/**")
+                                                .hasRole("JOURNALIST")
 
-                        .requestMatchers("/campus-connect/professor/**")
-                        .hasRole("PROFESSOR")
+                                                .requestMatchers(
+                                                                "/campus-connect/professor/clubs/*/mentor-dashboard",
+                                                                "/campus-connect/professor/clubs/*/mentor-dashboard/**",
+                                                                "/campus-connect/professor/clubs/*/sub-login/mentor",
+                                                                "/campus-connect/professor/clubs/*/mentor/return-to-professor",
+                                                                "/campus-connect/professor/return-to-professor")
+                                                .hasAnyRole("CLUB_MENTOR", "PROFESSOR")
 
-                        // club routes are used by students, club staff, professors, and college admins
-                        .requestMatchers("/campus-connect/clubs/**")
-                        .hasAnyRole("STUDENT", "CLUB_ADMIN", "CLUB_MEMBER", "PROFESSOR", "COLLEGE_ADMIN", "CLUB_MENTOR")
+                                                .requestMatchers("/campus-connect/professor/**")
+                                                .hasRole("PROFESSOR")
 
-                        // event registration & payment routes
-                        .requestMatchers("/campus-connect/events/**")
-                        .hasAnyRole("STUDENT", "CLUB_ADMIN", "CLUB_MEMBER")
+                                                // club routes are used by students, club staff, professors, and college
+                                                // admins
+                                                .requestMatchers("/campus-connect/clubs/**")
+                                                .hasAnyRole("STUDENT", "CLUB_ADMIN", "CLUB_MEMBER", "PROFESSOR",
+                                                                "COLLEGE_ADMIN", "CLUB_MENTOR")
 
-                        .anyRequest().authenticated()
-                )
-                .addFilterBefore(
-                        rateLimitFilter,
-                        UsernamePasswordAuthenticationFilter.class
-                )
-                .addFilterBefore(
-                        jwtAuthenticationFilter,
-                        UsernamePasswordAuthenticationFilter.class
-                );
+                                                // event registration & payment routes
+                                                .requestMatchers("/campus-connect/events/**")
+                                                .hasAnyRole("STUDENT", "CLUB_ADMIN", "CLUB_MEMBER")
 
-        return http.build();
-    }
+                                                .anyRequest().authenticated())
+                                .addFilterBefore(
+                                                rateLimitFilter,
+                                                UsernamePasswordAuthenticationFilter.class)
+                                .addFilterBefore(
+                                                jwtAuthenticationFilter,
+                                                UsernamePasswordAuthenticationFilter.class);
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+                return http.build();
+        }
 
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
-    }
+        @Bean
+        public PasswordEncoder passwordEncoder() {
+                return new BCryptPasswordEncoder();
+        }
+
+        @Bean
+        public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+                return config.getAuthenticationManager();
+        }
 }

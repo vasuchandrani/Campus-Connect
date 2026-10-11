@@ -356,8 +356,12 @@ const ClubMemberEventsPage = () => {
   };
 
   const handleAddSpeaker = () => {
-    if (!newSpeaker.name.trim() || !newSpeaker.email.trim()) return;
-    setSpeakers([...speakers, newSpeaker]);
+    if (!newSpeaker.name.trim()) return;
+    setSpeakers([...speakers, {
+      name: newSpeaker.name.trim(),
+      tagline: (newSpeaker.tagline || "").trim(),
+      email: (newSpeaker.email || "").trim(),
+    }]);
     setNewSpeaker({ name: "", email: "", tagline: "" });
   };
 
@@ -775,12 +779,12 @@ const ClubMemberEventsPage = () => {
 
                   {/* Add Speaker Form */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                    <Input placeholder="Name" value={newSpeaker.name} onChange={(e) => setNewSpeaker({ ...newSpeaker, name: e.target.value })} />
-                    <Input placeholder="Email" type="email" value={newSpeaker.email} onChange={(e) => setNewSpeaker({ ...newSpeaker, email: e.target.value })} />
-                    <Input placeholder="Tagline (e.g. AI Expert)" value={newSpeaker.tagline} onChange={(e) => setNewSpeaker({ ...newSpeaker, tagline: e.target.value })} />
+                    <Input placeholder="Speaker Name *" value={newSpeaker.name} onChange={(e) => setNewSpeaker({ ...newSpeaker, name: e.target.value })} />
+                    <Input placeholder="Role / Position / Bio" value={newSpeaker.tagline} onChange={(e) => setNewSpeaker({ ...newSpeaker, tagline: e.target.value })} />
+                    <Input placeholder="Email Address (optional)" type="email" value={newSpeaker.email} onChange={(e) => setNewSpeaker({ ...newSpeaker, email: e.target.value })} />
                   </div>
 
-                  <Button variant="outline" size="sm" onClick={handleAddSpeaker} disabled={!newSpeaker.name || !newSpeaker.email || requesting}>
+                  <Button variant="outline" size="sm" onClick={handleAddSpeaker} disabled={!newSpeaker.name.trim() || requesting}>
                     + Add Speaker
                   </Button>
 
@@ -871,16 +875,24 @@ const ClubMemberEventsPage = () => {
                     <p>{selectedEvent.endTime && (<span><strong>End Time:</strong> {selectedEvent.endTime.split("T")[1].substring(0, 5)}</span>)}</p>
                     <p><strong>Registration End:</strong> {formatDate(selectedEvent.registrationEnd).date}</p>
                     <p><strong>Registration Count:</strong> {selectedEvent.registrationsCount}</p>
-                    <div>
-                      {selectedEvent.speakers && selectedEvent.speakers.length > 0 && (
-                        <>
-                          <strong>Speakers:</strong>
-                          <ul className="list-disc pl-5">
-                            {selectedEvent.speakers.map((speaker, index) => (<li key={index}>{speaker.name}</li>))}
-                          </ul>
-                        </>
-                      )}
-                    </div>
+                    {selectedEvent.speakers && selectedEvent.speakers.length > 0 && (
+                      <div className="space-y-1.5 pt-1">
+                        <p className="font-semibold text-xs sm:text-sm text-foreground">Speakers ({selectedEvent.speakers.length}):</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {selectedEvent.speakers.map((speaker, index) => (
+                            <div key={index} className="p-2.5 rounded-lg border border-border/70 bg-muted/30 text-xs space-y-0.5">
+                              <p className="font-semibold text-foreground">{speaker.name}</p>
+                              {(speaker.tagline || speaker.description || speaker.position) && (
+                                <p className="text-[11px] text-muted-foreground">{speaker.tagline || speaker.description || speaker.position}</p>
+                              )}
+                              {speaker.email && (
+                                <p className="text-[10px] text-primary/80 truncate">{speaker.email}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <div>
                       {selectedEvent.sponsors && selectedEvent.sponsors.length > 0 && (
                         <>
@@ -894,6 +906,9 @@ const ClubMemberEventsPage = () => {
                   </>
                 ) : (
                   <>
+                    <Label>Title</Label>
+                    <Input value={selectedEvent.title || ""} onChange={(e) => setSelectedEvent({ ...selectedEvent, title: e.target.value })} />
+                    
                     <Label>Upload Image</Label>
                     <Input type="file" accept="image/*" onChange={(e) => { const file = e.target.files[0]; if (file) { setSelectedEvent({ ...selectedEvent, image: file }); } }} />
                     {selectedEvent.image && (
@@ -920,27 +935,40 @@ const ClubMemberEventsPage = () => {
                       </div>
                     </div>
                     <Label>Registration End Date</Label>
-                    <Input type="date" value={selectedEvent.registrationEnd?.split("T")[0] || ""} onChange={(e) => setSelectedEvent({ ...selectedEvent, registrationEnd: e.target.value })} />
+                    <Input type="date" value={selectedEvent.registrationEndDate || selectedEvent.registrationEnd?.split("T")[0] || ""} onChange={(e) => setSelectedEvent({ ...selectedEvent, registrationEndDate: e.target.value })} />
+                    
                     <Label>Location</Label>
-                    <Input value={selectedEvent.location} onChange={(e) => setSelectedEvent({ ...selectedEvent, location: e.target.value })} />
+                    <Input 
+                      value={typeof selectedEvent.location === "object" ? selectedEvent.location?.address || "" : selectedEvent.location || ""} 
+                      onChange={(e) => setSelectedEvent({ ...selectedEvent, location: typeof selectedEvent.location === "object" ? { ...selectedEvent.location, address: e.target.value } : e.target.value })} 
+                    />
+                    
+                    <Label>Prize Money (₹)</Label>
+                    <Input type="number" value={selectedEvent.prizeMoney || ""} onChange={(e) => setSelectedEvent({ ...selectedEvent, prizeMoney: e.target.value ? parseInt(e.target.value, 10) : null })} />
+
+                    <Label>Eligibility Criteria</Label>
+                    <Input value={selectedEvent.eligibility || ""} onChange={(e) => setSelectedEvent({ ...selectedEvent, eligibility: e.target.value })} />
+
                     <Label>Description</Label>
-                    <Textarea value={selectedEvent.description} onChange={(e) => setSelectedEvent({ ...selectedEvent, description: e.target.value })} />
+                    <Textarea value={selectedEvent.description || ""} onChange={(e) => setSelectedEvent({ ...selectedEvent, description: e.target.value })} />
 
                     {/* SPEAKERS SECTION */}
                     <div className="space-y-4 mt-6">
                       <Label>Speakers ({speakers.length})</Label>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                        <Input placeholder="Name" value={newSpeaker.name} onChange={(e) => setNewSpeaker({ ...newSpeaker, name: e.target.value })} />
-                        <Input placeholder="Email" value={newSpeaker.email} onChange={(e) => setNewSpeaker({ ...newSpeaker, email: e.target.value })} />
-                        <Input placeholder="Tagline" value={newSpeaker.tagline} onChange={(e) => setNewSpeaker({ ...newSpeaker, tagline: e.target.value })} />
+                        <Input placeholder="Speaker Name *" value={newSpeaker.name} onChange={(e) => setNewSpeaker({ ...newSpeaker, name: e.target.value })} />
+                        <Input placeholder="Role / Position / Bio" value={newSpeaker.tagline} onChange={(e) => setNewSpeaker({ ...newSpeaker, tagline: e.target.value })} />
+                        <Input placeholder="Email Address (optional)" type="email" value={newSpeaker.email} onChange={(e) => setNewSpeaker({ ...newSpeaker, email: e.target.value })} />
                       </div>
-                      <Button variant="outline" size="sm" onClick={handleAddSpeaker} disabled={!newSpeaker.name || !newSpeaker.email || requesting}>+ Add Speaker</Button>
+                      <Button variant="outline" size="sm" onClick={handleAddSpeaker} disabled={!newSpeaker.name.trim() || requesting}>+ Add Speaker</Button>
                       {speakers.map((speaker, index) => (
-                        <div key={index} className="border rounded-md p-3 flex justify-between">
-                          <div>
-                            <p className="font-semibold">{speaker.name}</p>
-                            <p className="text-sm text-muted-foreground">{speaker.email}</p>
-                            <p className="text-xs italic">{speaker.tagline}</p>
+                        <div key={index} className="border rounded-md p-3 flex justify-between items-start">
+                          <div className="space-y-0.5">
+                            <p className="font-semibold text-xs sm:text-sm text-foreground">{speaker.name}</p>
+                            {(speaker.tagline || speaker.description || speaker.position) && (
+                              <p className="text-[11px] text-muted-foreground">{speaker.tagline || speaker.description || speaker.position}</p>
+                            )}
+                            {speaker.email && <p className="text-[10px] text-primary/80 truncate">{speaker.email}</p>}
                           </div>
                           <button onClick={() => handleRemoveSpeaker(index)} className="text-destructive text-sm">Remove</button>
                         </div>

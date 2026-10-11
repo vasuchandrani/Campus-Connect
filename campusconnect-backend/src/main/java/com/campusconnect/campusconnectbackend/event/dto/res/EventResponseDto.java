@@ -22,6 +22,7 @@ public class EventResponseDto {
     // Event type and hosting
     private String eventType;
     private String hostedBy;
+    @com.fasterxml.jackson.annotation.JsonProperty("isPublic")
     private boolean isPublic;
 
     // Payment

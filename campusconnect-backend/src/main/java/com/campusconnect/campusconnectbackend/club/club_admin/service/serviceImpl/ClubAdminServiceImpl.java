@@ -235,6 +235,15 @@ public class ClubAdminServiceImpl implements ClubAdminService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "active_events", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "active_clubEvents", key = "#clubId"),
+            @CacheEvict(value = "topActive_events", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "topActive_clubEvents", key = "#clubId"),
+            @CacheEvict(value = "finished_clubEvents", key = "#clubId"),
+            @CacheEvict(value = "club_details", key = "#clubId"),
+            @CacheEvict(value = "club_dashboard_stats", key = "#clubId")
+    })
     public MessageResponseDto publishEventDraft(Long clubId, Long eventId) {
         Club club = clubRepository.findById(clubId)
                 .orElseThrow(() -> new RuntimeException("Club not found"));
@@ -266,6 +275,16 @@ public class ClubAdminServiceImpl implements ClubAdminService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "active_events", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "finished_events", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "topActive_events", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "active_clubEvents", key = "#clubId"),
+            @CacheEvict(value = "topActive_clubEvents", key = "#clubId"),
+            @CacheEvict(value = "finished_clubEvents", key = "#clubId"),
+            @CacheEvict(value = "club_details", key = "#clubId"),
+            @CacheEvict(value = "club_dashboard_stats", key = "#clubId")
+    })
     public MessageResponseDto approveEvent(Long clubId, Long eventId) {
         Club club = clubRepository.findById(clubId)
                 .orElseThrow(() -> new RuntimeException("Club not found"));
@@ -288,6 +307,16 @@ public class ClubAdminServiceImpl implements ClubAdminService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "active_events", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "finished_events", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "topActive_events", key = "'college_' + @authService.getCurrentCollegeId()"),
+            @CacheEvict(value = "active_clubEvents", key = "#clubId"),
+            @CacheEvict(value = "topActive_clubEvents", key = "#clubId"),
+            @CacheEvict(value = "finished_clubEvents", key = "#clubId"),
+            @CacheEvict(value = "club_details", key = "#clubId"),
+            @CacheEvict(value = "club_dashboard_stats", key = "#clubId")
+    })
     public MessageResponseDto rejectEvent(Long clubId, Long eventId) {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new RuntimeException("Event not found"));
@@ -328,7 +357,21 @@ public class ClubAdminServiceImpl implements ClubAdminService {
             dto.setRegistrationEnd(e.getRegistrationEnd());
             if (e.getLocation() != null) {
                 dto.setLocation(e.getLocation().getAddress());
+                com.campusconnect.campusconnectbackend.common.location.dto.LocationResponseDto locDto = new com.campusconnect.campusconnectbackend.common.location.dto.LocationResponseDto();
+                locDto.setId(e.getLocation().getId());
+                locDto.setAddress(e.getLocation().getAddress());
+                locDto.setCity(e.getLocation().getCity());
+                locDto.setState(e.getLocation().getState());
+                locDto.setCountry(e.getLocation().getCountry());
+                dto.setLocationDetails(locDto);
             }
+            if (e.getEventType() != null) dto.setEventType(e.getEventType().name());
+            if (e.getRegistrationPayment() != null) dto.setRegistrationPayment(e.getRegistrationPayment().name());
+            dto.setRegistrationStart(e.getRegistrationStart());
+            dto.setBatchYear(e.getBatchYear());
+            dto.setCriteria(e.getCriteria());
+            dto.setEligibility(e.getEligibility());
+            dto.setPrizeMoney(e.getPrizeMoney());
             if (e.getClub() != null) {
                 dto.setClubName(e.getClub().getName());
             }
